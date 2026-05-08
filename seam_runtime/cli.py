@@ -273,7 +273,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcp_parser = subparsers.add_parser("mcp", help="Run SEAM agent integration bridges")
     mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
-    mcp_subparsers.add_parser("serve", help="Serve a lightweight JSON-lines MCP-compatible bridge over stdio")
+    mcp_subparsers.add_parser("stdio", help="Serve a standards-compliant MCP JSON-RPC server over stdio")
+    mcp_subparsers.add_parser("serve", help="Serve the legacy JSON-lines bridge over stdio")
 
     compare_parser = subparsers.add_parser("compare", aliases=["hybrid-compare"], help="Compare basic search with retrieval ranking")
     compare_parser.add_argument("query")
@@ -786,6 +787,11 @@ def run_cli(argv: list[str] | None = None) -> None:
                 return
             print(render_memory_records(payload))
             return
+    if args.command == "mcp" and args.mcp_command == "stdio":
+        from .mcp_protocol import run_mcp_server
+
+        run_mcp_server(runtime)
+        return
     if args.command == "mcp" and args.mcp_command == "serve":
         from .mcp import run_stdio_bridge
 

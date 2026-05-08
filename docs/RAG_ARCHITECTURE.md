@@ -13,8 +13,8 @@ contract: canonical meaning lives in MIRL records stored in SQLite.
 claude-mem is strong at agent integration: one-command install, automatic
 capture, progressive disclosure, and Claude Code ecosystem fit. SEAM follows
 that pattern with command-first install docs, compact `memory search`, full
-`memory get`, and a lightweight `mcp serve` bridge that wrappers can sit on top
-of without rewriting the Python runtime.
+`memory get`, and a standard MCP stdio server that wrappers can sit on top of
+without rewriting the Python runtime.
 
 ## Data Flow
 
@@ -60,15 +60,49 @@ first, then fetch full MIRL only for selected records.
 
 ## Agent Bridge
 
-`seam mcp serve` starts a JSON-lines stdio bridge with these tool names:
+`seam mcp stdio` and the `seam-mcp` console script start a standards-compliant
+MCP JSON-RPC server over stdio. Gemini CLI, Claude Desktop, Cursor, OpenCode,
+and other MCP clients can configure it as a local stdio server and discover
+these SEAM tools:
 
 - `seam_memory_search`
 - `seam_memory_get`
 - `seam_ingest`
+- `seam_stats`
+- `seam_documents`
+- `seam_context`
+- `seam_doctor`
+- `seam_surface_list`
+- `seam_surface_show`
+- `seam_surface_query`
+- `seam_surface_decode`
+- `seam_surface_verify`
+- `seam_surface_context`
+- `seam_index_status`
+- `seam_retrieve`
+- `seam_benchmark_latest`
 
-The bridge is intentionally thin. Node, Claude Code, Gemini CLI, OpenCode, or
-other wrappers can spawn the Python command and speak JSON lines while SEAM
-keeps the runtime, storage, and retrieval code in one place.
+The MCP server is intentionally thin: it adapts MCP `initialize`, `tools/list`,
+and `tools/call` to the existing SEAM runtime dispatcher. The older
+`seam mcp serve` JSON-lines bridge is retained for legacy local wrappers, but
+new agent integrations should use `seam mcp stdio`.
+
+Gemini project-local config:
+
+```json
+{
+  "mcpServers": {
+    "seam": {
+      "command": "python",
+      "args": ["-m", "seam_runtime.mcp_protocol"],
+      "cwd": ".",
+      "timeout": 30000,
+      "trust": false,
+      "description": "SEAM local memory runtime MCP server"
+    }
+  }
+}
+```
 
 ## Stale Index Detection
 

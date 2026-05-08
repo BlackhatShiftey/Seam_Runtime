@@ -33,6 +33,7 @@ seam = "seam:main"
 seam-benchmark = "seam:benchmark_main"
 seam-dash = "seam_runtime.dashboard:main"
 seam-server = "seam_runtime.server:main"
+seam-mcp = "seam_runtime.mcp_protocol:main"
 
 [tool.setuptools]
 py-modules = ["seam"]

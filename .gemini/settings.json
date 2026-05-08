@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "seam": {
+      "command": "python",
+      "args": ["-m", "seam_runtime.mcp_protocol"],
+      "cwd": ".",
+      "timeout": 30000,
+      "trust": false,
+      "description": "SEAM local memory runtime MCP server"
+    }
+  }
+}

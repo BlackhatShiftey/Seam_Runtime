@@ -1,0 +1,210 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import TextIO
+
+from .installer import default_runtime_db_path
+from .mcp import TOOL_METADATA, dispatch_tool
+from .runtime import SeamRuntime
+
+
+SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
+DEFAULT_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[0]
+
+JSONRPC_PARSE_ERROR = -32700
+JSONRPC_INVALID_REQUEST = -32600
+JSONRPC_METHOD_NOT_FOUND = -32601
+JSONRPC_INVALID_PARAMS = -32602
+JSONRPC_INTERNAL_ERROR = -32603
+
+
+class JsonRpcError(Exception):
+    def __init__(self, code: int, message: str, data: object | None = None) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.data = data
+
+
+def run_mcp_server(
+    runtime: SeamRuntime,
+    input_stream: TextIO | None = None,
+    output_stream: TextIO | None = None,
+) -> None:
+    """Run a standards-compliant MCP stdio server.
+
+    The older `seam mcp serve` JSON-lines bridge remains available for local
+    wrappers. This server speaks MCP JSON-RPC so Gemini CLI, Claude Desktop,
+    Cursor, and other MCP clients can discover and call the same SEAM tools.
+    """
+
+    input_stream = input_stream or sys.stdin
+    output_stream = output_stream or sys.stdout
+    for line in input_stream:
+        if not line.strip():
+            continue
+        for response in _handle_jsonrpc_line(runtime, line):
+            if response is not None:
+                _write_jsonrpc(output_stream, response)
+
+
+def _handle_jsonrpc_line(runtime: SeamRuntime, line: str) -> list[dict[str, object] | None]:
+    try:
+        message = json.loads(line)
+    except json.JSONDecodeError as exc:
+        return [_error_response(None, JSONRPC_PARSE_ERROR, "Parse error", str(exc))]
+
+    if isinstance(message, list):
+        if not message:
+            return [_error_response(None, JSONRPC_INVALID_REQUEST, "Invalid Request")]
+        return [_handle_jsonrpc_message(runtime, item) for item in message]
+    return [_handle_jsonrpc_message(runtime, message)]
+
+
+def _handle_jsonrpc_message(runtime: SeamRuntime, message: object) -> dict[str, object] | None:
+    if not isinstance(message, dict):
+        return _error_response(None, JSONRPC_INVALID_REQUEST, "Invalid Request")
+    request_id = message.get("id")
+    method = message.get("method")
+    if message.get("jsonrpc") != "2.0" or not isinstance(method, str):
+        return _error_response(request_id, JSONRPC_INVALID_REQUEST, "Invalid Request")
+
+    # JSON-RPC notifications do not receive responses.
+    if request_id is None:
+        return None
+
+    try:
+        result = _dispatch_mcp_method(runtime, method, message.get("params") or {})
+        return {"jsonrpc": "2.0", "id": request_id, "result": result}
+    except JsonRpcError as exc:
+        return _error_response(request_id, exc.code, exc.message, exc.data)
+    except Exception as exc:  # pragma: no cover - defensive protocol boundary
+        return _error_response(request_id, JSONRPC_INTERNAL_ERROR, "Internal error", str(exc))
+
+
+def _dispatch_mcp_method(runtime: SeamRuntime, method: str, params: object) -> dict[str, object]:
+    if method == "initialize":
+        if not isinstance(params, dict):
+            raise JsonRpcError(JSONRPC_INVALID_PARAMS, "initialize params must be an object")
+        requested_version = str(params.get("protocolVersion") or "")
+        protocol_version = requested_version if requested_version in SUPPORTED_PROTOCOL_VERSIONS else DEFAULT_PROTOCOL_VERSION
+        return {
+            "protocolVersion": protocol_version,
+            "capabilities": {"tools": {"listChanged": False}},
+            "serverInfo": {
+                "name": "seam",
+                "title": "SEAM Memory Runtime",
+                "version": "0.1.0",
+            },
+            "instructions": (
+                "Use SEAM tools for persistent local memory, prompt-ready context, "
+                "retrieval, document status, install diagnostics, benchmarks, and stored HS/1 surfaces."
+            ),
+        }
+    if method == "ping":
+        return {}
+    if method == "tools/list":
+        return {"tools": [_mcp_tool_definition(name, metadata) for name, metadata in TOOL_METADATA.items()]}
+    if method == "tools/call":
+        if not isinstance(params, dict):
+            raise JsonRpcError(JSONRPC_INVALID_PARAMS, "tools/call params must be an object")
+        name = str(params.get("name") or "")
+        if name not in TOOL_METADATA:
+            raise JsonRpcError(JSONRPC_INVALID_PARAMS, f"Unknown SEAM MCP tool: {name!r}")
+        arguments = params.get("arguments") or {}
+        if not isinstance(arguments, dict):
+            raise JsonRpcError(JSONRPC_INVALID_PARAMS, "tools/call arguments must be an object")
+        return _call_tool(runtime, name, arguments)
+    raise JsonRpcError(JSONRPC_METHOD_NOT_FOUND, f"Method not found: {method}")
+
+
+def _call_tool(runtime: SeamRuntime, name: str, arguments: dict[str, object]) -> dict[str, object]:
+    try:
+        response = dispatch_tool(runtime, {"tool": name, "arguments": arguments})
+    except Exception as exc:
+        return {
+            "content": [{"type": "text", "text": str(exc)}],
+            "isError": True,
+        }
+    result = response.get("result")
+    return {
+        "content": [{"type": "text", "text": json.dumps(result, indent=2, sort_keys=True)}],
+        "structuredContent": result if isinstance(result, dict) else {"result": result},
+        "isError": False,
+    }
+
+
+def _mcp_tool_definition(name: str, metadata: dict[str, object]) -> dict[str, object]:
+    title = " ".join(part.capitalize() for part in name.removeprefix("seam_").split("_"))
+    return {
+        "name": name,
+        "title": f"SEAM {title}",
+        "description": str(metadata.get("description") or ""),
+        "inputSchema": _mcp_input_schema(metadata.get("input_schema")),
+        "annotations": metadata.get("annotations") or {},
+    }
+
+
+def _mcp_input_schema(input_schema: object) -> dict[str, object]:
+    if not isinstance(input_schema, dict) or not input_schema:
+        return {"type": "object", "properties": {}, "additionalProperties": False}
+    properties: dict[str, object] = {}
+    required: list[str] = []
+    for key, spec in input_schema.items():
+        if not isinstance(spec, dict):
+            continue
+        if spec.get("required") is True:
+            required.append(str(key))
+        properties[str(key)] = _mcp_property_schema(spec)
+    schema: dict[str, object] = {
+        "type": "object",
+        "properties": properties,
+        "additionalProperties": False,
+    }
+    if required:
+        schema["required"] = required
+    return schema
+
+
+def _mcp_property_schema(spec: dict[str, object]) -> dict[str, object]:
+    schema_type = str(spec.get("type") or "string")
+    schema: dict[str, object]
+    if schema_type == "array<string> or comma-string":
+        schema = {
+            "oneOf": [
+                {"type": "array", "items": {"type": "string"}},
+                {"type": "string"},
+            ]
+        }
+    else:
+        schema = {"type": schema_type}
+    for key in ("description", "default", "minimum", "maximum", "pattern", "enum"):
+        if key in spec:
+            schema[key] = spec[key]
+    return schema
+
+
+def _error_response(request_id: object, code: int, message: str, data: object | None = None) -> dict[str, object]:
+    error: dict[str, object] = {"code": code, "message": message}
+    if data is not None:
+        error["data"] = data
+    return {"jsonrpc": "2.0", "id": request_id, "error": error}
+
+
+def _write_jsonrpc(output_stream: TextIO, payload: dict[str, object]) -> None:
+    output_stream.write(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")
+    output_stream.flush()
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Run the SEAM MCP stdio server")
+    parser.add_argument("--db", default=default_runtime_db_path(), help="SQLite database path")
+    args = parser.parse_args(argv)
+    run_mcp_server(SeamRuntime(Path(args.db)))
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

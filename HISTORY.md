@@ -3017,3 +3017,27 @@ Verification: `python -m pytest test_seam_all/test_seam.py tools/history/test_hi
 
 Next: commit the in-progress slices (#144 docs sweep, #145 visual-memory loop runtime, #146 operator runbook + ROADMAP cleanup, #147 README polish) and push to origin/main so the work survives the operator's platform switch to Linux. After push, run `seam benchmark run all --persist` then `seam benchmark gate` on Linux to prove cross-platform measurability of the surface gate.
 ---END-ENTRY-#147---
+
+---BEGIN-ENTRY-#148---
+id: 148
+date: 2026-05-08T13:25:11Z
+agent: codex
+status: done
+topics: mcp, multi-agent, command, protocol, verify, history, snapshot
+commits: none
+refs: seam_runtime/mcp_protocol.py,seam_runtime/cli.py,pyproject.toml,test_seam_all/test_seam.py,.gemini/settings.json,GEMINI.md,README.md,docs/RAG_ARCHITECTURE.md,PROJECT_STATUS.md,REPO_LEDGER.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 147
+tokens: 365
+---
+Built the standards-compliant MCP server adapter for SEAM so Gemini and other MCP clients can discover and call SEAM tools directly.
+
+Previous state: `seam mcp serve` exposed a legacy JSON-lines bridge that local wrappers could speak, but Gemini CLI expected MCP JSON-RPC initialize/tools/list/tools/call over stdio and `gemini mcp list` reported no configured servers.
+
+New state: `seam_runtime/mcp_protocol.py` implements a dependency-free MCP stdio server with JSON-RPC lifecycle handling, protocol version negotiation, `tools/list`, `tools/call`, `ping`, MCP-shaped JSON schemas derived from the existing SEAM tool metadata, structuredContent results, and tool execution errors returned with `isError`. `seam mcp stdio` and the new `seam-mcp` console script run this standard server. The existing `seam mcp serve` JSON-lines bridge remains for legacy wrappers. `.gemini/settings.json` now configures the repo-local `seam` MCP server, and `GEMINI.md` tells Gemini when to use SEAM tools.
+
+Changed files: seam_runtime/mcp_protocol.py, seam_runtime/cli.py, pyproject.toml, test_seam_all/test_seam.py, .gemini/settings.json, GEMINI.md, README.md, docs/RAG_ARCHITECTURE.md, PROJECT_STATUS.md, REPO_LEDGER.md, HISTORY.md, HISTORY_INDEX.md, .seam/snapshots.
+
+Verification: `python -m pytest test_seam_all/test_seam.py -q -k "mcp"` returned 10/10 PASS. Raw stdio smoke through `python -m seam_runtime.mcp_protocol` returned valid MCP JSON-RPC responses for initialize, tools/list, and tools/call seam_stats. `gemini mcp list` from the repo root returned `seam: python -m seam_runtime.mcp_protocol (stdio) - Connected`. Full suite `python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q` returned 175/175 PASS. `python -m tools.history.verify_integrity` and `python -m tools.history.verify_routing` both returned OK before history closeout. Candidate-file secret/session scan returned no real secret hits; the only match was the word `refs` in REPO_LEDGER context-policy prose.
+
+Next: start Gemini from the repo root and run `/mcp` or ask it to use SEAM context; Gemini should expose the tools under its MCP naming convention. For future agent clients, point them at `seam-mcp` or `python -m seam_runtime.mcp_protocol` over stdio rather than the legacy JSON-lines bridge.
+---END-ENTRY-#148---

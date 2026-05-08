@@ -580,6 +580,70 @@ claim c1:
         for tool_name in ("seam_surface_verify", "seam_surface_context", "seam_index_status", "seam_retrieve"):
             self.assertIn(tool_name, ready_line["tools"], f"{tool_name} missing from ready line")
 
+    def test_mcp_protocol_server_handles_initialize_list_and_call(self) -> None:
+        from seam_runtime.mcp_protocol import run_mcp_server
+
+        runtime = SeamRuntime(self.db_path)
+        requests = [
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {},
+                    "clientInfo": {"name": "unit-test", "version": "1.0"},
+                },
+            },
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {"name": "seam_stats", "arguments": {}},
+            },
+            {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "tools/call",
+                "params": {"name": "seam_memory_search", "arguments": {"query": ""}},
+            },
+            {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "missing", "arguments": {}}},
+        ]
+        output = StringIO()
+        run_mcp_server(
+            runtime,
+            input_stream=StringIO("\n".join(json.dumps(request) for request in requests)),
+            output_stream=output,
+        )
+
+        responses = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([response["id"] for response in responses], [1, 2, 3, 4, 5])
+        self.assertEqual(responses[0]["result"]["protocolVersion"], "2025-06-18")
+        self.assertEqual(responses[0]["result"]["capabilities"]["tools"]["listChanged"], False)
+
+        tools = responses[1]["result"]["tools"]
+        names = {tool["name"] for tool in tools}
+        self.assertIn("seam_context", names)
+        self.assertIn("seam_ingest", names)
+        context_tool = next(tool for tool in tools if tool["name"] == "seam_context")
+        self.assertEqual(context_tool["inputSchema"]["type"], "object")
+        self.assertIn("query", context_tool["inputSchema"]["required"])
+
+        call_result = responses[2]["result"]
+        self.assertFalse(call_result["isError"])
+        self.assertEqual(call_result["content"][0]["type"], "text")
+        self.assertIn("total_records", call_result["structuredContent"])
+
+        invalid_args = responses[3]["result"]
+        self.assertTrue(invalid_args["isError"])
+        self.assertIn("query is required", invalid_args["content"][0]["text"])
+
+        unknown_tool = responses[4]["error"]
+        self.assertEqual(unknown_tool["code"], -32602)
+        self.assertIn("Unknown SEAM MCP tool", unknown_tool["message"])
+
     def test_symbol_promotion_and_pack_compaction(self) -> None:
         runtime = SeamRuntime(self.db_path)
         batch = runtime.compile_nl(
