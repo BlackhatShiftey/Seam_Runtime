@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import TextIO
 
 from .doctor import build_doctor_report
-from .holographic import decode_surface, query_surface
+from .holographic import decode_surface, query_surface, verify_surface, context_surface
 from .runtime import SeamRuntime
+from experimental.retrieval_orchestrator import RetrievalOrchestrator
 
 
 # Backwards-compatible name->description map. The ready line still emits this
@@ -25,6 +26,10 @@ TOOL_DESCRIPTIONS = {
     "seam_surface_show": "Show one stored SEAM-HS/1 surface library entry by `hs:<id>` ref (mirrors `seam surface show`).",
     "seam_surface_query": "Query embedded MIRL or SEAM-RC/1 directly inside a registered HS/1 surface by `hs:<id>` (mirrors `seam surface query`).",
     "seam_surface_decode": "Decode the embedded payload of a registered HS/1 surface by `hs:<id>` and return its metadata + truncated text view.",
+    "seam_surface_verify": "Verify a registered HS/1 surface by `hs:<id>`: check hash integrity and return PASS/FAIL with error details.",
+    "seam_surface_context": "Extract a prompt-ready context pack directly from a registered HS/1 surface PNG by `hs:<id>` without restoring the source document.",
+    "seam_index_status": "Report vector index staleness: compare stored MIRL records against embedded vector hashes and return missing/stale records.",
+    "seam_retrieve": "Run full retrieval (vector, graph, hybrid, or mix) and return ranked results with optional trace.",
     "seam_benchmark_latest": "Return the most recent persisted benchmark run summaries for agent triage.",
 }
 
@@ -122,6 +127,41 @@ TOOL_METADATA = {
         "description": TOOL_DESCRIPTIONS["seam_benchmark_latest"],
         "input_schema": {
             "limit": {"type": "integer", "required": False, "default": 1, "minimum": 1, "maximum": 50},
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    "seam_surface_verify": {
+        "description": TOOL_DESCRIPTIONS["seam_surface_verify"],
+        "input_schema": {
+            "surface_ref": {"type": "string", "required": True, "pattern": "^hs:[0-9a-f]+$", "description": "Canonical 'hs:<hex>' surface id from seam_surface_list."},
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    "seam_surface_context": {
+        "description": TOOL_DESCRIPTIONS["seam_surface_context"],
+        "input_schema": {
+            "surface_ref": {"type": "string", "required": True, "pattern": "^hs:[0-9a-f]+$"},
+            "query": {"type": "string", "required": True, "description": "Question or topic to build context around."},
+            "budget": {"type": "integer", "required": False, "default": 1200, "minimum": 1, "maximum": 65536, "description": "Token budget for prompt-ready context."},
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
+    },
+    "seam_index_status": {
+        "description": TOOL_DESCRIPTIONS["seam_index_status"],
+        "input_schema": {
+            "scope": {"type": "string", "required": False, "description": "Optional scope filter."},
+            "limit": {"type": "integer", "required": False, "default": 100, "minimum": 1, "maximum": 500, "description": "Max stale records to return before truncating."},
+        },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
+    },
+    "seam_retrieve": {
+        "description": TOOL_DESCRIPTIONS["seam_retrieve"],
+        "input_schema": {
+            "query": {"type": "string", "required": True, "description": "Search query."},
+            "scope": {"type": "string", "required": False, "description": "Optional scope filter."},
+            "budget": {"type": "integer", "required": False, "default": 5, "minimum": 1, "maximum": 50, "description": "Max ranked candidates returned."},
+            "mode": {"type": "string", "required": False, "default": "hybrid", "enum": ["vector", "graph", "hybrid", "mix"], "description": "Retrieval mode: vector (semantic only), graph (relationship traversal), hybrid (vector+sql), mix (all three)."},
+            "include_trace": {"type": "boolean", "required": False, "default": False, "description": "Include per-leg hit traces for debugging."},
         },
         "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
     },
@@ -233,6 +273,56 @@ def dispatch_tool(runtime: SeamRuntime, request: dict[str, object]) -> dict[str,
         limit = _bounded_int(arguments.get("limit"), default=1, low=1, high=50)
         rows = runtime.list_benchmark_runs(limit=limit)
         return {"type": "result", "tool": name, "result": _paginated(rows, key="runs", limit=limit)}
+    if name == "seam_surface_verify":
+        surface_ref = _validated_hs_ref(arguments.get("surface_ref") or arguments.get("ref"))
+        artifact_path = _resolve_registered_surface_path(runtime, surface_ref)
+        result = verify_surface(artifact_path)
+        return {"type": "result", "tool": name, "result": result.to_dict()}
+    if name == "seam_surface_context":
+        surface_ref = _validated_hs_ref(arguments.get("surface_ref") or arguments.get("ref"))
+        query = _required_text(arguments.get("query"), field="query", tool=name)
+        budget = _bounded_int(arguments.get("budget"), default=1200, low=1, high=65536)
+        artifact_path = _resolve_registered_surface_path(runtime, surface_ref)
+        result = context_surface(artifact_path, query=query, budget=budget)
+        return {"type": "result", "tool": name, "result": result}
+    if name == "seam_index_status":
+        scope_arg = arguments.get("scope")
+        limit = _bounded_int(arguments.get("limit"), default=100, low=1, high=500)
+        batch = runtime.store.load_ir(scope=str(scope_arg) if isinstance(scope_arg, str) and scope_arg else None)
+        indexable_count = sum(1 for record in batch.records if record.kind.value in {"CLM", "STA", "EVT", "REL"})
+        stale_rows: list[dict[str, object]] = []
+        inspector = getattr(runtime.vector_adapter, "stale_records", None)
+        if inspector is not None:
+            stale_rows = inspector(batch.records)
+        stale_slice = stale_rows[:limit] if len(stale_rows) > limit else stale_rows
+        return {
+            "type": "result",
+            "tool": name,
+            "result": {
+                "total_records": len(batch.records),
+                "indexable_records": indexable_count,
+                "stale_count": len(stale_rows),
+                "stale_records": stale_slice,
+                "stale_truncated": len(stale_rows) > limit,
+            },
+        }
+    if name == "seam_retrieve":
+        query = _required_text(arguments.get("query"), field="query", tool=name)
+        scope_arg = arguments.get("scope")
+        budget = _bounded_int(arguments.get("budget"), default=5, low=1, high=50)
+        mode = str(arguments.get("mode") or "hybrid").strip()
+        if mode not in {"vector", "graph", "hybrid", "mix"}:
+            raise ValueError(f"mode must be one of ['vector', 'graph', 'hybrid', 'mix']")
+        include_trace = bool(arguments.get("include_trace"))
+        orchestrator = RetrievalOrchestrator(runtime)
+        result = orchestrator.search(
+            query=query,
+            scope=str(scope_arg) if isinstance(scope_arg, str) and scope_arg else None,
+            budget=budget,
+            include_trace=include_trace,
+            mode=mode,
+        )
+        return {"type": "result", "tool": name, "result": result.to_dict()}
     raise ValueError(
         f"Unknown SEAM MCP tool: {name!r}. Known tools: {sorted(TOOL_DESCRIPTIONS)}."
     )
@@ -322,3 +412,15 @@ def _redact_doctor_report(report: dict[str, object]) -> dict[str, object]:
 def _write(output_stream: TextIO, payload: dict[str, object]) -> None:
     output_stream.write(json.dumps(payload, sort_keys=True) + "\n")
     output_stream.flush()
+
+
+_EXTRA_DESCRIPTIONS = set(TOOL_DESCRIPTIONS) - set(TOOL_METADATA)
+_EXTRA_METADATA = set(TOOL_METADATA) - set(TOOL_DESCRIPTIONS)
+if _EXTRA_DESCRIPTIONS or _EXTRA_METADATA:
+    import warnings
+    _MISMATCH_MSG = (
+        "SEAM MCP tool registry mismatch: "
+        + (f"TOOL_DESCRIPTIONS keys missing from TOOL_METADATA: {sorted(_EXTRA_DESCRIPTIONS)}. " if _EXTRA_DESCRIPTIONS else "")
+        + (f"TOOL_METADATA keys missing from TOOL_DESCRIPTIONS: {sorted(_EXTRA_METADATA)}." if _EXTRA_METADATA else "")
+    ).rstrip()
+    warnings.warn(_MISMATCH_MSG, RuntimeWarning, stacklevel=2)

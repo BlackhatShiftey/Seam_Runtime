@@ -447,6 +447,139 @@ claim c1:
                         child.unlink()
                 artifact_dir.rmdir()
 
+    def test_mcp_bridge_surface_verify_and_context_on_registered_surface(self) -> None:
+        source_path = Path(f"mcp_verify_source_{uuid4().hex}.seamrc")
+        surface_path = Path(f"mcp_verify_surface_{uuid4().hex}.seam.png")
+        artifact_dir = TEST_ARTIFACT_DIR / f"mcp_verify_surfaces_{uuid4().hex}"
+        try:
+            text = "MCP verify fixture: surface integrity checks pass for valid SEAM-HS/1 artifacts."
+            artifact = compress_text_readable(text, source_ref="unit://mcp-verify", tokenizer="char4_approx")
+            source_path.write_text(artifact.machine_text, encoding="utf-8")
+
+            encode_stream = StringIO()
+            with redirect_stdout(encode_stream):
+                run_cli([
+                    "--db", str(self.db_path),
+                    "surface", "encode", str(source_path),
+                    "--output", str(surface_path),
+                    "--store", "--artifact-dir", str(artifact_dir),
+                    "--format", "json",
+                ])
+            surface_id = json.loads(encode_stream.getvalue())["library"]["surface_id"]
+
+            runtime = SeamRuntime(self.db_path)
+
+            verify = dispatch_tool(
+                runtime,
+                {"tool": "seam_surface_verify", "arguments": {"surface_ref": surface_id}},
+            )
+            self.assertEqual(verify["type"], "result")
+            self.assertEqual(verify["result"]["status"], "PASS")
+
+            context = dispatch_tool(
+                runtime,
+                {
+                    "tool": "seam_surface_context",
+                    "arguments": {"surface_ref": surface_id, "query": "integrity checks pass", "budget": 256},
+                },
+            )
+            self.assertEqual(context["type"], "result")
+            self.assertIn("context", context["result"])
+            self.assertIn("source_path", context["result"])
+
+            with self.assertRaises(ValueError):
+                dispatch_tool(runtime, {"tool": "seam_surface_context", "arguments": {"surface_ref": surface_id, "query": ""}})
+        finally:
+            for path in (source_path, surface_path):
+                if path.exists():
+                    path.unlink()
+            if artifact_dir.exists():
+                for child in artifact_dir.glob("*"):
+                    if child.is_file():
+                        child.unlink()
+                artifact_dir.rmdir()
+
+    def test_mcp_bridge_index_status_reports_staleness(self) -> None:
+        runtime = SeamRuntime(self.db_path)
+        runtime.ingest_text("SEAM index status: first document for vector staleness check.", source_ref="unit://mcp-index-status", persist=True)
+
+        status = dispatch_tool(runtime, {"tool": "seam_index_status", "arguments": {}})
+        self.assertEqual(status["type"], "result")
+        self.assertGreater(status["result"]["total_records"], 0)
+        self.assertGreater(status["result"]["indexable_records"], 0)
+        self.assertIn("stale_count", status["result"])
+        self.assertIn("stale_records", status["result"])
+
+        with_scope = dispatch_tool(runtime, {"tool": "seam_index_status", "arguments": {"scope": "thread", "limit": 1}})
+        self.assertEqual(with_scope["type"], "result")
+
+        with_boundary = dispatch_tool(runtime, {"tool": "seam_index_status", "arguments": {"limit": 1}})
+        self.assertEqual(with_boundary["type"], "result")
+
+    def test_mcp_bridge_retrieve_supports_all_four_modes_and_rejects_invalid(self) -> None:
+        runtime = SeamRuntime(self.db_path)
+        runtime.ingest_text(
+            "Retrieval testing: vector-only semantic search returns results. "
+            "Graph traversal follows entity relationships. Hybrid combines vector and SQL. "
+            "Mix mode uses all three strategies together.",
+            source_ref="unit://mcp-retrieve",
+            persist=True,
+        )
+
+        for mode in ("vector", "graph", "hybrid", "mix"):
+            result = dispatch_tool(
+                runtime,
+                {
+                    "tool": "seam_retrieve",
+                    "arguments": {"query": "semantic search and retrieval modes", "mode": mode, "budget": 3},
+                },
+            )
+            self.assertEqual(result["type"], "result", f"mode={mode} failed")
+            self.assertIn("candidates", result["result"])
+            self.assertIn("query", result["result"])
+
+        traced = dispatch_tool(
+            runtime,
+            {
+                "tool": "seam_retrieve",
+                "arguments": {"query": "entity relationships", "mode": "mix", "include_trace": True},
+            },
+        )
+        self.assertIn("trace", traced["result"])
+        self.assertIsNotNone(traced["result"]["trace"])
+
+        with self.assertRaises(ValueError):
+            dispatch_tool(runtime, {"tool": "seam_retrieve", "arguments": {"query": "test", "mode": "invalid"}})
+        with self.assertRaises(ValueError):
+            dispatch_tool(runtime, {"tool": "seam_retrieve", "arguments": {"query": ""}})
+
+    def test_mcp_bridge_ready_line_announces_16_tools_with_no_metadata_warnings(self) -> None:
+        from seam_runtime.mcp import run_stdio_bridge
+
+        runtime = SeamRuntime(self.db_path)
+        from seam_runtime.mcp import TOOL_DESCRIPTIONS, TOOL_METADATA
+        keys_desc = set(TOOL_DESCRIPTIONS)
+        keys_meta = set(TOOL_METADATA)
+        extra_desc = keys_desc - keys_meta
+        extra_meta = keys_meta - keys_desc
+        if extra_desc or extra_meta:
+            self.fail(
+                f"TOOL_DESCRIPTIONS/TOOL_METADATA keys mismatch: "
+                + (f"desc-only={sorted(extra_desc)}. " if extra_desc else "")
+                + (f"meta-only={sorted(extra_meta)}." if extra_meta else "")
+            )
+
+        output = StringIO()
+        run_stdio_bridge(runtime, input_stream=StringIO(""), output_stream=output)
+
+        ready_line = json.loads(output.getvalue().splitlines()[0])
+        self.assertEqual(ready_line["type"], "ready")
+        self.assertEqual(len(ready_line["tools"]), 16)
+        self.assertEqual(len(ready_line["tool_metadata"]), 16)
+
+        for tool_name in ("seam_surface_verify", "seam_surface_context", "seam_index_status", "seam_retrieve"):
+            self.assertIn(tool_name, ready_line["tools"], f"{tool_name} missing from ready line")
+
     def test_symbol_promotion_and_pack_compaction(self) -> None:
         runtime = SeamRuntime(self.db_path)
         batch = runtime.compile_nl(
