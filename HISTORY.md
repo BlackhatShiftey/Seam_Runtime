@@ -2843,3 +2843,79 @@ Verification: python -m py_compile seam_runtime\mcp.py seam_runtime\doctor.py se
 
 Next: push main and confirm GitHub Actions after history/index/snapshot verification succeeds.
 ---END-ENTRY-#140---
+
+---BEGIN-ENTRY-#141---
+id: 141
+date: 2026-05-08T10:11:20Z
+agent: codex
+status: done
+topics: protocol, multi-agent, history, snapshot, verify
+commits: none
+refs: .opencode/skills/seam-session-closeout/SKILL.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 140
+tokens: 244
+---
+Added the `seam-session-closeout` skill under `.opencode/skills/` as the next local SEAM agent skill after repo navigation, architecture, and implementation planning.
+
+Previous state: `.opencode/skills/` contained `seam-architect` and `seam-implementation-planner`; session closeout behavior existed only as repo protocol in `AGENTS.md` and roadmap intent in the Agent Compiler workstream.
+
+New state: `.opencode/skills/seam-session-closeout/SKILL.md` defines a focused closeout workflow for repo-changing sessions: inspect live git state, classify whether status/ledger/routing docs need updates, keep history reads bounded, scan candidate files for secrets/session links, append history through `tools.history.new_entry`, rebuild `HISTORY_INDEX.md`, write a snapshot, run integrity/continuity verification, run routing verification when needed, and report final branch/worktree state. The skill is explicitly paired with `seam-repo-navigator`, `seam-architect`, and `seam-implementation-planner`.
+
+Changed files: `.opencode/skills/seam-session-closeout/SKILL.md`, `HISTORY.md`, `HISTORY_INDEX.md`, and one new `.seam/snapshots/` JSON after closeout.
+
+Verification before history append: direct read of the new `SKILL.md` succeeded; targeted secret/session-link scan of the new skill returned no candidate matches. Full pytest was skipped because this is a skill/instruction artifact only and does not change runtime code. Post-append closeout verification still requires rebuild_index, write_snapshot, verify_integrity, and verify_continuity.
+
+Next: rebuild the history index, write a snapshot including entries 141 and 140, then run integrity and continuity verification.
+---END-ENTRY-#141---
+
+---BEGIN-ENTRY-#142---
+id: 142
+date: 2026-05-08T10:20:42Z
+agent: codex
+status: done
+topics: protocol, multi-agent, history, snapshot, verify, audit
+commits: none
+refs: .opencode/skills/seam-repo-navigator/SKILL.md,.opencode/skills/seam-implementation-executor/SKILL.md,.opencode/skills/seam-test-hardener/SKILL.md,.opencode/skills/seam-roadmap-ledger-updater/SKILL.md,.opencode/skills/seam-skill-sync-auditor/SKILL.md,.opencode/skills/seam-architect/SKILL.md,.opencode/skills/seam-implementation-planner/SKILL.md,.opencode/skills/seam-session-closeout/SKILL.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 141
+tokens: 405
+---
+Built out the local `.opencode/skills/` SEAM agent chain so DeepSeek/OpenCode has repo protocol enforcement in the same location as the existing architect and planner skills.
+
+Previous state: `.opencode/skills/` held `seam-architect`, `seam-implementation-planner`, and the newly added `seam-session-closeout`. The navigator existed only under the Claude skills path, and the implementation/test/doc/audit follow-on skills were not present locally. The planner and architect said `HISTORY_INDEX.md` was derived, but the index rebuild rule was not repeated strongly enough across the execution chain for a model that tends to skip closeout details.
+
+New state: added five local skills: `seam-repo-navigator`, `seam-implementation-executor`, `seam-test-hardener`, `seam-roadmap-ledger-updater`, and `seam-skill-sync-auditor`. Hardened `seam-architect`, `seam-implementation-planner`, and `seam-session-closeout` so all local skills enforce the same DeepSeek rule: never append, patch, or hand-edit `HISTORY_INDEX.md`; append `HISTORY.md` through `tools.history.new_entry`, then regenerate the derived index with `python -m tools.history.rebuild_index`, write a snapshot, and run continuity verification. The resulting chain is `seam-repo-navigator -> seam-architect -> seam-implementation-planner -> seam-implementation-executor -> seam-test-hardener -> seam-roadmap-ledger-updater / seam-skill-sync-auditor as needed -> seam-session-closeout`.
+
+Changed files: `.opencode/skills/seam-repo-navigator/SKILL.md`, `.opencode/skills/seam-implementation-executor/SKILL.md`, `.opencode/skills/seam-test-hardener/SKILL.md`, `.opencode/skills/seam-roadmap-ledger-updater/SKILL.md`, `.opencode/skills/seam-skill-sync-auditor/SKILL.md`, `.opencode/skills/seam-architect/SKILL.md`, `.opencode/skills/seam-implementation-planner/SKILL.md`, `.opencode/skills/seam-session-closeout/SKILL.md`, `HISTORY.md`, `HISTORY_INDEX.md`, and a new `.seam/snapshots/` JSON after this closeout.
+
+Verification before history append: skill coverage audit confirmed every `.opencode/skills/*/SKILL.md` contains rebuild_index coverage, no-hand-index language, snapshot coverage, verify_continuity coverage, and secret/session safety coverage. Frontmatter audit returned `frontmatter ok`. `git diff --check` returned only the expected Windows LF/CRLF warning on `HISTORY.md`. Targeted secret/session scan produced one false positive from the literal example scan pattern in `seam-skill-sync-auditor`; no real secret, key, provider session link, or private transcript link was found.
+
+Full runtime pytest was skipped because this change is local skill/instruction content only and does not modify runtime Python code. Required closeout after this entry: rebuild `HISTORY_INDEX.md`, write a snapshot including entries 142,141,140, then run verify_integrity and verify_continuity.
+
+Next: if these skills should become committed/shared repo state, stage `.opencode/`, `HISTORY.md`, `HISTORY_INDEX.md`, and the new snapshot, then commit and push after the user approves that git action.
+---END-ENTRY-#142---
+
+---BEGIN-ENTRY-#143---
+id: 143
+date: 2026-05-08T10:24:01Z
+agent: codex
+status: done
+topics: protocol, multi-agent, history, snapshot, verify, audit
+commits: none
+refs: .opencode/skills/seam-github-publisher/SKILL.md,.opencode/skills/seam-repo-navigator/SKILL.md,.opencode/skills/seam-session-closeout/SKILL.md,.opencode/skills/seam-implementation-executor/SKILL.md,.opencode/skills/seam-implementation-planner/SKILL.md,.opencode/skills/seam-skill-sync-auditor/SKILL.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 142
+tokens: 473
+---
+Added a dedicated `.opencode/skills/seam-github-publisher/SKILL.md` skill so DeepSeek/OpenCode knows how to stage, commit, push, and verify SEAM changes on GitHub without grabbing unrelated work or generated/local artifacts.
+
+Previous state: the local `.opencode` skill chain enforced repo orientation, implementation, test hardening, docs/ledger updates, skill auditing, session closeout, and the derived-index rule. It had basic fetch/push mentions, but it did not yet give DeepSeek a detailed answer for what belongs in a commit, what must stay out, when to stage explicit paths, how to scan candidate files, how to write safe commit messages, how to push, or how to prove `main` equals `origin/main`.
+
+New state: `seam-github-publisher` defines the publish workflow. It requires completed closeout first, explains commit scope for source/docs/tests/protocol/skill changes, explicitly includes `HISTORY.md` and rebuilt `HISTORY_INDEX.md`, excludes secrets, `.env`, caches, local DBs, generated outputs, unrelated work, and ignored snapshot JSON unless promoted, requires targeted candidate-file secret scans, prefers `git add -- <paths>` over `git add .`, defines safe commit message rules, and verifies pushes with `git fetch origin`, `git rev-list --left-right --count origin/main...main`, `git rev-parse HEAD`, and `git rev-parse origin/main`. Updated `seam-repo-navigator`, `seam-session-closeout`, `seam-implementation-executor`, `seam-implementation-planner`, and `seam-skill-sync-auditor` to route commit/push work to the publisher skill.
+
+Changed files: `.opencode/skills/seam-github-publisher/SKILL.md`, `.opencode/skills/seam-repo-navigator/SKILL.md`, `.opencode/skills/seam-session-closeout/SKILL.md`, `.opencode/skills/seam-implementation-executor/SKILL.md`, `.opencode/skills/seam-implementation-planner/SKILL.md`, `.opencode/skills/seam-skill-sync-auditor/SKILL.md`, `HISTORY.md`, `HISTORY_INDEX.md`, and a new local snapshot JSON after closeout.
+
+Verification before history append: publisher coverage check passed for explicit staging, git-add-dot caution, exclusions, push verification, rebuild_index, write_snapshot, verify_continuity, candidate secret scan, and commit-message guidance. Cross-skill audit confirmed all `.opencode` skills still include rebuild_index, no-hand-index, snapshot, and verify_continuity coverage. Targeted secret/session scan produced only false positives from literal example scan patterns in `seam-github-publisher` and `seam-skill-sync-auditor`; no real secret, provider key, session URL, or private transcript link was found. `git diff --check` returned only the expected Windows LF/CRLF warning on `HISTORY.md`.
+
+Full runtime pytest was skipped because this is local skill/instruction content only and does not modify runtime Python code. Required closeout after this entry: rebuild `HISTORY_INDEX.md`, write a snapshot including entries 143,142,141, then run verify_integrity and verify_continuity.
+
+Next: if the user asks to publish these skills, use `seam-github-publisher`: explicitly stage `.opencode/skills/`, `HISTORY.md`, and `HISTORY_INDEX.md`; do not force-add ignored `.seam/snapshots/*.json`; commit with a safe message; push `main`; fetch and verify `origin/main...main` returns `0 0`.
+---END-ENTRY-#143---

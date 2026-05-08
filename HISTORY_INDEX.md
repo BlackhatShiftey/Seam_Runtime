@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 140
-total_tokens: ~18828
-latest_id: 140
+total_entries: 143
+total_tokens: ~19950
+latest_id: 143
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,9 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 143 | 2026-05-08 | done | ca60d4ac6d924681 | protocol,multi-agent,history,snapshot,+ | 142 |
+| 142 | 2026-05-08 | done | beb060180fccfb58 | protocol,multi-agent,history,snapshot,+ | 141 |
+| 141 | 2026-05-08 | done | 22531976f7aae8e6 | protocol,multi-agent,history,snapshot,+ | 140 |
 | 140 | 2026-05-07 | done | 7f73ff100f7bea59 | mcp,multi-agent,command,doctor,+ | 139 |
 | 139 | 2026-05-07 | done | 1288ed96b54299dc | mcp,multi-agent,command,doctor,+ | 138 |
 | 138 | 2026-05-07 | done | 243893708bf725ea | mcp,multi-agent,command,doctor,+ | 137 |
@@ -156,7 +159,7 @@ compact: true
 
 - alias: count=2 latest=#033, #002
 - animation: count=4 latest=#068, #052, #032, #028
-- audit: count=3 latest=#125, #124, #086
+- audit: count=5 latest=#143, #142, #125, #124, #086
 - benchmark: count=36 latest=#138, #133, #132, #131, #130
 - bundle: count=2 latest=#015, #008
 - chat: count=14 latest=#137, #074, #073, #072, #071
@@ -176,7 +179,7 @@ compact: true
 - gold-standard: count=1 latest=#038
 - graph: count=2 latest=#099, #030
 - handoff: count=4 latest=#136, #135, #075, #025
-- history: count=94 latest=#140, #139, #138, #137, #136
+- history: count=97 latest=#143, #142, #141, #140, #139
 - holdout: count=3 latest=#093, #092, #036
 - installer: count=9 latest=#100, #099, #063, #035, #021
 - integrity: count=5 latest=#133, #103, #102, #101, #048
@@ -186,12 +189,12 @@ compact: true
 - lx1: count=4 latest=#088, #018, #011, #006
 - mcp: count=5 latest=#140, #139, #138, #099, #064
 - mirl: count=20 latest=#132, #131, #130, #129, #128
-- multi-agent: count=7 latest=#140, #139, #138, #079, #064
+- multi-agent: count=10 latest=#143, #142, #141, #140, #139
 - naming: count=4 latest=#033, #024, #009, #002
 - persist: count=18 latest=#047, #044, #042, #036, #032
 - pgvector: count=17 latest=#121, #119, #084, #083, #078
 - plan: count=3 latest=#027, #017, #003
-- protocol: count=22 latest=#140, #139, #138, #137, #136
+- protocol: count=25 latest=#143, #142, #141, #140, #139
 - pyproject: count=4 latest=#094, #051, #049, #022
 - rank: count=3 latest=#017, #005, #001
 - readme: count=16 latest=#121, #117, #116, #100, #099
@@ -202,17 +205,17 @@ compact: true
 - search: count=11 latest=#088, #077, #047, #046, #041
 - security: count=1 latest=#100
 - session: count=3 latest=#027, #025, #019
-- snapshot: count=91 latest=#140, #139, #138, #137, #136
+- snapshot: count=94 latest=#143, #142, #141, #140, #139
 - status: count=45 latest=#140, #138, #137, #136, #135
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tui: count=25 latest=#137, #121, #120, #119, #118
 - vector: count=18 latest=#099, #066, #044, #038, #034
-- verify: count=84 latest=#140, #139, #138, #137, #136
+- verify: count=87 latest=#143, #142, #141, #140, #139
 - windows: count=12 latest=#125, #123, #091, #084, #083
 - wsl2: count=1 latest=#021
 
 ## status rollup
 
 - roots: 66
-- done: 120
+- done: 123
 - planned: 20
