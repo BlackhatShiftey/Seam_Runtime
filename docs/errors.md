@@ -22,9 +22,18 @@ Running `seam-dash` or Textual tests fails with missing `textual`.
 
 ### Verify
 
+Windows:
+
 ```powershell
 .\.venv\Scripts\python.exe -m pip show textual
-.\.venv\Scripts\python.exe -m unittest test_seam.SeamTests.test_textual_dashboard_mounts_core_panels
+.\.venv\Scripts\python.exe -m pytest test_seam_all/test_seam.py::SeamTests::test_textual_dashboard_mounts_core_panels -q
+```
+
+Linux / WSL2:
+
+```bash
+./.venv/bin/python -m pip show textual
+./.venv/bin/python -m pytest test_seam_all/test_seam.py::SeamTests::test_textual_dashboard_mounts_core_panels -q
 ```
 
 ## Error: `SEAM doctor: FAIL` with missing required deps
@@ -60,20 +69,40 @@ Look for:
 
 `seam doctor` shows PgVector is configured but not reachable.
 
-### Fix (Docker local Postgres with pgvector)
+SEAM's documented operating port for the local pgvector container is `55432`
+(set via `SEAM_PGVECTOR_PORT=55432` in your local env file). The default
+`docker-compose.yaml` mapping is `${SEAM_PGVECTOR_PORT:-5432}:5432`, so the host
+port follows your env var. Use the host port (typically `55432`) in
+`SEAM_PGVECTOR_DSN`.
+
+### Fix (Windows)
 
 ```powershell
 $localEnv = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SEAM\local\.env"
 New-Item -ItemType Directory -Force -Path (Split-Path $localEnv)
 Copy-Item .env.example $localEnv
-# Edit $localEnv locally first; do not commit it.
-docker compose --env-file $localEnv up -d
+# Edit $localEnv locally first; do not commit it. Set SEAM_PGVECTOR_PORT=55432.
+docker compose --env-file $localEnv up -d seam-pgvector
 Get-Content $localEnv | Where-Object { $_ -and $_ -notmatch '^\s*#' } | ForEach-Object {
     $name, $value = $_ -split '=', 2
     Set-Item -Path "Env:$name" -Value $value
 }
-$env:SEAM_PGVECTOR_DSN="host=localhost port=5432 dbname=seam user=$env:POSTGRES_USER password=$env:POSTGRES_PASSWORD"
+$env:SEAM_PGVECTOR_DSN="host=localhost port=55432 dbname=seam user=$env:POSTGRES_USER password=$env:POSTGRES_PASSWORD"
 .\.venv\Scripts\seam.exe doctor
+```
+
+### Fix (Linux / WSL2)
+
+```bash
+mkdir -p "$HOME/.config/seam"
+cp .env.example "$HOME/.config/seam/.env"
+# Edit the env file locally; do not commit it. Set SEAM_PGVECTOR_PORT=55432.
+docker compose --env-file "$HOME/.config/seam/.env" up -d seam-pgvector
+set -a
+. "$HOME/.config/seam/.env"
+set +a
+export SEAM_PGVECTOR_DSN="host=localhost port=55432 dbname=seam user=$POSTGRES_USER password=$POSTGRES_PASSWORD"
+seam doctor
 ```
 
 ### Verify

@@ -1,6 +1,6 @@
 # SEAM Improvement Roadmap & SOP Blueprint
 
-**Last updated:** 2026-05-07
+**Last updated:** 2026-05-08
 **Status:** Active planning document. This is the living roadmap for SEAM development beyond the stable v1 core.
 
 ## 2026-05-01 Functional Visual Memory Target
@@ -89,7 +89,9 @@ snapshots:
   <file.seam.png>`: compile source text into MIRL, then encode the MIRL bytes
   into a PNG surface using `rgb24` unless a denser mode is requested.
 - The benchmark gate is `surface_exact_rate == 1.0`,
-  `payload_hash_match_rate == 1.0`, and direct query exactness at 100%.
+  `payload_hash_match_rate == 1.0`, direct query exactness, stored lookup,
+  stored query after original-output deletion, repair success, and repaired-copy
+  query exactness all at 100%.
 - The claim is higher effective intelligence density for already-compiled SEAM
   machine language, not impossible free compression.
 
@@ -654,6 +656,26 @@ surface flow.
 that preserve facts, quote spans, headings, table cells, references, and source
 provenance.
 
+**Status:** Implemented in HISTORY#145 for the first wave of structural
+primitives. `seam_runtime/lossless.py:_structural_quote_spans` is the single
+extractor; both the readable compiler and the benchmark gate verifier delegate
+to it so the compiled records and the verifier records cannot drift out of
+sync. Records currently emitted:
+
+- quoted strings (`"..."`) → `text` is the raw quote span
+- markdown headings (`# ... ######`) → `text` is `heading:<title>`
+- markdown 2-column table data rows → `text` is `cell:<col1>=<col2>`
+- inline bracket citations (e.g. `[Smith2024]`) → `text` is `citation:[Key]`
+- reference list phrases (split on `. `) → `text` is `ref:<phrase>`
+
+The release-blocking `surface` benchmark family at
+`benchmarks/fixtures/surface_cases.json` covers all five via richer document
+cases for heading recall, table cell lookup, and citation/reference extraction.
+`seam benchmark gate` enforces `direct_query_exactness_rate == 1.0` on those
+cases. Adding a new structural primitive means appending to
+`_structural_quote_spans` plus a fixture case exercising it. Future primitives
+to consider: lists, code blocks, dates, key-value blocks, links.
+
 **Gate:** SEAM can answer detail questions from the emitted machine language
 without opening the original document.
 
@@ -661,6 +683,8 @@ without opening the original document.
 
 **What:** Add a managed library for `.seam.png` surfaces. The PNG stores the
 payload bytes; SQLite stores only metadata, hashes, status, and lookup fields.
+
+**Status:** Implemented and merged to `main` on 2026-05-06.
 
 **Gate:** A stored surface can be listed, verified, queried, searched, used for
 context, imported, and audited by hash.
@@ -670,6 +694,9 @@ context, imported, and audited by hash.
 **What:** Make the stored image artifact itself a readable memory source.
 Queries decode PNG pixels into MIRL/RC bytes in memory, verify hashes, then run
 the normal parser/search/context path.
+
+**Status:** Implemented for MIRL and RC/1 payloads. Continue expanding the
+document-structure records that RC/1 exposes to the query path.
 
 **Gate:** Query/search/context works from a stored surface path or surface id
 without OCR, source-document restoration, or prior SQLite import.

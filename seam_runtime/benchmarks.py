@@ -16,6 +16,7 @@ from .context_views import build_context_payload, render_context_pretty
 from .dsl import compile_dsl
 from .evals import default_retrieval_fixtures, run_retrieval_benchmark
 from .lossless import (
+    _structural_quote_spans,
     benchmark_text_lossless,
     compress_text_readable,
     count_prompt_tokens,
@@ -718,7 +719,12 @@ def _run_surface_family(
             verification = verify_surface(surface_path)
             surface_exact = decoded.payload == payload_bytes
             payload_hash_match = decoded.payload_sha256 == hashlib.sha256(payload_bytes).hexdigest()
-            query_checks = _surface_query_checks(surface_path, config)
+            source_quotes = (
+                _quote_span_records(_resolve_lossless_text(config))
+                if str(config.get("payload_kind", "readable")) == "readable"
+                else []
+            )
+            query_checks = _surface_query_checks(surface_path, config, source_quotes)
             direct_query_exactness = all(item["ok"] for item in query_checks)
             stored_trace = _surface_stored_query_and_repair_checks(
                 surface_store,
@@ -1460,15 +1466,28 @@ def _surface_case_payload(config: dict[str, Any]) -> tuple[bytes, str]:
     raise ValueError(f"Unsupported surface fixture payload_kind: {payload_kind}")
 
 
-def _surface_query_checks(surface_path: Path, config: dict[str, Any]) -> list[dict[str, Any]]:
+def _surface_query_checks(
+    surface_path: Path,
+    config: dict[str, Any],
+    source_quotes: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     checks = []
+    use_precision = source_quotes is not None
+    quotes = source_quotes or []
     for query in config.get("queries", []):
         result = query_surface(surface_path, str(query), limit=5).to_dict()
         hits = result.get("hits", [])
+        if use_precision:
+            expected = _expected_query_text(str(query), quotes)
+            ok = any(_hit_satisfies_expected(hit, expected) for hit in hits)
+        else:
+            expected = str(query)
+            ok = bool(hits)
         checks.append(
             {
                 "query": query,
-                "ok": bool(hits),
+                "expected": expected,
+                "ok": ok,
                 "hit_count": len(hits),
                 "top_hit": hits[0] if hits else None,
             }
@@ -1971,16 +1990,14 @@ def _lossless_actions(result, case_id: str) -> list[str]:
 
 
 def _quote_span_records(text: str) -> list[dict[str, Any]]:
-    import re
-
     return [
         {
-            "text": match.group(0),
-            "value": match.group(1),
-            "start": match.start(),
-            "end": match.end(),
+            "text": span["text"],
+            "value": span["value"],
+            "start": span["start"],
+            "end": span["end"],
         }
-        for match in re.finditer(r'"([^"]*)"', text)
+        for span in _structural_quote_spans(text)
     ]
 
 

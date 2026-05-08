@@ -2919,3 +2919,101 @@ Full runtime pytest was skipped because this is local skill/instruction content 
 
 Next: if the user asks to publish these skills, use `seam-github-publisher`: explicitly stage `.opencode/skills/`, `HISTORY.md`, and `HISTORY_INDEX.md`; do not force-add ignored `.seam/snapshots/*.json`; commit with a safe message; push `main`; fetch and verify `origin/main...main` returns `0 0`.
 ---END-ENTRY-#143---
+
+---BEGIN-ENTRY-#144---
+id: 144
+date: 2026-05-08T09:50:28Z
+agent: codex
+status: done
+topics: status, roadmap, ledger, benchmark, compress, verify, history, snapshot, audit
+commits: none
+refs: PROJECT_STATUS.md,README.md,ROADMAP.md,docs/setup.md,docs/ledgers/runtime/compression.md,docs/HOLOGRAPHIC_SURFACE.md,docs/SOP_HOLOGRAPHIC_SURFACE.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 143
+tokens: 425
+---
+Refreshed the active documentation surface after a surface-benchmark gate audit exposed stale operating assumptions.
+
+Previous state: active docs still pointed fresh-clone resume at HISTORY#140 even though HISTORY_INDEX.md was already at #143. The runtime compression ledger described only the older three-metric HS/1 surface gate, omitted stored lookup/query and repair gates, and did not mention rgba64. README listed MIRL, PACK, LX/1, and RC/1 but not HS/1. ROADMAP Track G did not clearly distinguish implemented stored-surface infrastructure from the still-active document-structure compiler work. The HS/1 docs had the strict 100% gate but did not spell out the public-fixture policy behind the current richer-case decision.
+
+New state: PROJECT_STATUS.md and docs/setup.md now point fresh resumes at the new HISTORY#144 handoff and snapshot regeneration entries 144,143,142. README names SEAM-HS/1 as part of the machine-first layer. docs/ledgers/runtime/compression.md now lists the current HS/1 source files, all seven release-blocking surface gate metrics, rgba64, and the rule that intentionally failing richer document-structure cases belong outside the public surface fixture. docs/HOLOGRAPHIC_SURFACE.md and docs/SOP_HOLOGRAPHIC_SURFACE.md now make the fixture policy explicit: any case in benchmarks/fixtures/surface_cases.json is release-blocking and should make pytest fail until direct-read behavior is fixed. ROADMAP.md now marks G1 as in progress around heading/table/citation extraction, marks G2 and G3 as implemented where accurate, and expands the 2026-04-30 surface gate description to include stored and repair rates.
+
+Changed files: PROJECT_STATUS.md, README.md, ROADMAP.md, docs/setup.md, docs/ledgers/runtime/compression.md, docs/HOLOGRAPHIC_SURFACE.md, docs/SOP_HOLOGRAPHIC_SURFACE.md, HISTORY.md, HISTORY_INDEX.md, and a new local snapshot JSON after closeout.
+
+Verification before history append: git diff --check on the changed docs returned only expected Windows LF/CRLF warnings. Targeted stale-resume scan found no remaining HISTORY#140 or entries 140,139,138 references in PROJECT_STATUS.md or docs/setup.md. Targeted candidate-doc secret/session scan returned no matches. Runtime pytest was skipped because this slice only changes docs and history bookkeeping; the existing dirty runtime files seam_runtime/benchmarks.py, seam_runtime/lossless.py, and untracked benchmarks/fixtures/surface_cases.json were left untouched for the active implementation work.
+
+Next: implement the narrow table-cell and citation/reference direct-query extraction so the promoted richer public surface cases can pass without loosening the surface gate.
+---END-ENTRY-#144---
+
+---BEGIN-ENTRY-#145---
+id: 145
+date: 2026-05-08T10:35:00Z
+agent: claude
+status: done
+topics: benchmark, surface, compress, mirl, command, verify, history, snapshot, fixture, audit
+commits: none
+refs: benchmarks/fixtures/surface_cases.json,seam_runtime/lossless.py,seam_runtime/benchmarks.py,PROJECT_STATUS.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 144
+tokens: 540
+---
+Landed the production visual-memory loop slice: the surface benchmark family is now a precision-aware feedback engine with three richer document-structure cases passing on direct surface query.
+
+Previous state: surface benchmark cases lived only in `_default_surface_cases()` in `seam_runtime/benchmarks.py`, the surface query gate was recall-only (`bool(hits)` masked precision regressions), and the readable compiler emitted quote-span records only for `"..."` strings. HISTORY#144 promoted three richer fixture cases (heading recall, markdown table cell lookup, citation/reference extraction) into the public release-blocking gate but left implementation pending — the named "Next" step.
+
+New state: `benchmarks/fixtures/surface_cases.json` now exists with all seven public cases (four legacy + three richer). `seam_runtime/lossless.py` exposes a single `_structural_quote_spans(text)` extractor that emits quote, heading, table-cell, citation, and reference records with stable text/value/start/end fields; `_extract_readable_quotes` and `benchmarks._quote_span_records` both delegate to it so `direct_quote_match` is structurally enforced. The surface query gate at `_surface_query_checks` is now precision-aware via `_hit_satisfies_expected`, with a recall-only fallback retained for MIRL payloads where source quotes do not apply.
+
+Changed files: benchmarks/fixtures/surface_cases.json (new), seam_runtime/lossless.py, seam_runtime/benchmarks.py, PROJECT_STATUS.md, HISTORY.md, HISTORY_INDEX.md.
+
+Verification: `python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q` returned 174/174 PASS (148 runtime + 26 history tooling). `python seam.py benchmark run all` produced bundle hash 5532af20c102bdee0398439677e1ed33fcb712fbec226aca94f6a4a1f53b7faa; `python seam.py benchmark gate` on that bundle returned 45/45 checks PASS (all eight families present, surface family rates all at 1.0). Surface family standalone: 7/7 cases PASS with surface_exact_rate, payload_hash_match_rate, direct_query_exactness_rate, stored_query_exactness_rate, repair_success_rate, repair_query_exactness_rate all 1.0. Readable family: 3/3 PASS. Lossless family: 2/2 PASS. Persistence family: 4/4 PASS. `seam benchmark diff` baseline (07113fbd) vs after (3c613750) reports the four legacy cases unchanged (all gray PASS->PASS) and the three richer cases as ADDED with no per-case regressions; the suite-level `REGRESSED` banner reflects only an `avg_capacity_used_ratio` shift from the wider case set, not behavioral regression. The pytest figure was corrected from an earlier draft of this entry that ran only the runtime suite; the history-tooling suite covers rebuild_index, write_snapshot, and verify_continuity, which this slice exercised, so the combined suite is the protocol-correct verification.
+
+Iteration shape proven: adding a fixture case in `benchmarks/fixtures/surface_cases.json` with a query referencing a structural element not yet in `_structural_quote_spans` will cause `direct_query_exactness_rate` to drop below 1.0, failing both `seam benchmark gate` and the three pytest invariants `test_runtime_surface_benchmark_gates_exact_visual_payloads`, `test_runtime_benchmark_suite_persists_and_verifies_bundle`, and `test_cli_benchmark_surface_json_reports_exact_gate`. Closing the failure means adding a span emitter to `_structural_quote_spans` and a fixture query that exercises it.
+
+Next: when expanding the visual-memory loop further, add structural primitives (lists, code blocks, dates, links, key-value blocks) by appending to `_structural_quote_spans` plus a fixture case per primitive, and run `seam benchmark diff` against the prior bundle to publish the structured improvement. Stale-doc cleanup that #144 referenced as a follow-up remains open: docs that still describe the older three-metric HS/1 gate or omit the cell/citation/reference structural records should be brought into line with the implemented `_structural_quote_spans` shape.
+---END-ENTRY-#145---
+
+---BEGIN-ENTRY-#146---
+id: 146
+date: 2026-05-08T11:25:00Z
+agent: claude
+status: done
+topics: docs, history, snapshot, verify, audit, command, dashboard, benchmark, ledger, status
+commits: none
+refs: docs/howto/README.md,docs/errors.md,docs/setup.md,ROADMAP.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 145
+tokens: 480
+---
+Operator-facing documentation is now consistent with the runtime that #145 landed and with the canonical PgVector port; the visual-memory loop is documented as a measurable iteration engine.
+
+Previous state: docs/howto/README.md was PowerShell-only and used legacy commands (`compile-nl` instead of `seam ingest --persist` / `seam remember`, `python -m unittest test_seam.SeamTests.X` instead of pytest against `test_seam_all/test_seam.py`, no `--mode mix` on retrieve, no surface or shell or mcp runbooks). docs/errors.md had the same wrong test invocation and a `SEAM_PGVECTOR_DSN` example using `port=5432` which contradicts the documented operating port `55432` in REPO_LEDGER and PROJECT_STATUS. docs/setup.md still showed `--entries 144,143,142` for the resume snapshot example. ROADMAP Track G1 status was "in progress" without naming which structural extractors had landed.
+
+New state: docs/howto/README.md is a complete operator runbook set with paired Windows PowerShell and Linux / WSL2 blocks for ingest/search/retrieve, surface compile/verify/query, the visual-memory loop benchmark, fixture-driven structural extraction, the interactive shell, the MCP stdio bridge, real-adapter validation, benchmark archiving, and recovery from interrupted runs. It explicitly documents how a new structural primitive is added by appending to `_structural_quote_spans` with a fixture case. docs/errors.md uses pytest invocations matching the active test path, explains that the host PgVector port follows `SEAM_PGVECTOR_PORT` (default 55432 per REPO_LEDGER), and ships paired Windows and Linux fix blocks that set `SEAM_PGVECTOR_DSN` to the correct host port. docs/setup.md resume snapshot example now lists `--entries 145,144,143`. ROADMAP G1 is marked Implemented in #145 with the five emitted record kinds (quote, heading, cell, citation, reference) named explicitly; the spec bullets are unchanged so the contract/implementation distinction is preserved.
+
+Changed files: docs/howto/README.md, docs/errors.md, docs/setup.md, ROADMAP.md, HISTORY.md, HISTORY_INDEX.md.
+
+Verification: `python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q` returned 174/174 PASS unchanged from #145. Targeted stale-token sweep `grep -rnE "compile-nl|unittest test_seam\.|HISTORY#14[0-4]\b|port 5432\b" docs/ ROADMAP.md README.md` returned zero hits in operator-facing docs. The remaining `compile-nl` references in ROADMAP Track B1 (lines 364, 377) and Track D2 (line 533) are intentional rename-plan and pipeline-stage descriptions, not stale operator instructions. Targeted secret/session scan on changed docs returned no matches. PgVector port truth was verified by reading `docker-compose.yaml` which maps `${SEAM_PGVECTOR_PORT:-5432}:5432` and `scripts/run_real_adapters_guarded.ps1` which defaults `$PgPort = 55432`.
+
+Next: when running the loop on Linux, follow the paired Linux blocks in docs/howto/README.md and docs/errors.md; run `seam benchmark run all --persist` then `seam benchmark gate` to confirm the surface family stays at 1.0 on the new platform. The Linux installer track and the experimental REST API GUI remain open; they should reuse the same fixture-driven loop pattern when their own benchmark gates are added.
+---END-ENTRY-#146---
+
+---BEGIN-ENTRY-#147---
+id: 147
+date: 2026-05-08T11:55:00Z
+agent: claude
+status: done
+topics: docs, readme, command, benchmark, history, snapshot, verify, audit
+commits: none
+refs: README.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 146
+tokens: 240
+---
+README polished to match the Linux-ready operator surface that #146 established and to make the measurable iteration loop visible from the project front door.
+
+Previous state: README 60-Second Demo and Core Commands blocks were labeled `powershell` even though every command works identically on Windows and Linux because `seam` is a platform-agnostic shim. The Core Commands list omitted the surface compile/query commands and the `seam mcp serve` agent bridge. The Benchmark Glassbox section listed verify/diff/gate commands but did not show how to use them as an iteration loop, so a reader could not tell from the README that the surface family is the place to drive measurable improvement.
+
+New state: the 60-Second Demo and Core Commands blocks are cross-platform fenced (`bash` markdown for portability) with an explicit one-line note that the same commands run on Windows and Linux. Core Commands now includes `seam surface compile` / `seam surface query` and `seam mcp serve`. Benchmark Glassbox has a new "Measure Progress (Or Regression)" subsection showing the baseline → change → after → diff → gate sequence, with a pointer to docs/howto/README.md section 4 for the failing-case-driven extension pattern. Publication discipline is broken into its own subsection so the iteration loop and the audit rules are no longer mixed in one block.
+
+Changed files: README.md, HISTORY.md, HISTORY_INDEX.md.
+
+Verification: `python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q` returned 174/174 PASS unchanged. Stale-token sweep on README.md returned no hits. README still references the canonical install entrypoints in installers/README.md and the canonical setup commands in docs/setup.md.
+
+Next: commit the in-progress slices (#144 docs sweep, #145 visual-memory loop runtime, #146 operator runbook + ROADMAP cleanup, #147 README polish) and push to origin/main so the work survives the operator's platform switch to Linux. After push, run `seam benchmark run all --persist` then `seam benchmark gate` on Linux to prove cross-platform measurability of the surface gate.
+---END-ENTRY-#147---

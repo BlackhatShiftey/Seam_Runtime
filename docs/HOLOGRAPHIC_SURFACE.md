@@ -124,3 +124,13 @@ The `surface` benchmark family requires:
 
 Any pixel-packing, envelope, stored-library lookup, redundant-copy repair, or
 query-dispatch change that drops exactness below 100% is release-blocking.
+
+Fixture policy:
+
+- Public `benchmarks/fixtures/surface_cases.json` cases are part of the
+  release-blocking `surface` family and must pass at 100%.
+- Richer document-structure cases for headings, table cells, references, and
+  citations can be promoted into the public `surface` fixture only when the
+  implementation is expected to satisfy them.
+- Intentionally failing research cases must use a separate exploratory suite or
+  local-only fixture. Do not loosen the release gate to carry partial passes.

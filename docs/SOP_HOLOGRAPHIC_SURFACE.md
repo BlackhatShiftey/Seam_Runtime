@@ -70,6 +70,11 @@ redundant copy, repairs it from the recorded source path, and queries the
 repaired copy. The release gate runs across all benchmark families; stored
 lookup, stored query, repair, and repair-query rates must all stay at 100%.
 
+Do not put intentionally failing research cases in the public `surface` fixture.
+If a case is in `benchmarks/fixtures/surface_cases.json`, it is release-blocking
+and should make pytest fail until the direct-read behavior is fixed. Exploratory
+partial-pass loops belong in a separate suite or local fixture.
+
 ## Decode For Audit
 
 ```powershell

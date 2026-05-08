@@ -3,8 +3,10 @@
 Stable source files:
 
 - `docs/MIRL_V1.md`
+- `docs/HOLOGRAPHIC_SURFACE.md`
 - `REPO_LEDGER.md`
 - `seam_runtime/lossless.py`
+- `seam_runtime/holographic.py`
 - `seam_runtime/storage.py`
 - `seam_runtime/runtime.py`
 
@@ -56,6 +58,14 @@ The `surface` benchmark is the HS/1 hard gate:
 - `surface_exact_rate == 1.0`
 - `payload_hash_match_rate == 1.0`
 - `direct_query_exactness_rate == 1.0`
+- `stored_lookup_rate == 1.0`
+- `stored_query_exactness_rate == 1.0`
+- `repair_success_rate == 1.0`
+- `repair_query_exactness_rate == 1.0`
+
+Public `surface` fixtures are release-blocking. If a richer document-structure
+case is intentionally expected to fail during research, it belongs in a
+separate exploratory suite instead of weakening the `surface` gate.
 
 Surfaces are queryable containers, not a replacement for SQLite canonical truth.
 They are portable immutable snapshots that can feed search/context directly
@@ -76,9 +86,9 @@ before or without import.
 - SEAM-HS/1 may carry MIRL, RC/1, LX/1, or raw bytes in lossless PNG pixels.
   MIRL and RC/1 payloads are directly queryable; LX/1 is verify/decode only
   until converted into a readable format.
-- HS/1 modes are `bw1`, `rgb24`, and explicit `rgba32`. `rgb24` is the default;
-  `rgba32` raises raw channel density from 3 to 4 bytes per pixel but has a
-  higher operational mutation risk because image tooling may rewrite alpha.
+- HS/1 modes are `bw1`, `rgb24`/`rgb`, explicit `rgba32`, and explicit
+  `rgba64`. `rgb24` is the default; alpha-channel modes raise raw channel
+  density but carry higher mutation risk from image tooling.
 
 ## Next Safe Implementation Step
 

@@ -1,0 +1,75 @@
+[
+  {
+    "name": "hs1_rc1_direct_query_rgb24",
+    "payload_kind": "readable",
+    "mode": "rgb24",
+    "text": "Surface note: \"Holographic Surface stores SEAM-RC/1 as exact pixel bytes.\" Direct queries read the embedded machine language without OCR or SQLite import.",
+    "queries": [
+      "\"Holographic Surface stores SEAM-RC/1 as exact pixel bytes.\"",
+      "without OCR SQLite import"
+    ]
+  },
+  {
+    "name": "hs1_mirl_direct_search_bw1",
+    "payload_kind": "mirl",
+    "mode": "bw1",
+    "dsl": "\nentity project \"SEAM\" as p1\nclaim c1:\n  subject p1\n  predicate holographic_surface\n  object direct_read_memory\nclaim c2:\n  subject p1\n  predicate stores\n  object machine_language_pixels\n",
+    "queries": [
+      "holographic_surface direct_read_memory",
+      "machine_language_pixels"
+    ]
+  },
+  {
+    "name": "hs1_rc1_direct_query_rgba32",
+    "payload_kind": "readable",
+    "mode": "rgba32",
+    "text": "Surface density note: \"RGBA32 stores four exact channel bytes per pixel.\" SEAM keeps RGB24 as the default and uses RGBA32 only when explicitly requested.",
+    "queries": [
+      "\"RGBA32 stores four exact channel bytes per pixel.\"",
+      "explicitly requested"
+    ]
+  },
+  {
+    "name": "hs1_rc1_direct_query_rgba64",
+    "payload_kind": "readable",
+    "mode": "rgba64",
+    "text": "Surface density note: \"RGBA64 stores eight exact channel bytes per pixel.\" SEAM uses RGBA64 only when 16-bit channel density is explicitly requested.",
+    "queries": [
+      "\"RGBA64 stores eight exact channel bytes per pixel.\"",
+      "16-bit channel density"
+    ]
+  },
+  {
+    "name": "hs1_rc1_richer_heading_recall_md",
+    "payload_kind": "readable",
+    "mode": "rgb24",
+    "text": "## Production Loop\n\nThe SEAM visual-memory loop compiles documents into directly readable machine language, encodes that machine language into a lossless PNG surface, stores the surface in an addressable library, and answers queries by reading pixel bytes back into MIRL or SEAM-RC/1 records.\n\n## Why This Matters\n\nDirect surface query removes the OCR and SQLite-import dependency for already-compiled memory.\n",
+    "queries": [
+      "Production Loop",
+      "heading:Production Loop",
+      "heading:Why This Matters"
+    ]
+  },
+  {
+    "name": "hs1_rc1_richer_table_cell_lookup_md",
+    "payload_kind": "readable",
+    "mode": "rgb24",
+    "text": "Benchmark snapshot for the SEAM visual-memory loop:\n\n| metric | value |\n| --- | --- |\n| surface_exact_rate | 1.0 |\n| payload_hash_match_rate | 1.0 |\n| direct_query_exactness_rate | 1.0 |\n| stored_query_exactness_rate | 1.0 |\n\nAll release-blocking gates remain at 100 percent for the surface family.\n",
+    "queries": [
+      "release-blocking gates",
+      "cell:surface_exact_rate=1.0",
+      "cell:payload_hash_match_rate=1.0"
+    ]
+  },
+  {
+    "name": "hs1_rc1_richer_citation_extraction",
+    "payload_kind": "readable",
+    "mode": "rgb24",
+    "text": "According to Smith (2024) [Smith2024], holographic memory surfaces preserve direct readability of embedded machine language without OCR. SEAM extends this idea by binding MIRL or SEAM-RC/1 records to lossless PNG pixel bytes.\n\nReferences:\n[Smith2024] Smith, J. (2024). Holographic Memory in AI Systems. Journal of Memory Research 12(3), 45-62.\n",
+    "queries": [
+      "holographic memory surfaces",
+      "citation:[Smith2024]",
+      "ref:Journal of Memory Research"
+    ]
+  }
+]

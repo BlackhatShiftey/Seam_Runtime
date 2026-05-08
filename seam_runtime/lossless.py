@@ -826,18 +826,93 @@ def _readable_terms(text: str) -> list[str]:
     return terms
 
 
+def _structural_quote_spans(text: str) -> list[dict[str, object]]:
+    """Shared structural span extraction used by the readable compiler and the
+    benchmark gate verifier. Both must observe identical text/value/start/end
+    records or the readable family's direct_quote_match invariant fails — so
+    extraction lives in exactly one place."""
+    spans: list[dict[str, object]] = []
+    for match in re.finditer(r'"([^"]*)"', text):
+        spans.append(
+            {
+                "text": match.group(0),
+                "value": match.group(1),
+                "start": match.start(),
+                "end": match.end(),
+            }
+        )
+    for match in re.finditer(r'(?m)^(#{1,6})[ \t]+(.+?)[ \t]*$', text):
+        title = match.group(2).strip()
+        spans.append(
+            {
+                "text": f"heading:{title}",
+                "value": title,
+                "start": match.start(),
+                "end": match.end(),
+            }
+        )
+    for match in re.finditer(r'(?m)^\|([^|\n]+)\|([^|\n]+)\|[ \t]*$', text):
+        col1 = match.group(1).strip()
+        col2 = match.group(2).strip()
+        if not col1 or not col2:
+            continue
+        if re.fullmatch(r'[\s\-:]+', col1) or re.fullmatch(r'[\s\-:]+', col2):
+            continue
+        spans.append(
+            {
+                "text": f"cell:{col1}={col2}",
+                "value": f"{col1}={col2}",
+                "start": match.start(),
+                "end": match.end(),
+            }
+        )
+    for match in re.finditer(r'\[([A-Za-z][A-Za-z0-9_]*\d+[A-Za-z0-9_]*)\]', text):
+        spans.append(
+            {
+                "text": f"citation:{match.group(0)}",
+                "value": match.group(1),
+                "start": match.start(),
+                "end": match.end(),
+            }
+        )
+    for line_match in re.finditer(r'(?m)^\[([^\]\n]+)\][ \t]+(.+?)[ \t]*$', text):
+        rest = line_match.group(2)
+        rest_start = line_match.start(2)
+        cursor = rest_start
+        for piece in re.split(r'(\. )', rest):
+            if not piece:
+                continue
+            if piece == ". ":
+                cursor += len(piece)
+                continue
+            phrase = piece.strip().rstrip(".").strip()
+            piece_start = cursor
+            piece_end = cursor + len(piece)
+            cursor = piece_end
+            if not phrase:
+                continue
+            spans.append(
+                {
+                    "text": f"ref:{phrase}",
+                    "value": phrase,
+                    "start": piece_start,
+                    "end": piece_end,
+                }
+            )
+    return spans
+
+
 def _extract_readable_quotes(text: str, order: list[dict[str, object]], chunk_text_by_id: dict[str, str]) -> list[dict[str, object]]:
     quotes: list[dict[str, object]] = []
-    for match in re.finditer(r'"([^"]*)"', text):
-        quote_start, quote_end = match.span()
-        chunk_id = _chunk_id_for_span(quote_start, order)
+    for span in _structural_quote_spans(text):
+        chunk_id = _chunk_id_for_span(int(span["start"]), order)
         quotes.append(
             {
                 "id": f"q:{len(quotes) + 1}",
-                "text": match.group(0),
-                "value": match.group(1),
-                "start": quote_start,
-                "end": quote_end,
+                "text": span["text"],
+                "value": span["value"],
+                "start": span["start"],
+                "end": span["end"],
                 "chunk": chunk_id,
                 "chunk_text_sha256": hashlib.sha256(chunk_text_by_id.get(chunk_id, "").encode("utf-8")).hexdigest() if chunk_id else None,
             }

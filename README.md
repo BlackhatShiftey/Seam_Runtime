@@ -38,9 +38,10 @@ Use the private `gh repo clone` commands above for this repo today.
 
 ## 60-Second Demo
 
-After install, open a new terminal:
+After install, open a new terminal. The same commands work on Windows
+PowerShell and Linux / WSL2 because `seam` is a platform-agnostic shim:
 
-```powershell
+```bash
 seam doctor
 seam ingest README.md --persist
 seam memory search "persistent agent memory"
@@ -64,17 +65,22 @@ state, metrics, panels, and chart surfaces without restarting.
 
 ## Core Commands
 
-```powershell
-seam ingest path\to\file.txt --persist
+Cross-platform (Windows PowerShell and Linux / WSL2 share the `seam` shim):
+
+```bash
+seam ingest path/to/file.txt --persist
 seam remember "SEAM stores durable memory for agents."
 seam memory search "durable memory"
 seam memory get clm:1,sta:ent:project:seam --timeline
 seam retrieve "durable memory" --mode mix --trace
 seam context "durable memory" --retrieval-mode mix --view evidence
+seam surface compile path/to/file.txt --output file.seam.png --mode rgb24
+seam surface query file.seam.png "durable memory"
 seam shell
 seam index
 seam reindex
 seam dashboard
+seam mcp serve
 seam serve --host 127.0.0.1 --port 8765
 seam benchmark run all --persist
 seam benchmark gate seam-benchmark-report.json
@@ -163,13 +169,40 @@ protected endpoints.
 
 ## Benchmark Glassbox
 
-```powershell
+```bash
 seam benchmark run all --persist --output seam-benchmark-report.json
 seam benchmark show latest
 seam benchmark verify seam-benchmark-report.json
 seam benchmark gate seam-benchmark-report.json
 seam benchmark diff <baseline-report.json> seam-benchmark-report.json
 ```
+
+### Measure Progress (Or Regression)
+
+The visual-memory loop is a measurable iteration engine. To prove a change
+improves SEAM rather than regressing it:
+
+```bash
+# 1. capture baseline
+seam benchmark run all --persist --output baseline.json
+
+# 2. make the change
+
+# 3. capture after-state and compare
+seam benchmark run all --persist --output after.json
+seam benchmark diff baseline.json after.json
+seam benchmark gate after.json
+```
+
+`benchmark diff` shows per-case green/red/gray deltas and added/removed cases.
+`benchmark gate` enforces the release-blocking minimums across all eight
+families. To extend coverage of structured document features, add a fixture
+case to `benchmarks/fixtures/surface_cases.json`; if the underlying extractor
+does not exist yet in `seam_runtime/lossless.py:_structural_quote_spans`, the
+gate fails and the fix is local. See [docs/howto/README.md](docs/howto/README.md)
+section 4 for the failing-case-driven extension runbook.
+
+### Publication Discipline
 
 Benchmark evidence is the proof layer for SEAM's commercial value; it does not
 grant commercial, hosted, SaaS, API, managed-service, embedded, redistribution,
@@ -189,6 +222,7 @@ context. Under that surface, SEAM is still machine-first:
 - `PACK`: prompt-time context view
 - `SEAM-LX/1`: exact machine-text envelope for lossless workflows
 - `SEAM-RC/1`: directly readable compressed machine language
+- `SEAM-HS/1`: lossless PNG-backed surface for MIRL, RC/1, LX/1, or raw bytes
 
 The design stance is unchanged: SQLite is canonical, derived indexes are
 rebuildable, lossless claims require exact reconstruction, and compressed
