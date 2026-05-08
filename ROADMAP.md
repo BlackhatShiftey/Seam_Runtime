@@ -717,7 +717,55 @@ release-blocking fixtures.
 
 ## Recommended Course — Priority Order
 
-Work these in sequence. Each track has a clear gate before moving on.
+Use this section for current priority. Older planned entries `HISTORY#028`-
+`HISTORY#047` are append-only planning cards; implemented items are superseded
+by later done entries and status notes.
+
+Current sequence:
+
+```
+Done - functional visual memory + foundational polish
+- G1: Document-to-machine-language compiler (implemented; see HISTORY#145)
+- G2: Stored surface library (implemented; merged 2026-05-06)
+- G3: Direct image-surface query (implemented for MIRL and RC/1 payloads)
+- G4: Surface store benchmarks (implemented; merged 2026-05-06)
+- B3: README consolidation (implemented; see HISTORY#147)
+- C1: Holdout suites (implemented; supersedes HISTORY#036)
+- C2: Benchmark diff tooling (implemented; supersedes HISTORY#037)
+- E3: REST API surface (implemented; supersedes HISTORY#046)
+
+Now - browser dashboard / REST API GUI
+- A-Web: wire experimental/webui to real REST endpoints
+- A-Web: split the single-file prototype into maintainable app shell modules
+- A-Web: add browser smoke tests for real health/stats/search/context data
+- A-CLI: keep seam shell aligned with MCP and REST surfaces
+
+Next - dashboard and agent ergonomics
+- A2: Benchmark progress bar
+- A3: ASCII sparkline graphs
+- A1: NL->MIRL compilation animation
+- A6: Presentation mode
+- D1: SEAM as Claude/Gemini/Codex tool set
+- A5: Chat tab in dashboard
+
+Later - benchmark credibility and scale
+- C5: Cross-machine reproducibility
+- C4: Adversarial testing
+- C3: Gold standard benchmarks (BEIR/MTEB)
+- D2: Auto-compression pipeline
+- D3: Batch compile
+- A4: Vector visualization
+- E1: PgVector migration helper
+- E2: Multi-tenant namespacing
+```
+
+Snapshot archival policy: do not delete or compress `.seam/snapshots/` ad hoc.
+Keep the latest verified continuity snapshot available. If snapshot count or
+size becomes a problem, add an explicit local-only retention tool that archives
+older verified snapshots outside normal git-tracked source and records the
+policy in `REPO_LEDGER.md`.
+
+Superseded 2026-04-18 sequence retained below only as historical context:
 
 ```
 Phase 1 (Now — functional visual memory + foundational polish)

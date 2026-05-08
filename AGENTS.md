@@ -16,7 +16,8 @@ Then:
 - If snapshot verification fails, fall back to index-first reads.
 - Use `python -m tools.history.build_context_pack` to load only the latest, route-relevant, topic-relevant, or supersedes-chain entries needed for the task.
 - Never read all of `HISTORY.md`; pull only needed entries by indexed line/byte ranges.
-- Treat `archive/code/`, `docs/archive/`, `build/`, `.venv/`, and generated/cache paths as inactive unless the user explicitly asks for historical or retired material.
+- Treat `archive/code/`, `docs/archive/`, `build/`, `.venv/`, `test_seam/`, and generated/cache paths as inactive unless the user explicitly asks for historical, retired, or local test-artifact material.
+- `test_seam/` is the ignored sink for isolated SQLite `test_seam_*.db` artifacts from test runs. Do not scan it for project source, runtime state, roadmap direction, or repo evidence unless investigating test-artifact cleanup.
 - For normal code search, stay in active paths: `seam_runtime/`, `seam.py`, `experimental/`, `tools/`, `scripts/`, `installers/`, `docs/`, tests, and root status files.
 
 ## Session End

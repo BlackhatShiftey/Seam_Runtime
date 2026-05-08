@@ -8,7 +8,7 @@ not have to infer what works from directory names alone.
 - `seam_runtime/` - packaged runtime, dashboard, storage, retrieval, model, and benchmark code.
 - `seam.py` - console entrypoint module for `seam` and `seam-benchmark`.
 - `test_seam_all/test_seam.py` - primary regression suite. Local `test_seam_*.db`
-  artifacts live in `test_seam/` and remain ignored.
+  artifacts live in ignored `test_seam/` so root stays clean.
 
 ## Active Tooling
 
@@ -35,6 +35,9 @@ not have to infer what works from directory names alone.
 
 - `build/` and `archive/code/generated-build*/` are generated build copies and
   are ignored by git.
+- `test_seam/` contains local isolated SQLite databases produced by test runs.
+  It is not project source, runtime truth, roadmap evidence, or useful context
+  for normal agent scans.
 - `__pycache__/`, `.pytest_cache/`, `.venv/`, and `*.egg-info/` are local
   environment or packaging artifacts.
 

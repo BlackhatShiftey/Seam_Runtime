@@ -3065,3 +3065,133 @@ Verification: `docker version` succeeded and `docker ps --filter name=seam-pgvec
 
 Next: when Gemini is started from the repo root, `/mcp` should show SEAM connected and Docker-backed pgvector ready. If pgvector auth fails after changing a local env password, recreate the local Docker volume so the running Postgres credentials match the private env file.
 ---END-ENTRY-#149---
+
+---BEGIN-ENTRY-#150---
+id: 150
+date: 2026-05-08T18:54:30Z
+agent: codex-gpt-5
+status: done
+topics: protocol, audit, history, snapshot, verify
+commits: none
+refs: AGENTS.md,docs/CODE_LAYOUT.md,test_seam/
+supersedes: 149
+tokens: 131
+---
+Documented the ignored `test_seam/` artifact sink for visiting agents after a live repo audit found 557 local SQLite `.db` files there and zero root-level `test_seam_*.db` files.
+
+Changed `AGENTS.md` to classify `test_seam/` with inactive/generated/cache paths and to tell agents not to scan it for project source, runtime state, roadmap direction, or repo evidence unless investigating test-artifact cleanup.
+
+Updated `docs/CODE_LAYOUT.md` so the active regression suite remains `test_seam_all/test_seam.py` while `test_seam/` is explicitly local-only generated test database output.
+
+Verification performed: inspected current `test_seam/` contents, confirmed `.gitignore` ignores `*.db` and `test_seam/`, checked CLI/roadmap/experimental observations live, and ran `python -m pytest --collect-only -q` with 176 tests collected.
+---END-ENTRY-#150---
+
+---BEGIN-ENTRY-#151---
+id: 151
+date: 2026-05-08T19:57:08Z
+agent: Gemini
+status: done
+topics: audit, status, verify, history
+commits: none
+refs: none
+supersedes: 150
+tokens: 26
+---
+Ran SEAM doctor and index status. Fixed index staleness with seam index. Reconciled PROJECT_STATUS.md to reflect latest continuity handoff #150.
+---END-ENTRY-#151---
+
+---BEGIN-ENTRY-#152---
+id: 152
+date: 2026-05-08T21:52:10Z
+agent: codex-gpt-5
+status: done
+topics: benchmark, holdout, roadmap, status, history
+commits: none
+refs: ROADMAP.md,HISTORY_INDEX.md
+supersedes: 036
+tokens: 78
+---
+Supersedes the original planned holdout benchmark suites card from HISTORY#036.
+
+Implemented state: publish-only holdout routing and confirmation gates exist in the benchmark surface. ROADMAP Track C1 already marks holdout suites implemented on 2026-04-27, with HISTORY#092 as the implementation pointer.
+
+Reason for this entry: keep HISTORY.md append-only while giving future context packs a done-status supersedes link for the old planned card.
+---END-ENTRY-#152---
+
+---BEGIN-ENTRY-#153---
+id: 153
+date: 2026-05-08T21:52:11Z
+agent: codex-gpt-5
+status: done
+topics: benchmark, diff, verify, roadmap, status, history
+commits: none
+refs: ROADMAP.md,HISTORY_INDEX.md
+supersedes: 037
+tokens: 71
+---
+Supersedes the original planned benchmark diff tooling card from HISTORY#037.
+
+Implemented state: `seam benchmark diff <run-a> <run-b>` exists and ROADMAP Track C2 marks the work implemented on 2026-04-27, with HISTORY#092 as the implementation pointer.
+
+Reason for this entry: keep HISTORY.md append-only while giving future context packs a done-status supersedes link for the old planned card.
+---END-ENTRY-#153---
+
+---BEGIN-ENTRY-#154---
+id: 154
+date: 2026-05-08T21:52:11Z
+agent: codex-gpt-5
+status: done
+topics: compile, search, roadmap, status, history
+commits: none
+refs: ROADMAP.md,HISTORY_INDEX.md,seam_runtime/server.py,pyproject.toml
+supersedes: 046
+tokens: 124
+---
+Supersedes the original planned REST API surface card from HISTORY#046.
+
+Implemented state: the optional FastAPI/Uvicorn REST surface is present behind the `server` extra, with `seam serve` and `seam-server` documented as current stable surfaces. ROADMAP Track E3 marks the REST API surface implemented on 2026-04-27, with HISTORY#094 as the implementation pointer.
+
+Reason for this entry: keep HISTORY.md append-only while giving future context packs a done-status supersedes link for the old planned card. The browser dashboard remains separate work: it should wire `experimental/webui/` to these REST endpoints later, but that wiring is intentionally not part of this cleanup.
+---END-ENTRY-#154---
+
+---BEGIN-ENTRY-#155---
+id: 155
+date: 2026-05-08T21:57:50Z
+agent: codex-gpt-5
+status: done
+topics: roadmap, status, history, snapshot, verify, audit, protocol
+commits: none
+refs: ROADMAP.md,PROJECT_STATUS.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots,.claude/worktrees
+supersedes: 151
+tokens: 279
+---
+Closed the repo-hygiene pass requested after the live dirty-tree and roadmap review.
+
+Roadmap/status cleanup: ROADMAP.md now has a current Recommended Course section that marks the functional visual-memory/foundational items done, promotes the browser dashboard / REST API GUI to Now, and keeps the old 2026-04-18 sequence only as historical context. PROJECT_STATUS.md now points at this handoff and states that legacy HISTORY#028-#047 cards are append-only planning records, with HISTORY#036, #037, and #046 superseded by done entries #152, #153, and #154.
+
+Branch cleanup: deleted merged local branches SEAM-CC/clever-moore-c01ad7, SEAM-CC/dazzling-mclaren-008388, SEAM-CC/elated-cartwright-8313cf, SEAM-CC/gallant-saha-98c12e, SEAM-CC/goofy-gagarin-7e30ec, SEAM-CC/nostalgic-keller-c21f5e, codex/hs1-stored-surface-benchmark, codex/hs1-surface-adapters, and codex/hs1-surface-repair. Removed stale clean worktree directories for those deleted branches and removed the prunable stale settings-overhaul worktree directory/metadata while leaving the codex/settings-overhaul branch itself intact.
+
+Skipped branch cleanup: left SEAM-CC/affectionate-elgamal-db3481, SEAM-CC/goofy-bartik-e9874c, and SEAM-CC/keen-nightingale-c77ebe because their worktrees have local edits. No experimental/webui implementation was done.
+
+Snapshot policy: ROADMAP.md now says not to delete or compress .seam/snapshots ad hoc; keep the latest verified continuity snapshot and add an explicit local-only retention tool later only if size/count becomes a problem.
+
+Verification before this entry: git branch/worktree inventory showed only the three dirty SEAM-CC worktrees plus main registered; git status on main showed only the intended docs/history changes. Post-entry closeout still needs rebuild_index, write_snapshot, verify_integrity, verify_routing, verify_continuity, diff check, and a targeted test command before commit.
+---END-ENTRY-#155---
+
+---BEGIN-ENTRY-#156---
+id: 156
+date: 2026-05-08T22:01:15Z
+agent: codex-gpt-5
+status: done
+topics: verify, history, snapshot, status, audit
+commits: none
+refs: PROJECT_STATUS.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots
+supersedes: 155
+tokens: 109
+---
+Verified the roadmap/status/branch-cleanup closeout from HISTORY#155 after appending the final cleanup entry.
+
+Verification: `python -m tools.history.verify_integrity`, `python -m tools.history.verify_routing`, and `python -m tools.history.verify_continuity` returned OK. `git diff --check` returned only expected Windows LF/CRLF working-copy warnings. `python -m pytest --collect-only -q` collected 176 tests. Branch/worktree inventory now shows only three SEAM-CC worktrees still attached, and they were intentionally kept because they contain local edits: SEAM-CC/affectionate-elgamal-db3481, SEAM-CC/goofy-bartik-e9874c, and SEAM-CC/keen-nightingale-c77ebe.
+
+Updated PROJECT_STATUS.md so future agents see HISTORY#156 as the latest continuity handoff. No experimental/webui implementation was performed.
+---END-ENTRY-#156---
