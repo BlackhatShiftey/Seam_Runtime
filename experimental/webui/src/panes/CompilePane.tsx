@@ -36,7 +36,7 @@ export default function CompilePane() {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Enter text to compile…"
+          placeholder="Enter text to compile..."
           rows={5}
           style={{
             background: '#030d20',
@@ -70,7 +70,7 @@ export default function CompilePane() {
               opacity: !text.trim() || loading ? 0.5 : 1,
             }}
           >
-            {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Spinner /><span>Compiling…</span></span> : 'Compile'}
+            {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Spinner /><span>Compiling...</span></span> : 'Compile'}
           </button>
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function CompilePane() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {result.records.map((rec: any, idx: number) => (
               <div key={idx} style={{ background: '#020b1e', border: '1px solid rgba(47,99,255,0.12)', borderRadius: 6, padding: '8px 10px' }}>
-                <div style={{ fontSize: 10, color: '#4f6888', marginBottom: 2 }}>{rec.id || `record-${idx}`} {rec.kind ? `· ${rec.kind}` : ''}</div>
+                <div style={{ fontSize: 10, color: '#4f6888', marginBottom: 2 }}>{rec.id || `record-${idx}`} {rec.kind ? `- ${rec.kind}` : ''}</div>
                 <div style={{ fontSize: 12, color: '#bfefff' }}>{rec.text || JSON.stringify(rec).slice(0, 200)}</div>
               </div>
             ))}

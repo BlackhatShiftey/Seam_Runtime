@@ -43,6 +43,43 @@ body {
   font-size: 13px;
 }
 
+#root {
+  height: 100vh;
+}
+
+.prototype-frame {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  border: 0;
+  background: var(--bg-deep);
+}
+
+.prototype-fallback {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  color: var(--ice-pale);
+  background: var(--bg-deep);
+}
+
+.prototype-fallback h1 {
+  color: var(--ice);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.prototype-fallback p {
+  color: var(--muted);
+}
+
+.prototype-fallback code {
+  color: var(--cyan);
+}
+
 /* scanlines overlay */
 body::before {
   content: "";

@@ -1125,8 +1125,115 @@ const provenanceEdges = [
 
 const tagColors = { '@': '#a6fcff', '#': '#7fe0ff', '!': '#f4d676', '>': '#9b6cff', '~': '#7efdb9', '^': '#d391ff', '%': '#66b8ff', '=': '#8df6ff' };
 
-function ProvenanceGraph({ nodes, edges, highlight, onHover }) {
+const provenanceDetails = {
+  n1: {
+    title: 'README.md',
+    summary: 'Source document that seeded the product identity, install path, and persistent-memory positioning.',
+    fields: [['Route', 'docs/source'], ['Records', '12 MIRL'], ['Hash', 'src:a3f9c1'], ['Last ingest', '2m ago']],
+    actions: ['Open source', 'Re-ingest', 'Show derived records'],
+  },
+  n2: {
+    title: 'clm:1 @SEAM',
+    summary: 'Canonical entity record for SEAM. Connects source material to runtime state and event records.',
+    fields: [['Kind', 'entity'], ['Score', '0.97'], ['Refs', 'README.md, seam_runtime'], ['Consumers', 'context_pack, agent_bridge']],
+    actions: ['Open MIRL record', 'Search related', 'Add to PACK'],
+  },
+  n3: {
+    title: 'clm:4 #SQLite',
+    summary: 'Claim that SQLite is canonical truth while vector stores are rebuildable acceleration layers.',
+    fields: [['Kind', 'claim'], ['Evidence', 'README.md + ledger'], ['Status', 'verified'], ['Risk', 'low']],
+    actions: ['Trace evidence', 'Show contradictions', 'Pin claim'],
+  },
+  n4: {
+    title: 'sta:ent:seam',
+    summary: 'Current state node summarizing active benchmark, vector sync, and runtime health.',
+    fields: [['Kind', 'state'], ['Vector sync', '99.2%'], ['Recall hit@5', '91%'], ['Updated', '6m ago']],
+    actions: ['Open status', 'Refresh metrics', 'Create handoff'],
+  },
+  n5: {
+    title: 'clm:12 !event',
+    summary: 'Operational event node for contradiction review and refinement-agent findings.',
+    fields: [['Kind', 'event'], ['Cluster', 'model_v3'], ['Severity', 'warn'], ['Owner', 'refinement agent 4']],
+    actions: ['Open cluster', 'Resolve flag', 'Create task'],
+  },
+  n6: {
+    title: 'agent_bridge',
+    summary: 'Relation node connecting MCP, context packs, stdio bridge, and agent-facing retrieval.',
+    fields: [['Kind', 'relation'], ['Protocol', 'MCP stdio'], ['Tools', '16'], ['Mode', 'progressive disclosure']],
+    actions: ['Open bridge docs', 'Inspect tools', 'Run doctor'],
+  },
+  n7: {
+    title: 'SPEC_V0.1.md',
+    summary: 'Specification source for MIRL record schema and benchmark evidence records.',
+    fields: [['Route', 'docs/spec'], ['Records', '8 MIRL'], ['Schema', 'MIRL v1'], ['Last ingest', '31m ago']],
+    actions: ['Open spec', 'Rebuild schema pack', 'Trace derived nodes'],
+  },
+  n8: {
+    title: 'clm:22 ^bench',
+    summary: 'Evidence node proving benchmark gate hit@5=0.91 against holdout fixture hash a3f9.',
+    fields: [['Kind', 'evidence'], ['Gate', 'pass'], ['Fixture', 'sha:a3f9'], ['Metric', 'hit@5=0.91']],
+    actions: ['Open benchmark', 'Show run bundle', 'Diff baseline'],
+  },
+};
+
+function GraphNodeDetails({ nodeId, compact = false }) {
+  const node = provenanceNodes.find(n => n.id === nodeId) || provenanceNodes[0];
+  const detail = provenanceDetails[node.id] || {};
+  const links = provenanceEdges.filter(e => e.from === node.id || e.to === node.id);
+  const neighbors = links.map(e => {
+    const id = e.from === node.id ? e.to : e.from;
+    const n = provenanceNodes.find(item => item.id === id);
+    return n ? n.label : id;
+  });
+  return (
+    <div style={{
+      marginTop: compact ? 8 : 14,
+      padding: compact ? '9px 10px' : '12px 14px',
+      background: 'rgba(8,19,42,0.9)',
+      border: `1px solid ${node.color}40`,
+      borderRadius: compact ? 6 : 10,
+      boxShadow: `0 0 ${compact ? 10 : 18}px ${node.color}18`,
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+        <span style={{ width:8, height:8, borderRadius:'50%', background:node.color, boxShadow:`0 0 6px ${node.color}` }} />
+        <span style={{ color:node.color, fontSize:compact ? 11 : 13, fontWeight:600 }}>{detail.title || node.label}</span>
+        <span style={{ color:'#274063', fontSize:9, textTransform:'uppercase', letterSpacing:'0.08em' }}>{node.type}</span>
+      </div>
+      <div style={{ color:'#bfefff', fontSize:compact ? 10 : 12, lineHeight:1.5, marginBottom:8 }}>{detail.summary}</div>
+      <div style={{ display:'grid', gridTemplateColumns:compact ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap:6, marginBottom:8 }}>
+        {(detail.fields || []).map(([k, v]) => (
+          <div key={k} style={{ display:'flex', justifyContent:'space-between', gap:8, padding:'5px 7px', borderRadius:5, background:'#020b1e', border:'1px solid rgba(47,99,255,0.09)' }}>
+            <span style={{ color:'#4f6888', fontSize:9 }}>{k}</span>
+            <span style={{ color:node.color, fontSize:9, fontWeight:500 }}>{v}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginBottom:8 }}>
+        {neighbors.map(n => (
+          <span key={n} style={{ fontSize:9, color:'#8090b0', border:'1px solid rgba(47,99,255,0.14)', borderRadius:4, padding:'2px 5px', background:'rgba(2,9,19,0.6)' }}>{n}</span>
+        ))}
+      </div>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+        {(detail.actions || []).map(action => (
+          <button key={action} style={{
+            padding:'4px 7px',
+            background:'rgba(79,140,251,0.08)',
+            border:'1px solid rgba(79,140,251,0.2)',
+            borderRadius:5,
+            color:'#7fe0ff',
+            fontSize:9,
+            fontFamily:'var(--font)',
+            cursor:'pointer',
+          }}>{action}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProvenanceGraph({ nodes, edges, highlight, selected, onHover, onSelect }) {
   const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const active = highlight || selected;
   return (
     <svg width="100%" height="220" viewBox="0 0 640 220" style={{ display: 'block' }}>
       <defs>
@@ -1138,7 +1245,7 @@ function ProvenanceGraph({ nodes, edges, highlight, onHover }) {
       {edges.map((e, i) => {
         const a = nodeMap[e.from], b = nodeMap[e.to];
         if (!a || !b) return null;
-        const isHot = highlight === e.from || highlight === e.to;
+        const isHot = active === e.from || active === e.to;
         return (
           <line key={i}
             x1={a.x} y1={a.y} x2={b.x} y2={b.y}
@@ -1151,9 +1258,9 @@ function ProvenanceGraph({ nodes, edges, highlight, onHover }) {
       })}
       {/* nodes */}
       {nodes.map(n => {
-        const isHot = highlight === n.id;
+        const isHot = active === n.id;
         return (
-          <g key={n.id} onMouseEnter={() => onHover(n.id)} onMouseLeave={() => onHover(null)} style={{ cursor: 'pointer' }}>
+          <g key={n.id} onMouseEnter={() => onHover(n.id)} onMouseLeave={() => onHover(null)} onClick={() => onSelect?.(n.id)} style={{ cursor: 'pointer' }}>
             <circle cx={n.x} cy={n.y} r={isHot ? 22 : 18}
               fill={isHot ? n.color + '22' : '#08132a'}
               stroke={n.color}
@@ -1177,6 +1284,7 @@ function ProvenanceGraph({ nodes, edges, highlight, onHover }) {
 function MemoryPanel({ width }) {
   const [tab, setTab] = useState('records');
   const [hoveredNode, setHoveredNode] = useState(null);
+  const [selectedNode, setSelectedNode] = useState('n2');
   const [tick, setTick] = useState(0);
 
   // animate write queue progress
@@ -1281,9 +1389,10 @@ function MemoryPanel({ width }) {
           <div style={{ padding: '8px 0' }}>
             <div style={{ padding: '2px 12px 6px', fontSize: 9, color: '#274063', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Provenance graph — hover nodes to trace</div>
             <div style={{ padding: '0 8px', background: '#020b1e', borderTop: '1px solid rgba(47,99,255,0.08)', borderBottom: '1px solid rgba(47,99,255,0.08)' }}>
-              <ProvenanceGraph nodes={provenanceNodes} edges={provenanceEdges} highlight={hoveredNode} onHover={setHoveredNode} />
+              <ProvenanceGraph nodes={provenanceNodes} edges={provenanceEdges} highlight={hoveredNode} selected={selectedNode} onHover={setHoveredNode} onSelect={setSelectedNode} />
             </div>
             <div style={{ padding: '8px 12px' }}>
+              <GraphNodeDetails nodeId={selectedNode} compact />
               <div style={{ fontSize: 9, color: '#274063', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Node legend</div>
               {[['@','entity','#a6fcff'],['#','claim','#7fe0ff'],['!','event','#f4d676'],['>','relation','#9b6cff'],['~','state','#7efdb9'],['^','evidence','#d391ff'],['%','source','#66b8ff']].map(([tag, kind, color]) => (
                 <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
@@ -1858,6 +1967,7 @@ function BenchmarkFullView() {
 function MemoryFullView() {
   const [tab, setTab] = useState('graph');
   const [hoveredNode, setHoveredNode] = useState(null);
+  const [selectedNode, setSelectedNode] = useState('n2');
   const [tick, setTick] = useState(0);
   useEffect(() => { const t = setInterval(()=>setTick(v=>v+1),800); return ()=>clearInterval(t); },[]);
 
@@ -1927,7 +2037,8 @@ function MemoryFullView() {
                   const b = provenanceNodes.find(n=>n.id===e.to);
                   if (!a||!b) return null;
                   const ax=a.x*scale, ay=a.y*scale+20, bx=b.x*scale, by=b.y*scale+20;
-                  const isHot = hoveredNode===e.from||hoveredNode===e.to;
+                  const activeNode = hoveredNode || selectedNode;
+                  const isHot = activeNode===e.from||activeNode===e.to;
                   return (
                     <line key={i} x1={ax} y1={ay} x2={bx} y2={by}
                       stroke={isHot?'#4f8cfb':'#1a2540'} strokeWidth={isHot?2:1}
@@ -1938,10 +2049,10 @@ function MemoryFullView() {
                 {provenanceNodes.map(n => {
                   const scale=1.6;
                   const cx=n.x*scale, cy=n.y*scale+20;
-                  const isHot=hoveredNode===n.id;
+                  const isHot=(hoveredNode || selectedNode)===n.id;
                   const pulse = isHot ? 1 + Math.sin(tick*0.8)*0.08 : 1;
                   return (
-                    <g key={n.id} onMouseEnter={()=>setHoveredNode(n.id)} onMouseLeave={()=>setHoveredNode(null)} style={{cursor:'pointer'}}>
+                    <g key={n.id} onMouseEnter={()=>setHoveredNode(n.id)} onMouseLeave={()=>setHoveredNode(null)} onClick={()=>setSelectedNode(n.id)} style={{cursor:'pointer'}}>
                       {isHot && <circle cx={cx} cy={cy} r={36*pulse} fill="none" stroke={n.color} strokeWidth="1" opacity="0.15"/>}
                       <circle cx={cx} cy={cy} r={isHot?28:22}
                         fill={isHot?n.color+'22':'#08132a'}
@@ -1964,6 +2075,7 @@ function MemoryFullView() {
                   );
                 })}
               </svg>
+              <GraphNodeDetails nodeId={selectedNode} />
             </div>
             {/* Legend */}
             <div style={{ display:'flex', gap:16, marginTop:14, flexWrap:'wrap' }}>
@@ -2169,6 +2281,13 @@ function App() {
     const addLines = (...ls) => setTermLines((prev) => [...prev, ...ls.map((l, i) => ({ id: prev.length + i, ...l }))]);
 
     if (raw === '/') {
+      openTermMenu();
+      return;
+    }
+    executeTermCommand(raw);
+    return;
+
+    if (raw === '/') {
       setTermMenuOpen(true);
       setTermInput('');
       return;
@@ -2208,14 +2327,129 @@ function App() {
   };
 
   const termMenuCommands = [
-  { cmd: '/ingest', desc: 'Ingest a file into MIRL memory' },
-  { cmd: '/retrieve', desc: 'Retrieve context from the store' },
-  { cmd: '/search', desc: 'Search memory records' },
-  { cmd: '/doctor', desc: 'Run health check' },
-  { cmd: '/index', desc: 'Rebuild vector index' },
-  { cmd: '/dashboard', desc: 'Open Textual dashboard' },
-  { cmd: '/serve', desc: 'Start REST API server' },
-  { cmd: '/benchmark', desc: 'Run benchmark suite' }];
+  { cmd: '/doctor', desc: 'Call REST /health and report runtime status', wired: true },
+  { cmd: '/health', desc: 'Alias for /doctor', wired: true },
+  { cmd: '/stats', desc: 'Call REST /stats and show store counters', wired: true },
+  { cmd: '/search persistent memory', desc: 'Call REST /search with a query', wired: true },
+  { cmd: '/context persistent memory', desc: 'Call REST /context and build a PACK', wired: true },
+  { cmd: '/compile SEAM stores durable memory.', desc: 'Call REST /compile without persistence', wired: true },
+  { cmd: '/ingest', desc: 'Open the WebUI ingest panel', wired: true },
+  { cmd: '/memory', desc: 'Open the Memory graph tab', wired: true },
+  { cmd: '/benchmark', desc: 'Open the Benchmarks tab', wired: true },
+  { cmd: '/settings', desc: 'Open the operator settings overlay', wired: true },
+  { cmd: '/clear', desc: 'Clear terminal output', wired: true },
+  { cmd: '/index', desc: 'CLI-only today: requires local shell execution', wired: false },
+  { cmd: '/dashboard', desc: 'CLI-only today: terminal dashboard launch', wired: false },
+  { cmd: '/serve', desc: 'CLI-only today: start REST API in a real terminal', wired: false },
+  { cmd: '/mcp', desc: 'CLI-only today: start MCP stdio bridge', wired: false },
+  { cmd: '/surface', desc: 'CLI-only today: run HS/1 surface commands', wired: false }];
+
+  const addTermLines = (...ls) => setTermLines((prev) => [...prev, ...ls.map((l, i) => ({ id: prev.length + i, ...l }))]);
+
+  const openTermMenu = () => {
+    setTerminalOpen(true);
+    setTermMenuOpen(true);
+    setTermInput('/');
+    setTimeout(() => termInputRef.current?.focus(), 0);
+  };
+
+  const getApiClient = () => {
+    const baseUrl = (localStorage.getItem('seam-webui-api-url') || 'http://127.0.0.1:8765').replace(/\/$/, '');
+    const token = localStorage.getItem('seam-webui-api-token') || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return { baseUrl, headers };
+  };
+
+  const callSeamApi = async (path, init = {}) => {
+    const { baseUrl, headers } = getApiClient();
+    const res = await fetch(`${baseUrl}${path}`, { ...init, headers: { ...headers, ...(init.headers || {}) } });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+    return res.json();
+  };
+
+  const executeTermCommand = async (raw) => {
+    if (raw.startsWith('/')) {
+      const parts = raw.slice(1).trim().split(/\s+/).filter(Boolean);
+      const cmd = parts[0] || '';
+      const argText = parts.slice(1).join(' ');
+      if (cmd === 'clear') {
+        setTermLines([{ id: 0, kind: 'system', text: 'terminal cleared' }]);
+        setTermMenuOpen(false);
+        setTermInput('');
+        return;
+      }
+      if (cmd === 'ingest') {
+        setIngestOpen(true); setMemoryOpen(false); setExplorerOpen(false); setBenchmarkOpen(false); setActiveNav('ingest');
+      } else if (cmd === 'memory') {
+        setOpenTabs(prev => prev.includes('__memory') ? prev : [...prev, '__memory']); setActiveTab('__memory'); setActiveFile('__memory'); setActiveNav('memory');
+      } else if (cmd === 'benchmark') {
+        setOpenTabs(prev => prev.includes('__benchmarks') ? prev : [...prev, '__benchmarks']); setActiveTab('__benchmarks'); setActiveFile('__benchmarks'); setActiveNav('benchmark');
+      } else if (cmd === 'settings') {
+        setSettingsOpen(true);
+      }
+      addTermLines(
+        { kind: 'prompt', text: raw },
+        { kind: 'info', text: `[menu] ${cmd ? `seam ${cmd}` : 'command palette'}` }
+      );
+      try {
+        if (cmd === 'doctor' || cmd === 'health') {
+          const h = await callSeamApi('/health');
+          addTermLines({ kind: 'ok', text: `[api] /health ${h.status || 'ok'} store=${h.store_path || 'unknown'}` });
+        } else if (cmd === 'stats') {
+          const s = await callSeamApi('/stats');
+          addTermLines({ kind: 'ok', text: `[api] /stats records=${s.total_records ?? 'unknown'} keys=${Object.keys(s).slice(0, 6).join(',')}` });
+        } else if (cmd === 'search') {
+          const query = argText || 'persistent agent memory';
+          const data = await callSeamApi(`/search?${new URLSearchParams({ query, budget: '5', lens: 'general' }).toString()}`);
+          const count = data.candidates?.length ?? 0;
+          addTermLines({ kind: 'ok', text: `[api] /search "${query}" candidates=${count}` });
+          (data.candidates || []).slice(0, 3).forEach((c, i) => addTermLines({ kind: 'plain', text: `  ${i + 1}. ${c.record?.id || 'record'} score=${Number(c.score || 0).toFixed(3)} ${c.record?.text || ''}` }));
+        } else if (cmd === 'context' || cmd === 'retrieve') {
+          const query = argText || 'persistent agent memory';
+          const data = await callSeamApi('/context', { method: 'POST', body: JSON.stringify({ query, budget: 5, lens: 'general', mode: 'mix' }) });
+          addTermLines({ kind: 'ok', text: `[api] /context "${query}" candidates=${data.candidates?.length ?? 0} pack=${data.pack ? 'ready' : 'missing'}` });
+        } else if (cmd === 'compile') {
+          const text = argText || 'SEAM stores durable memory.';
+          const data = await callSeamApi('/compile', { method: 'POST', body: JSON.stringify({ text, persist: false, source_ref: 'webui-command-palette' }) });
+          addTermLines({ kind: 'ok', text: `[api] /compile records=${data.records?.length ?? 0} persist=false` });
+        } else if (['ingest', 'memory', 'benchmark', 'settings'].includes(cmd)) {
+          addTermLines({ kind: 'ok', text: `[ui] opened ${cmd}` });
+        } else if (['index', 'dashboard', 'serve', 'mcp', 'surface'].includes(cmd)) {
+          addTermLines({ kind: 'warn', text: `[not wired] seam ${cmd} requires a local shell/MCP bridge; browser execution is intentionally blocked` });
+        } else {
+          addTermLines({ kind: 'warn', text: `[unknown] no WebUI handler for /${cmd}` });
+        }
+      } catch (err) {
+        addTermLines({ kind: 'error', text: `[api error] ${err.message || err}` });
+      }
+    } else if (raw.startsWith('!')) {
+      const bash = raw.slice(1).trim();
+      addTermLines(
+        { kind: 'prompt', text: raw },
+        { kind: 'plain', text: `$ ${bash}` },
+        { kind: 'warn', text: '[blocked] raw shell execution is not wired in the browser prototype' }
+      );
+    } else if (raw === '?') {
+      addTermLines(
+        { kind: 'prompt', text: raw },
+        { kind: 'info', text: '  /         - open SEAM command menu' },
+        { kind: 'info', text: '  /ingest   - ingest a file into MIRL' },
+        { kind: 'info', text: '  /retrieve - retrieve context from store' },
+        { kind: 'info', text: '  /search   - search memory records' },
+        { kind: 'info', text: '  /doctor   - run health check' },
+        { kind: 'info', text: '  !<cmd>    - run a raw shell command' },
+        { kind: 'info', text: '  ?         - show this help' }
+      );
+    } else {
+      addTermLines(
+        { kind: 'prompt', text: raw },
+        { kind: 'info', text: `[seam] ${raw}...` }
+      );
+    }
+    setTermMenuOpen(false);
+    setTermInput('');
+  };
 
 
   // ── Agent submit ──────────────────────────────────────────────────────
@@ -2256,6 +2490,11 @@ function App() {
   const benchmarkWidth = benchmarkOpen ? tweaks.explorerWidth : 0;
   const agentWidth     = agentOpen     ? tweaks.agentWidth    : 0;
   const termHeight     = terminalOpen  ? tweaks.terminalHeight : 0;
+  const termMenuFilter = termInput.startsWith('/') ? termInput.slice(1).toLowerCase().trim() : '';
+  const filteredTermMenuCommands = termMenuCommands.filter((c) => {
+    if (!termMenuFilter) return true;
+    return c.cmd.toLowerCase().includes(termMenuFilter) || c.desc.toLowerCase().includes(termMenuFilter);
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg-deep)', position: 'relative' }}>
@@ -2491,26 +2730,33 @@ function App() {
                   {/* Command menu */}
                   {termMenuOpen &&
                 <div style={{
-                  position: 'absolute', bottom: 44, left: 12, zIndex: 50,
-                  background: '#030d20', border: '1px solid rgba(79,140,251,0.25)',
-                  borderRadius: 8, padding: '6px 0', minWidth: 280,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+                  position: 'fixed', left: 60, right: agentOpen ? agentWidth + 28 : 28, bottom: 56, zIndex: 20000,
+                  background: 'rgba(3,13,32,0.98)', border: '1px solid rgba(127,224,255,0.32)',
+                  borderRadius: 10, padding: '7px 0', minWidth: 420, maxHeight: 'min(56vh, 440px)',
+                  overflowY: 'auto', overflowX: 'hidden',
+                  boxShadow: '0 18px 60px rgba(0,0,0,0.72), 0 0 28px rgba(79,140,251,0.18)',
+                  backdropFilter: 'blur(8px)'
                 }}>
-                      <div style={{ padding: '4px 12px 6px', fontSize: 10, color: '#4f8cfb', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid rgba(47,99,255,0.1)' }}>
-                        SEAM Commands
+                      <div style={{ padding: '5px 14px 8px', fontSize: 10, color: '#4f8cfb', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid rgba(47,99,255,0.12)', display:'flex', alignItems:'center', gap:10 }}>
+                        <span>SEAM Commands</span>
+                        <span style={{ color:'#274063', textTransform:'none', letterSpacing:0 }}>{filteredTermMenuCommands.length}/{termMenuCommands.length}</span>
+                        <div style={{ flex:1 }} />
+                        <span style={{ color:'#274063', textTransform:'none', letterSpacing:0 }}>Esc closes · Enter runs typed command</span>
                       </div>
-                      {termMenuCommands.map((c) =>
-                  <div key={c.cmd} onClick={() => {setTermInput(c.cmd + ' ');setTermMenuOpen(false);termInputRef.current?.focus();}}
-                  style={{ display: 'flex', gap: 10, padding: '5px 12px', cursor: 'pointer', fontSize: 12 }}
+                      {filteredTermMenuCommands.map((c) =>
+                  <div key={c.cmd} onMouseDown={(e) => {e.preventDefault(); executeTermCommand(c.cmd);}}
+                  style={{ display: 'flex', gap: 12, padding: '8px 14px', cursor: 'pointer', fontSize: 12, alignItems:'center', borderBottom:'1px solid rgba(47,99,255,0.05)' }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(79,140,251,0.08)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                     
-                          <span style={{ color: '#7fe0ff', width: 90, flexShrink: 0 }}>{c.cmd}</span>
-                          <span style={{ color: '#5a7a9a' }}>{c.desc}</span>
+                          <span style={{ color: '#7fe0ff', width: 176, flexShrink: 0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.cmd}</span>
+                          <span style={{ color: '#8090b0', flex:1, minWidth:0 }}>{c.desc}</span>
+                          <span style={{ fontSize:9, color:c.wired ? '#7efdb9' : '#f4d676', border:`1px solid ${c.wired ? 'rgba(126,253,185,0.22)' : 'rgba(244,214,118,0.22)'}`, borderRadius:4, padding:'1px 5px', flexShrink:0 }}>{c.wired ? 'WIRED' : 'CLI ONLY'}</span>
                         </div>
                   )}
-                      <div style={{ padding: '4px 12px 0', borderTop: '1px solid rgba(47,99,255,0.1)', marginTop: 4 }}>
-                        <span style={{ fontSize: 10, color: '#274063' }}>press Esc to close</span>
+                      {filteredTermMenuCommands.length === 0 && <div style={{ padding:'16px 14px', color:'#5a7a9a', fontSize:12 }}>No command matches "{termMenuFilter}"</div>}
+                      <div style={{ padding: '6px 14px 0', borderTop: '1px solid rgba(47,99,255,0.1)', marginTop: 4 }}>
+                        <span style={{ fontSize: 10, color: '#274063' }}>Browser-safe commands call the REST API; CLI-only commands are intentionally not executed in-page.</span>
                       </div>
                     </div>
                 }
@@ -2524,8 +2770,8 @@ function App() {
                     <input
                     ref={termInputRef}
                     value={termInput}
-                    onChange={(e) => {setTermInput(e.target.value);if (e.target.value === '/') setTermMenuOpen(true);else setTermMenuOpen(false);}}
-                    onKeyDown={(e) => {if (e.key === 'Escape') setTermMenuOpen(false);}}
+                    onChange={(e) => {setTermInput(e.target.value);if (e.target.value.startsWith('/')) setTermMenuOpen(true);else setTermMenuOpen(false);}}
+                    onKeyDown={(e) => {if (e.key === 'Escape') {setTermMenuOpen(false); setTermInput('');} if ((e.ctrlKey || e.metaKey) && e.key === '/') {e.preventDefault(); openTermMenu();}}}
                     placeholder="seam ...  ( / menu  · ! bash  · ? help )"
                     style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#a6fcff', fontSize: 12, fontFamily: 'var(--font)', caretColor: '#7efdb9' }} />
                   

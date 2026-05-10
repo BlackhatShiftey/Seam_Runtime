@@ -36,7 +36,7 @@ export default function SearchPane() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search query…"
+          placeholder="Search query..."
           style={{
             flex: 1,
             minWidth: 200,
@@ -83,7 +83,7 @@ export default function SearchPane() {
             opacity: !query.trim() || loading ? 0.5 : 1,
           }}
         >
-          {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Spinner /><span>Searching…</span></span> : 'Search'}
+          {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Spinner /><span>Searching...</span></span> : 'Search'}
         </button>
       </div>
 
@@ -99,8 +99,8 @@ export default function SearchPane() {
           {result.candidates.map((c, idx) => (
             <div key={idx} style={{ background: '#020b1e', border: '1px solid rgba(47,99,255,0.12)', borderRadius: 6, padding: '8px 10px', marginBottom: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 10, color: '#4f6888' }}>{c.record.id} {c.record.kind ? `· ${c.record.kind}` : ''}</span>
-                <span style={{ fontSize: 10, color: '#7efdb9' }}>{(c.score * 100).toFixed(1)}%</span>
+                <span style={{ fontSize: 10, color: '#4f6888' }}>{c.record.id} {c.record.kind ? `- ${c.record.kind}` : ''}</span>
+                <span style={{ fontSize: 10, color: '#7efdb9' }}>score {c.score.toFixed(3)}</span>
               </div>
               <div style={{ fontSize: 12, color: '#bfefff' }}>{c.record.text || JSON.stringify(c.record).slice(0, 200)}</div>
             </div>

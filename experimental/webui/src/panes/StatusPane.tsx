@@ -27,7 +27,7 @@ export default function StatusPane() {
           if (!mounted) return;
           const msg = e instanceof Error ? e.message : String(e);
           if ((e as Error & { code?: string }).code === 'UNAUTHORIZED') {
-            setStatsError('Unauthorized — set bearer token in Settings.');
+            setStatsError('Unauthorized - set bearer token in Settings.');
           } else {
             setStatsError(msg);
           }
@@ -55,7 +55,7 @@ export default function StatusPane() {
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#5a7a9a' }}>
           <Spinner />
-          <span>Checking health…</span>
+          <span>Checking health...</span>
         </div>
       )}
       {error && !loading && (

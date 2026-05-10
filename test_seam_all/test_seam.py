@@ -163,6 +163,27 @@ claim c1:
         self.assertGreater(stats_response.json()["total_records"], 0)
 
     @unittest.skipIf(TestClient is None, "fastapi server extra is not installed")
+    def test_rest_api_allows_local_webui_cors_preflight(self) -> None:
+        from seam_runtime.server import create_app
+
+        runtime = SeamRuntime(self.db_path)
+        with patch.dict(os.environ, {"SEAM_API_TOKEN": "test-token"}, clear=False):
+            client = TestClient(create_app(runtime))
+
+        response = client.options(
+            "/compile",
+            headers={
+                "Origin": "http://127.0.0.1:5173",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://127.0.0.1:5173")
+        self.assertIn("POST", response.headers["access-control-allow-methods"])
+        self.assertIn("Authorization", response.headers["access-control-allow-headers"])
+
+    @unittest.skipIf(TestClient is None, "fastapi server extra is not installed")
     def test_rest_api_rate_limits_health_and_protected_endpoints(self) -> None:
         from seam_runtime.server import create_app
 
