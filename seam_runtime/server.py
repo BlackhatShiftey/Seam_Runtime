@@ -55,6 +55,15 @@ def _rate_limit_from_env() -> int:
         return 0
 
 
+def _cors_origins_from_env() -> list[str]:
+    raw = os.environ.get("SEAM_API_CORS_ORIGINS")
+    if raw is None:
+        return ["http://127.0.0.1:5173", "http://localhost:5173"]
+    if raw.strip().lower() in {"", "0", "false", "off", "none"}:
+        return []
+    return [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+
+
 def _client_key(request: Any, authorization: str | None = None) -> str:
     if authorization:
         return authorization
@@ -70,6 +79,17 @@ def create_app(runtime: SeamRuntime | None = None) -> Any:
     token = os.environ.get("SEAM_API_TOKEN")
 
     app = FastAPI(title="SEAM Runtime API", version="0.1")
+    cors_origins = _cors_origins_from_env()
+    if cors_origins:
+        from fastapi.middleware.cors import CORSMiddleware
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
 
     def guard(request: Request, authorization: str | None = Header(default=None)) -> None:
         if not limiter.check(_client_key(request, authorization)):

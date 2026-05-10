@@ -1,5 +1,6 @@
 const BASE_KEY = 'seam-webui-api-url';
 const TOKEN_KEY = 'seam-webui-api-token';
+const DEFAULT_BASE_URL = 'http://127.0.0.1:8765';
 
 export interface HealthResponse {
   status: string;
@@ -68,18 +69,29 @@ export interface LosslessCompressPayload {
 }
 
 export interface LosslessCompressResponse {
-  original_tokens: number;
-  compressed_tokens: number;
-  token_savings: number;
-  ratio: number;
-  exact_match: boolean;
-  sha256_match: boolean;
+  passed: boolean;
+  roundtrip_match: boolean;
+  meets_target: boolean;
+  artifact: {
+    original_tokens: number;
+    machine_tokens: number;
+    token_savings_ratio: number;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 
+function getStoredValue(key: string): string | null {
+  try {
+    return globalThis.localStorage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function getClient() {
-  const baseUrl = (localStorage.getItem(BASE_KEY) || 'http://127.0.0.1:8765').replace(/\/$/, '');
-  const token = localStorage.getItem(TOKEN_KEY) || '';
+  const baseUrl = (getStoredValue(BASE_KEY) || DEFAULT_BASE_URL).replace(/\/$/, '');
+  const token = getStoredValue(TOKEN_KEY) || '';
   return { baseUrl, token };
 }
 
@@ -96,7 +108,7 @@ async function _fetch(path: string, init: RequestInit = {}): Promise<Response> {
     const res = await fetch(url, { ...init, headers });
     return res;
   } catch (err) {
-    if (err instanceof TypeError && err.message.includes('fetch')) {
+    if (err instanceof TypeError) {
       const networkErr = new Error('Disconnected') as Error & { code?: string };
       networkErr.code = 'DISCONNECTED';
       throw networkErr;
@@ -105,26 +117,30 @@ async function _fetch(path: string, init: RequestInit = {}): Promise<Response> {
   }
 }
 
-export async function fetchHealth(): Promise<HealthResponse> {
-  const res = await _fetch('/health');
-  if (!res.ok) throw new Error(`Health error ${res.status}: ${await res.text()}`);
-  return (await res.json()) as HealthResponse;
-}
-
-export async function fetchStats(): Promise<StatsResponse> {
-  const res = await _fetch('/stats');
+async function assertOk(res: Response, label: string): Promise<void> {
   if (res.status === 401) {
     const err = new Error('Unauthorized') as Error & { code?: string };
     err.code = 'UNAUTHORIZED';
     throw err;
   }
-  if (!res.ok) throw new Error(`Stats error ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`${label} error ${res.status}: ${await res.text()}`);
+}
+
+export async function fetchHealth(): Promise<HealthResponse> {
+  const res = await _fetch('/health');
+  await assertOk(res, 'Health');
+  return (await res.json()) as HealthResponse;
+}
+
+export async function fetchStats(): Promise<StatsResponse> {
+  const res = await _fetch('/stats');
+  await assertOk(res, 'Stats');
   return (await res.json()) as StatsResponse;
 }
 
 export async function fetchCompile(payload: CompilePayload): Promise<CompileResponse> {
   const res = await _fetch('/compile', { method: 'POST', body: JSON.stringify(payload) });
-  if (!res.ok) throw new Error(`Compile error ${res.status}: ${await res.text()}`);
+  await assertOk(res, 'Compile');
   return (await res.json()) as CompileResponse;
 }
 
@@ -132,24 +148,24 @@ export async function fetchSearch(query: string, budget = 5, scope?: string | nu
   const params = new URLSearchParams({ query, budget: String(budget), lens });
   if (scope) params.set('scope', scope);
   const res = await _fetch(`/search?${params.toString()}`);
-  if (!res.ok) throw new Error(`Search error ${res.status}: ${await res.text()}`);
+  await assertOk(res, 'Search');
   return (await res.json()) as SearchResponse;
 }
 
 export async function fetchContext(payload: ContextPayload): Promise<ContextResponse> {
   const res = await _fetch('/context', { method: 'POST', body: JSON.stringify(payload) });
-  if (!res.ok) throw new Error(`Context error ${res.status}: ${await res.text()}`);
+  await assertOk(res, 'Context');
   return (await res.json()) as ContextResponse;
 }
 
 export async function fetchPersist(payload: PersistPayload): Promise<object> {
   const res = await _fetch('/persist', { method: 'POST', body: JSON.stringify(payload) });
-  if (!res.ok) throw new Error(`Persist error ${res.status}: ${await res.text()}`);
+  await assertOk(res, 'Persist');
   return (await res.json()) as object;
 }
 
 export async function fetchLosslessCompress(payload: LosslessCompressPayload): Promise<LosslessCompressResponse> {
   const res = await _fetch('/lossless-compress', { method: 'POST', body: JSON.stringify(payload) });
-  if (!res.ok) throw new Error(`Compress error ${res.status}: ${await res.text()}`);
+  await assertOk(res, 'Compress');
   return (await res.json()) as LosslessCompressResponse;
 }

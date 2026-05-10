@@ -152,6 +152,7 @@ and `HISTORY_INDEX.md`.
 - Protected endpoints require `Authorization: Bearer <token>` when `SEAM_API_TOKEN` is set; leave that variable unset only for trusted local development.
 - `/health` is unauthenticated for local service checks but still participates in the same rate limiter.
 - Rate limiting is configured by `SEAM_API_RATE_LIMIT_PER_MINUTE` or `SEAM_API_RATE_LIMIT`; `0` or unset disables the limiter.
+- Local browser dashboard origins `http://127.0.0.1:5173` and `http://localhost:5173` are allowed by default through CORS so the Vite WebUI can call the API during development. Override with `SEAM_API_CORS_ORIGINS` as a comma-separated list, or set it to `0`, `false`, `off`, or `none` to disable CORS.
 - API handlers must use existing `SeamRuntime` behavior and public report `to_dict()` methods rather than inventing parallel response fields.
 
 ## Benchmark Publication Policy

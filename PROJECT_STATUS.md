@@ -1,6 +1,6 @@
 # SEAM Project Status
 
-Last updated: 2026-05-08
+Last updated: 2026-05-09
 
 ## Current State
 
@@ -19,12 +19,12 @@ SEAM is operating as a local machine-first memory runtime with:
 - PgVector support running locally via Docker Compose on port 55432; installer coverage across Windows/Linux paths
 - Competitive RAG/install polish in progress on `codex/competitive-rag-install-polish`: one-line private install docs, product-first README, document status tracking, progressive memory search/get, `retrieve --mode vector|graph|hybrid|mix`, stdio agent bridge, and vector stale-index reporting
 - Active/inactive code and docs separation enforced via `docs/CODE_LAYOUT.md`, `.rgignore`, and archive paths
-- IDE-like browser dashboard prototype preserved under `experimental/webui/` as the visual target for the future REST API GUI
+- IDE-like browser dashboard under `experimental/webui/` currently launches the preserved original prototype from `prototype-backup/` at the Vite root so the IDE shell, graphs, settings, terminal, and chat remain visible while the REST-wired TypeScript panes are reworked.
 
 ## Current Resume Point
 
 - `main` is the source-of-truth branch. After pulling, verify local `HEAD` equals `origin/main` before starting new work.
-- Latest continuity handoff is `HISTORY#156`. Snapshot JSON files are local derived artifacts, so a fresh Linux clone should regenerate the resume snapshot with the command in `docs/setup.md` before running continuity verification.
+- Latest continuity handoff is `HISTORY#162`. Snapshot JSON files are local derived artifacts, so a fresh Linux clone should regenerate the resume snapshot with the command in `docs/setup.md` before running continuity verification.
 - A fresh Linux clone should run the repo-local setup in `docs/setup.md`, then verify `python -m tools.history.verify_integrity`, `python -m tools.history.verify_routing`, and `python -m tools.history.verify_continuity` before starting new work.
 - Next work should continue from the IDE-like web dashboard / REST API GUI, Agent Compiler roadmap, and first-class agent CLI direction, not from the already-merged HS/1 adapter/repair/benchmark branches.
 
@@ -60,7 +60,7 @@ SEAM is operating as a local machine-first memory runtime with:
 - Keep roadmap execution tied to history entries and supersedes chains
 - Turn the competitive plan into shippable surfaces: finish README/install polish, graph/vector/mix retrieval hardening, agent bridge docs, and benchmark coverage without breaking existing CLI aliases
 - Build the Agent Compiler workstream from `docs/roadmap/AGENT_COMPILER.md`: compile canonical SEAM protocol into model-specific adapters, benchmark those adapters, and audit installed local skills before applying changes.
-- Turn `experimental/webui/` into the SEAM browser dashboard/REST API GUI: keep the IDE-like shell, wire panes to real FastAPI endpoints, and avoid replacing the stable Textual terminal dashboard until the web surface is packaged and tested.
+- Continue hardening `experimental/webui/` as the SEAM browser dashboard/REST API GUI: preserve the original IDE-like shell first, then port real endpoint coverage into that shell without regressing graphs, settings, terminal, or chat.
 - Turn the SEAM CLI into a first-class agent CLI like Gemini/Claude/Codex CLI: keep `seam shell` as the entrypoint, then add model routing, tool execution, repo/context awareness, command history, and guardrails on top of SEAM memory.
 - Continue feature delivery without reintroducing duplicated continuity text
 - Run real-adapter validation through guarded scripts to enforce resource ceilings and automatic service cleanup

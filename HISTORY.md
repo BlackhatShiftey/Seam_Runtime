@@ -3224,3 +3224,102 @@ Changes:
 - Verified Python REST API tests pass (2 passed)
 - Verified history integrity, routing, and continuity all OK
 ---END-ENTRY-#157---
+
+---BEGIN-ENTRY-#158---
+id: 158
+date: 2026-05-09T04:00:18Z
+agent: codex-gpt-5
+status: done
+topics: dashboard, verify, protocol, ledger, status, history
+commits: none
+refs: experimental/webui,experimental/webui/src/api/apiClient.ts,seam_runtime/server.py,test_seam_all/test_seam.py,PROJECT_STATUS.md,REPO_LEDGER.md,HISTORY.md,HISTORY_INDEX.md
+supersedes: 157
+tokens: 495
+---
+Audited the Kimi A-Web conversion and fixed the browser/API integration gaps.
+
+Audit notes from the Kimi commit:
+- Build and Vitest passed, but the browser dashboard had not been proven in a real rendered browser.
+- The React app ran on Vite port 5173 while the FastAPI API ran on 8765, but the API had no local CORS allowance, so browser fetches could fail even though curl and TestClient checks passed.
+- The WebUI README claimed Node.js >= 18 even though the installed Vite 8 dependency requires Node >= 20.19 or >= 22.12.
+- The lossless-compress response type described fields that the real server does not return; the server returns the benchmark result with an artifact payload.
+- apiClient tests only verified exported function names, not actual URLs, headers, auth handling, or browser network failures.
+- Vite scaffold leftovers remained tracked in src/App.css and src/assets even though the app did not import them.
+- Several visible strings carried non-ASCII punctuation that showed up as mojibake in PowerShell reads.
+- Two root-level untracked seed files were left behind and removed: tear_seed.txt and test_seed.txt.
+
+Fixes:
+- Added local WebUI CORS support to seam_runtime.server, defaulting to http://127.0.0.1:5173 and http://localhost:5173, with SEAM_API_CORS_ORIGINS override/disable support.
+- Added REST API CORS preflight coverage for the protected compile endpoint.
+- Hardened apiClient around default base URL access, localStorage safety, uniform 401 codes, TypeError network mapping, and the real lossless-compress response shape.
+- Expanded WebUI unit tests from export-only checks to request URL, bearer header, unauthorized, and disconnected behavior checks.
+- Removed unused scaffold CSS/assets, removed duplicate root id usage, changed candidate display to raw score values, corrected README Node requirements, and normalized changed visible strings to ASCII.
+- Updated PROJECT_STATUS and REPO_LEDGER with the current WebUI/CORS state.
+
+Verification:
+- PASS: npm test in experimental/webui, 11 tests.
+- PASS: npm run build in experimental/webui.
+- PASS: python -m pytest test_seam_all\test_seam.py -q -k "rest_api", 3 tests.
+- PASS: headless Chrome DevTools smoke against Vite + FastAPI: page rendered, API connected, compile persisted via UI, search rendered candidates, no browser console warnings/errors.
+- PASS: direct REST health/search checks against test_seam\webui_smoke.db.
+
+Next:
+- Add repeatable committed browser smoke tooling if the WebUI is promoted beyond experimental.
+- Continue replacing inline styles with maintainable components only after endpoint coverage and UX flows stabilize.
+---END-ENTRY-#158---
+
+---BEGIN-ENTRY-#159---
+id: 159
+date: 2026-05-09T04:17:11Z
+agent: codex
+status: done
+topics: dashboard, verify, history, status
+commits: none
+refs: experimental/webui/src/App.tsx,experimental/webui/vite.config.ts,experimental/webui/src/index.css,experimental/webui/README.md,experimental/webui/RESTORE_NOTES.md,PROJECT_STATUS.md
+supersedes: 158
+tokens: 184
+---
+Restored the WebUI root to the preserved original dashboard shell after the REST-pane Vite rewrite removed the IDE operator surface. Documented the regression in experimental/webui/RESTORE_NOTES.md, including the missing IDE shell, graphs, settings overlay, terminal, chat, memory, ingest, benchmark, explorer, editor, and status surfaces. Changed experimental/webui/vite.config.ts to serve prototype-backup/ as static content and experimental/webui/src/App.tsx to frame /seam-dashboard-prototype.html at localhost:5173. Updated experimental/webui/README.md and PROJECT_STATUS.md so future agents keep the original shell while porting REST endpoint behavior back into it. Verification: npm run build passed, npm test passed with 11 tests, and http://localhost:5173/seam-dashboard-prototype.html returned the preserved prototype with SEAM Agent, ProvenanceGraph, and SettingsPanel present. A Playwright screenshot confirmed the restored first viewport shows the SEAM header, runtime health, explorer, code editor, terminal, and agent chat. The first Vitest attempt with --runInBand failed because Vitest does not accept that Jest option; rerun without the flag passed.
+---END-ENTRY-#159---
+
+---BEGIN-ENTRY-#160---
+id: 160
+date: 2026-05-09T04:26:07Z
+agent: codex
+status: done
+topics: dashboard, verify, history, status
+commits: none
+refs: experimental/webui/prototype-backup/seam-dashboard-prototype.html,experimental/webui/RESTORE_NOTES.md
+supersedes: 159
+tokens: 221
+---
+Fixed the first restored WebUI interaction defects after the original shell was brought back. The preserved prototype now has clickable provenance graph nodes with selected-node state, persistent edge highlighting, and GraphNodeDetails cards in both the side Memory graph and the full Memory tab. The detail cards expose node summary, key fields, linked nodes, and action affordances so graph clicks show functional information instead of hover-only decoration. The terminal command menu now routes through openTermMenu and executeTermCommand; typing / opens the menu, menu selections execute immediately, and commands write terminal output instead of only inserting text into the input. Updated experimental/webui/RESTORE_NOTES.md with Bug Pass 1 so future agents preserve these fixes. Verification: npm run build passed, npm test passed with 11 tests, Invoke-WebRequest confirmed the served prototype includes GraphNodeDetails, selectedNode, and executeTermCommand, and a screenshot render of localhost:5173 still showed the restored dashboard shell. An attempted Playwright interaction smoke through npx was blocked by Windows/npx package-resolution behavior, so browser-level interaction verification was limited to render and served-source checks in this pass.
+---END-ENTRY-#160---
+
+---BEGIN-ENTRY-#161---
+id: 161
+date: 2026-05-09T17:27:20Z
+agent: codex
+status: done
+topics: dashboard, verify, history, status
+commits: none
+refs: experimental/webui/prototype-backup/seam-dashboard-prototype.html,experimental/webui/RESTORE_NOTES.md
+supersedes: 160
+tokens: 228
+---
+Fixed the second restored WebUI command-palette pass. The / menu is now rendered as a fixed high-z overlay inside the iframe viewport with bounded height, scrolling, filtering, and wider rows so it is not clipped by the terminal/editor/chat artifacts. Command rows now label WIRED versus CLI ONLY. Browser-safe commands are wired to REST or UI actions: /doctor and /health call /health, /stats calls /stats, /search calls /search, /context and /retrieve call /context, /compile calls /compile with persist=false, /ingest opens the ingest panel, /memory opens the Memory tab, /benchmark opens the Benchmarks tab, /settings opens settings, and /clear clears terminal output. CLI-only commands (/index, /dashboard, /serve, /mcp, /surface) are blocked in-browser with explicit warnings instead of fake success. Raw ! shell execution is also explicitly blocked in-browser. Updated RESTORE_NOTES.md with Bug Pass 2. Verification: npm run build passed, npm test passed with 11 tests, and the served prototype source confirms the fixed overlay, WIRED labels, API call helper, and filtered command list are present. The first source-check command had a PowerShell quoting error only, then reran successfully.
+---END-ENTRY-#161---
+
+---BEGIN-ENTRY-#162---
+id: 162
+date: 2026-05-10T08:12:49Z
+agent: codex
+status: done
+topics: dashboard, verify, history, status
+commits: none
+refs: experimental/webui/prototype-backup/seam-dashboard-prototype.html,experimental/webui/RESTORE_NOTES.md,seam_runtime/server.py,test_seam_all/test_seam.py
+supersedes: 161
+tokens: 163
+---
+Prepared the restored WebUI and command-palette work for GitHub publish/merge on branch codex/webui-restore-command-palette. Scope includes the restored original browser dashboard shell, command palette overlay/wiring, REST API CORS support for localhost WebUI, WebUI API client hardening, tests, restoration notes, and continuity/status updates through HISTORY#161. Excluded generated Playwright test-results artifacts from staging. Validation before publish: git fetch origin --prune, origin/main...HEAD count 0 0 before branch creation, git diff --check passed, python -m tools.history.verify_integrity passed, python -m tools.history.verify_routing passed, python -m tools.history.verify_continuity passed, npm run build passed, npm test passed with 11 tests, python -m py_compile seam_runtime/server.py passed, and python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q passed with 177 passed. Next step is explicit staging, secret scan, commit, push, PR/merge to main, fetch, and confirm local main aligns with origin/main.
+---END-ENTRY-#162---

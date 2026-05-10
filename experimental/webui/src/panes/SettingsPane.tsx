@@ -54,7 +54,7 @@ export default function SettingsPane() {
           value={token}
           onChange={(e) => setToken(e.target.value)}
           type="password"
-          placeholder="••••••••"
+          placeholder="********"
           style={{
             width: '100%',
             background: '#030d20',
