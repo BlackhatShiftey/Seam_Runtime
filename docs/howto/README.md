@@ -129,7 +129,7 @@ Success checklist:
 
 - `spec.json` shows the new case as `FAIL`
 - `fix.json` shows it as `PASS` with no other case regressing
-- combined pytest suite stays at 174/174
+- the scoped pytest command above passes; do not hard-code the count in logs
 
 ## 5) Run The Interactive Memory Shell
 

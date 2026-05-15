@@ -1,6 +1,6 @@
 # SEAM Project Status
 
-Last updated: 2026-05-13
+Last updated: 2026-05-15
 
 ## Current State
 
@@ -25,10 +25,10 @@ SEAM is operating as a local machine-first memory runtime with:
 ## Current Resume Point
 
 - `main` is the source-of-truth branch. After pulling, verify local `HEAD` equals `origin/main` before starting new work.
-- Latest continuity handoff is `HISTORY#164`. Snapshot JSON files are local derived artifacts, so a fresh Linux clone should regenerate the resume snapshot with the command in `docs/setup.md` before running continuity verification.
+- Latest continuity handoff is `HISTORY#165`. The handoff captures the locked design for Track H Context Streams Protocol; resume implementation by reading `docs/roadmap/CONTEXT_STREAMS.md` end-to-end. Snapshot JSON files are local derived artifacts, so a fresh Linux clone should regenerate the resume snapshot with the command in `docs/setup.md` before running continuity verification.
 - A fresh Linux clone should run the repo-local setup in `docs/setup.md`, then verify `python -m tools.history.verify_integrity`, `python -m tools.history.verify_routing`, and `python -m tools.history.verify_continuity` before starting new work.
 - Current GitHub PR sorting as of 2026-05-13: PR #22 is open and mergeable for external memory benchmark registry work but is behind `main`; PR #23 is draft and mergeable for roadmap concept harvest plus continuity repair; PR #19 is draft, conflicting, and must be treated as a partial extraction source because its branch contains private-session-link material in commit metadata; PR #18 is open and conflicting for operator/engineering doc salvage. Merged PR branches such as #20 and #21 should not be treated as active work just because their remote branch refs still exist.
-- Next work should continue from the IDE-like web dashboard / REST API GUI, Agent Compiler/Skill Factory roadmap, first-class agent CLI direction, and reviewed PR #22/#23 follow-up. Do not resume from already-merged HS/1 adapter/repair/benchmark branches or stale squash-merged PR refs.
+- Next work should continue from the IDE-like web dashboard / REST API GUI, Track H Phase 1 (multi-stream substrate; design locked in `docs/roadmap/CONTEXT_STREAMS.md`), Agent Compiler/Skill Factory roadmap, first-class agent CLI direction, and reviewed PR #22/#23 follow-up. Do not resume from already-merged HS/1 adapter/repair/benchmark branches or stale squash-merged PR refs.
 
 ## What Is Stable
 
@@ -67,6 +67,7 @@ SEAM is operating as a local machine-first memory runtime with:
 - Continue feature delivery without reintroducing duplicated continuity text
 - Run real-adapter validation through guarded scripts to enforce resource ceilings and automatic service cleanup
 - Legacy roadmap entries `HISTORY#028`-`HISTORY#047` remain append-only planning cards. `HISTORY#036` (holdout suites), `HISTORY#037` (benchmark diff tooling), and `HISTORY#046` (REST API surface) are implemented and superseded by `HISTORY#152`, `HISTORY#153`, and `HISTORY#154`; use `ROADMAP.md` Recommended Course for current priority.
+- Track H Context Streams Protocol is planned (Phase 1 = H1 now; Phase 2 = H2 deferred ~4 weeks until H1 operational data accumulates). Full design captured in `docs/roadmap/CONTEXT_STREAMS.md`; ready to implement when the operator picks it up. The design generalizes the single-stream history protocol into a multi-stream substrate (history + roadmap + experience + library + improvement) joined by an append-only `cross_index.md`, with the same append-only / supersedes / verify discipline applied uniformly to each stream.
 
 ## Operational Baseline
 

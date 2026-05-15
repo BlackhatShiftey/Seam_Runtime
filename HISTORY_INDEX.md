@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 164
-total_tokens: ~25051
-latest_id: 164
+total_entries: 165
+total_tokens: ~25797
+latest_id: 165
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,7 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 165 | 2026-05-15 | done | 89ff7e18ac78772c | roadmap,plan,protocol,history,+ | 164 |
 | 164 | 2026-05-13 | done | b3d6e2ef47a55962 | status,history,snapshot,verify,+ | 163 |
 | 163 | 2026-05-10 | done | a80699bb08be1032 | dashboard,verify,history,status | 162 |
 | 162 | 2026-05-10 | done | 565a03ae938c15d3 | dashboard,verify,history,status | 161 |
@@ -180,12 +181,12 @@ compact: true
 
 - alias: count=2 latest=#033, #002
 - animation: count=4 latest=#068, #052, #032, #028
-- audit: count=14 latest=#164, #156, #155, #151, #150
+- audit: count=15 latest=#165, #164, #156, #155, #151
 - benchmark: count=42 latest=#153, #152, #147, #146, #145
 - bundle: count=2 latest=#015, #008
 - chat: count=14 latest=#137, #074, #073, #072, #071
 - chroma: count=2 latest=#017, #001
-- classification: count=2 latest=#087, #086
+- classification: count=3 latest=#165, #087, #086
 - codec: count=13 latest=#132, #131, #130, #129, #128
 - command: count=55 latest=#149, #148, #147, #146, #145
 - compile: count=13 latest=#154, #047, #046, #043, #042
@@ -200,7 +201,7 @@ compact: true
 - gold-standard: count=1 latest=#038
 - graph: count=2 latest=#099, #030
 - handoff: count=4 latest=#136, #135, #075, #025
-- history: count=117 latest=#164, #163, #162, #161, #160
+- history: count=118 latest=#165, #164, #163, #162, #161
 - holdout: count=4 latest=#152, #093, #092, #036
 - installer: count=9 latest=#100, #099, #063, #035, #021
 - integrity: count=5 latest=#133, #103, #102, #101, #048
@@ -214,20 +215,20 @@ compact: true
 - naming: count=4 latest=#033, #024, #009, #002
 - persist: count=18 latest=#047, #044, #042, #036, #032
 - pgvector: count=18 latest=#149, #121, #119, #084, #083
-- plan: count=3 latest=#027, #017, #003
-- protocol: count=29 latest=#158, #155, #150, #148, #143
+- plan: count=4 latest=#165, #027, #017, #003
+- protocol: count=30 latest=#165, #158, #155, #150, #148
 - pyproject: count=4 latest=#094, #051, #049, #022
 - rank: count=3 latest=#017, #005, #001
 - readme: count=17 latest=#147, #121, #117, #116, #100
 - retrieval: count=11 latest=#099, #047, #038, #023, #017
-- roadmap: count=38 latest=#164, #157, #155, #154, #153
+- roadmap: count=39 latest=#165, #164, #157, #155, #154
 - roundtrip: count=2 latest=#007, #006
 - sbert: count=3 latest=#023, #022, #011
 - search: count=12 latest=#154, #088, #077, #047, #046
 - security: count=1 latest=#100
 - session: count=3 latest=#027, #025, #019
 - snapshot: count=104 latest=#164, #156, #155, #150, #149
-- status: count=61 latest=#164, #163, #162, #161, #160
+- status: count=62 latest=#165, #164, #163, #162, #161
 - surface: count=1 latest=#145
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tui: count=25 latest=#137, #121, #120, #119, #118
@@ -239,5 +240,5 @@ compact: true
 ## status rollup
 
 - roots: 66
-- done: 144
+- done: 145
 - planned: 20

@@ -715,6 +715,124 @@ release-blocking fixtures.
 
 ---
 
+## Track H — Context Streams Protocol
+
+Generalize the single-stream `HISTORY.md` + `HISTORY_INDEX.md` pattern into a
+multi-stream protocol so roadmap, experience, and library content scale
+independently without bloating session context. Full design captured in
+`docs/roadmap/CONTEXT_STREAMS.md`.
+
+### H1: Multi-Stream Substrate (Phase 1)
+
+<!-- seam:item
+id: roadmap:track:H1
+status: now
+status-since: 2026-05-15
+status-by: history:165
+supersedes: none
+topics: protocol, history, plan, roadmap
+priority: 0
+phase: 1
+-->
+
+**What:** Add a multi-stream substrate alongside the current history protocol
+without disturbing it. Root `HISTORY.md` / `HISTORY_INDEX.md` stay canonical;
+a compatibility adapter surfaces them as the `history` stream and produces
+byte-equivalent derived mirrors under `.seam/streams/history/`. Bootstrap new
+`roadmap` and `experience` streams; add a derived (not append-only) global
+`cross_index.md`; add generic tooling under `tools/streams/` alongside
+existing `tools/history/`; add `verify_streams` gate. No symlinks. Path
+canonicality flip for `history` is explicitly deferred to a separate later
+HISTORY entry once every consumer is proven to read from either path.
+
+**Status:** Planned (now). Design locked in `docs/roadmap/CONTEXT_STREAMS.md`.
+
+**Gate:** Root `HISTORY.md` + `HISTORY_INDEX.md` unchanged byte-for-byte;
+adapter mirrors verify byte-equivalent; existing supersedes chains and hashes
+still verify; `seam doctor` returns PASS with the new `verify_streams` gate;
+the existing test suite passes unchanged; `tools.streams.build_context_pack
+--stream history --latest 3` produces output equivalent to
+`tools.history.build_context_pack --latest 3`; cross-index regenerates
+deterministically from stream logs.
+
+### H2: Improvement Streams (Phase 2)
+
+<!-- seam:item
+id: roadmap:track:H2
+status: later
+status-since: 2026-05-15
+status-by: history:165
+supersedes: none
+topics: protocol, history, plan
+priority: 1
+phase: 2
+-->
+
+**What:** Add a fifth stream `improvement` that captures retrieval-signal,
+outcome-delta, repeated-hit, protocol-drift, and propose-rule events. Add a
+trust gradient for experience (L1 hypothesis → L2 pattern → L3 codified) and
+an auto-propose / manual-approve guardrail for protocol edits.
+
+**Status:** Deferred. Trigger to begin: ~4 weeks of Phase 1 operational data,
+OR explicit operator decision based on earlier signal clarity. Full design
+preserved in `docs/roadmap/CONTEXT_STREAMS.md` §12.
+
+**Gate:** SEAM never writes to `AGENTS.md`, `REPO_LEDGER.md`, or
+`PROJECT_STATUS.md` autonomously. All protocol edits flow through
+`seam improvement review` operator approval. Skill Factory integration uses
+this stream as its data substrate.
+
+### H3: Retrieval Integration (Phase 3)
+
+<!-- seam:item
+id: roadmap:track:H3
+status: later
+status-since: 2026-05-15
+status-by: history:165
+supersedes: none
+topics: protocol, retrieval, search
+priority: 2
+phase: 3
+-->
+
+**What:** Wire stream filters into retrieval. `seam memory search --stream X`,
+`build_context_pack --include history,roadmap,experience`, default exclusion
+of `status=done`/`status=superseded`/`status=rejected` items, `--around <event_id>`
+cross-index walking.
+
+**Status:** Deferred until Phase 1 substrate is stable.
+
+**Gate:** Default context pack excludes completed roadmap items and superseded
+experience without explicit opt-in. Cross-stream temporal queries return
+correct ordering across all streams.
+
+### H4: Generalized Library Streams (Phase 4)
+
+<!-- seam:item
+id: roadmap:track:H4
+status: later
+status-since: 2026-05-15
+status-by: history:165
+supersedes: none
+topics: protocol, retrieval, search, vector
+priority: 3
+phase: 4
+-->
+
+**What:** `seam-protocol ingest <path> --ns library.<name>` walks markdown by
+heading and source by AST symbols, creates MIRL records with `raw_spans` byte/
+line ranges, populates `document_status` + `projection_index` + library stream
+events. Hash-gated re-runnable command (not a daemon). Promote `tools/streams/`
+to a pip-installable `seam_protocol/` package for templating into other repos.
+
+**Status:** Deferred until Phases 1-3 are stable.
+
+**Gate:** Re-ingestion of unchanged content is a no-op (hash skip). Library
+namespaces (`ns=library.*`) stay separate from canonical `local.default`.
+Template scaffolds cleanly into a fresh repo with `seam-protocol init`.
+
+---
+
 ## Recommended Course — Priority Order
 
 Use this section for current priority. Older planned entries `HISTORY#028`-
@@ -734,11 +852,12 @@ Done - functional visual memory + foundational polish
 - C2: Benchmark diff tooling (implemented; supersedes HISTORY#037)
 - E3: REST API surface (implemented; supersedes HISTORY#046)
 
-Now - browser dashboard / REST API GUI
+Now - browser dashboard / REST API GUI + context streams substrate
 - A-Web: wire experimental/webui to real REST endpoints
 - A-Web: split the single-file prototype into maintainable app shell modules
 - A-Web: add browser smoke tests for real health/stats/search/context data
 - A-CLI: keep seam shell aligned with MCP and REST surfaces
+- H1: Multi-stream substrate (design locked; see docs/roadmap/CONTEXT_STREAMS.md and HISTORY#165)
 
 Next - dashboard and agent ergonomics
 - A2: Benchmark progress bar
@@ -748,7 +867,10 @@ Next - dashboard and agent ergonomics
 - D1: SEAM as Claude/Gemini/Codex tool set
 - A5: Chat tab in dashboard
 
-Later - benchmark credibility and scale
+Later - benchmark credibility, scale, and adaptive context loop
+- H2: Improvement streams (deferred ~4 weeks of H1 operational data; see CONTEXT_STREAMS.md §12)
+- H3: Retrieval integration with stream filters (after H1 substrate stable)
+- H4: Generalized library streams + seam_protocol templating (after H1-H3)
 - C5: Cross-machine reproducibility
 - C4: Adversarial testing
 - C3: Gold standard benchmarks (BEIR/MTEB)
