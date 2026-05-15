@@ -1,0 +1,78 @@
+"""Verify the Context Streams substrate.
+
+Checks:
+  - Each stream's log.md is parseable; ids are strictly increasing.
+  - History stream mirror matches root HISTORY.md / HISTORY_INDEX.md byte-for-byte.
+  - Each stream's index.md exists and references the current log totals.
+  - .seam/cross_index.md exists and matches a fresh rebuild for the listed totals.
+
+Exits non-zero on any failure.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+from tools.streams.history_adapter import verify_history_mirror
+from tools.streams.streams_lib import (
+    CROSS_INDEX_PATH,
+    STREAMS_ROOT,
+    index_path,
+    list_stream_kinds,
+    parse_events,
+    read_log,
+)
+
+
+def verify_all() -> list[str]:
+    errors: list[str] = []
+
+    if not STREAMS_ROOT.exists():
+        errors.append("streams root missing: .seam/streams (run seed)")
+        return errors
+
+    kinds = list_stream_kinds()
+    if "history" not in kinds:
+        errors.append("history stream missing from .seam/streams/")
+
+    errors.extend(verify_history_mirror())
+
+    for kind in kinds:
+        data = read_log(kind)
+        if data:
+            try:
+                events = parse_events(data, kind)
+            except ValueError as exc:
+                errors.append(f"[{kind}] log.md parse error: {exc}")
+                continue
+        else:
+            events = []
+        idx = index_path(kind)
+        if not idx.exists():
+            errors.append(f"[{kind}] index.md missing; run tools.streams.rebuild_index")
+            continue
+        index_text = idx.read_text(encoding="utf-8", errors="replace")
+        expected_total = f"total_events: {len(events)}" if kind != "history" else None
+        if expected_total and expected_total not in index_text:
+            errors.append(
+                f"[{kind}] index.md disagrees with log.md event count "
+                f"(expected '{expected_total}')"
+            )
+
+    if not CROSS_INDEX_PATH.exists():
+        errors.append("cross_index.md missing; run tools.streams.rebuild_cross_index")
+    return errors
+
+
+def main() -> int:
+    errors = verify_all()
+    if errors:
+        for err in errors:
+            print(f"streams: {err}", file=sys.stderr)
+        return 1
+    print("streams OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

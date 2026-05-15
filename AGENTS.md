@@ -26,9 +26,40 @@ If state changed:
 1. Append one entry to `HISTORY.md`.
 2. Rebuild `HISTORY_INDEX.md`.
 3. Write one snapshot JSON.
-4. Run `python -m tools.history.verify_continuity`.
+4. Run `python -m tools.history.verify_continuity` and `python -m tools.streams.verify_streams`.
+5. If `ROADMAP.md` changed: rerun `python -m tools.streams.roadmap_parser` to refresh the roadmap stream + state view; if any stream changed: rerun `python -m tools.streams.rebuild_cross_index` to refresh the derived global timeline.
 
-Use `tools/history/*` scripts for entry writes, index rebuild, integrity verification, and snapshot creation.
+Use `tools/history/*` scripts for the canonical history protocol and `tools/streams/*` scripts for the multi-stream substrate (history mirror, roadmap, experience, cross-index).
+
+## Context Loop
+
+Bounded reading protocol that keeps session-start cost flat as the repo grows. Three phases:
+
+### Phase 1 — Session Start (do NOT read full HISTORY.md or full ROADMAP.md)
+
+1. `PROJECT_STATUS.md` + `REPO_LEDGER.md` + `HISTORY_INDEX.md` + `docs/CODE_LAYOUT.md` (and `docs/DATA_ROUTING.md` when the task touches history/ledgers/routing/audit).
+2. `.seam/streams/roadmap/state.md` — derived view of the roadmap stream, grouped by status (`now`, `later`, `done`, etc.). Read this **instead of** `ROADMAP.md`. Only fall through to the prose in `ROADMAP.md` when the task is to edit the roadmap or to read a specific track's narrative.
+3. `.seam/cross_index.md` hot zone — the temporal join across `history`, `roadmap`, `experience`, and any opted-in library streams. Use it for "what happened recently across the whole repo" without reading per-stream logs.
+4. `tools.history.build_context_pack --topics <tags> --latest <n> --token-budget <budget>` for history entries the task actually needs. Never `cat HISTORY.md`.
+
+### Phase 2 — During Work
+
+- Surgical reads only. Pull a specific entry by id range, a specific roadmap item by marker, or a specific experience lesson by topic.
+- `python -m tools.streams.rebuild_cross_index --help` (and per-stream `rebuild_index`) are safe to re-run at any time; outputs are derived.
+- If you need to walk across streams (e.g. "what roadmap status changes happened the week of HISTORY#160"), use `cross_index.md` first, then drill into the per-stream log.
+
+### Phase 3 — Session End
+
+- Follow the Session End checklist above. Both `verify_continuity` and `verify_streams` must pass.
+- If `ROADMAP.md` items changed status, re-run the roadmap parser so the stream and the derived `state.md` stay aligned with the authored prose.
+- The cross-index always regenerates from the streams; never hand-edit it.
+
+### What this prevents
+
+- Full-file reads of `HISTORY.md` (still gated by `HISTORY_INDEX.md` and the context pack, now reinforced by `cross_index.md`).
+- Full-file reads of `ROADMAP.md` (replaced by `roadmap/state.md` for status queries).
+- Drift between roadmap prose and recorded status (the parser is rerun on every change).
+- Loss of cross-stream temporal context as new dimensions (experience, library) come online — they fan out without bloating session-start reads.
 
 ## Temporal Chain
 

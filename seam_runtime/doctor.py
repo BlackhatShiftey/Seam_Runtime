@@ -24,6 +24,20 @@ def check_pgvector(dsn: str | None) -> dict[str, object]:
         return {"configured": True, "reachable": False, "error": str(exc)}
 
 
+def check_streams() -> dict[str, object]:
+    try:
+        from tools.streams.verify_streams import verify_all
+    except Exception as exc:
+        return {"status": "unavailable", "error": str(exc)}
+    try:
+        errors = verify_all()
+    except Exception as exc:
+        return {"status": "error", "error": str(exc)}
+    if errors:
+        return {"status": "FAIL", "errors": errors}
+    return {"status": "PASS"}
+
+
 def check_commit_gate() -> dict[str, object]:
     try:
         repo_root = Path(subprocess.check_output(
@@ -92,6 +106,7 @@ def build_doctor_report() -> dict[str, object]:
         },
         "pgvector": check_pgvector(pgvector_dsn),
         "commit_gate": check_commit_gate(),
+        "streams": check_streams(),
         "dependencies": dependencies,
         "required_dependencies": required_dependencies,
         "missing_required_dependencies": missing_required,

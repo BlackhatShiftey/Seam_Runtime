@@ -54,6 +54,7 @@ run_gate() {
 run_gate "verify_integrity" "$PY" -m tools.history.verify_integrity
 run_gate "verify_routing"   "$PY" -m tools.history.verify_routing
 run_gate "verify_continuity" "$PY" -m tools.history.verify_continuity --no-recorded-fact-audit
+run_gate "verify_streams"   "$PY" -m tools.streams.verify_streams
 
 if [ "$FAIL" -ne 0 ]; then
   echo "" >&2

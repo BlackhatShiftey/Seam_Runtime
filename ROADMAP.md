@@ -726,9 +726,9 @@ independently without bloating session context. Full design captured in
 
 <!-- seam:item
 id: roadmap:track:H1
-status: now
+status: done
 status-since: 2026-05-15
-status-by: history:165
+status-by: history:170
 supersedes: none
 topics: protocol, history, plan, roadmap
 priority: 0

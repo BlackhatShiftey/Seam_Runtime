@@ -1,0 +1,127 @@
+"""Smoke tests for the Context Streams substrate."""
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+from tools.history.history_lib import HISTORY_PATH, INDEX_PATH
+from tools.streams.history_adapter import sync_history_mirror, verify_history_mirror
+from tools.streams.rebuild_cross_index import collect_all_events, rebuild_cross_index
+from tools.streams.rebuild_index import rebuild_index
+from tools.streams.roadmap_parser import (
+    ROADMAP_PATH,
+    parse_roadmap_markers,
+    items_to_events,
+    render_state_md,
+)
+from tools.streams.streams_lib import (
+    STREAMS_ROOT,
+    CROSS_INDEX_PATH,
+    format_event,
+    parse_events,
+)
+from tools.streams.verify_streams import verify_all
+
+
+class StreamsLibTests(unittest.TestCase):
+    def test_format_then_parse_roundtrip(self) -> None:
+        block = format_event(
+            kind="roadmap",
+            id=1,
+            date="2026-05-15T00:00:00Z",
+            agent="test",
+            fields={
+                "kind": "status-change",
+                "item": "roadmap:track:X1",
+                "event": "bootstrap",
+                "from": "(initial)",
+                "to": "now",
+                "supersedes": "none",
+                "refs": "ROADMAP.md:1",
+                "topics": "roadmap, plan",
+                "tokens": "10",
+            },
+            body="Test body.",
+        )
+        events = parse_events(block.encode("utf-8"), "roadmap")
+        self.assertEqual(len(events), 1)
+        evt = events[0]
+        self.assertEqual(evt.id, 1)
+        self.assertEqual(evt.kind, "roadmap")
+        self.assertEqual(evt.fields["item"], "roadmap:track:X1")
+        self.assertEqual(evt.fields["to"], "now")
+        self.assertEqual(evt.body, "Test body.")
+
+    def test_history_kind_uses_entry_delim(self) -> None:
+        block = format_event(
+            kind="history",
+            id=1,
+            date="2026-05-15T00:00:00Z",
+            agent="test",
+            fields={"status": "done", "topics": "history", "supersedes": "none", "tokens": "5", "commits": "none", "refs": "none"},
+            body="x",
+            history_compat=True,
+        )
+        self.assertIn("---BEGIN-ENTRY-#001---", block)
+        self.assertIn("---END-ENTRY-#001---", block)
+
+
+class HistoryAdapterTests(unittest.TestCase):
+    def test_mirror_matches_root_bytes(self) -> None:
+        sync_history_mirror()
+        log = STREAMS_ROOT / "history" / "log.md"
+        idx = STREAMS_ROOT / "history" / "index.md"
+        self.assertEqual(log.read_bytes(), HISTORY_PATH.read_bytes())
+        self.assertEqual(idx.read_bytes(), INDEX_PATH.read_bytes())
+        self.assertEqual(verify_history_mirror(), [])
+
+
+class RoadmapParserTests(unittest.TestCase):
+    def test_extracts_track_h_items(self) -> None:
+        items = parse_roadmap_markers(ROADMAP_PATH.read_text(encoding="utf-8"))
+        ids = {it.item_id for it in items}
+        self.assertIn("roadmap:track:H1", ids)
+        self.assertIn("roadmap:track:H2", ids)
+        self.assertIn("roadmap:track:H3", ids)
+        self.assertIn("roadmap:track:H4", ids)
+
+    def test_events_have_sequential_ids_and_required_fields(self) -> None:
+        items = parse_roadmap_markers(ROADMAP_PATH.read_text(encoding="utf-8"))
+        events = items_to_events(items)
+        self.assertEqual(len(events), len(items))
+        for evt in events:
+            self.assertIn("item", evt["fields"])
+            self.assertIn("to", evt["fields"])
+
+    def test_state_md_buckets_by_status(self) -> None:
+        items = parse_roadmap_markers(ROADMAP_PATH.read_text(encoding="utf-8"))
+        text = render_state_md(items)
+        self.assertIn("## now", text)
+        self.assertIn("roadmap:track:H1", text)
+
+
+class CrossIndexTests(unittest.TestCase):
+    def test_cross_index_includes_both_streams(self) -> None:
+        rebuild_index("history")
+        rebuild_index("roadmap")
+        rebuild_index("experience")
+        rebuild_cross_index()
+        items = collect_all_events()
+        kinds = {it["ref"].split(":", 1)[0] for it in items}
+        self.assertIn("history", kinds)
+        self.assertIn("roadmap", kinds)
+        self.assertTrue(CROSS_INDEX_PATH.exists())
+
+
+class VerifyStreamsTests(unittest.TestCase):
+    def test_verify_returns_no_errors_after_seed(self) -> None:
+        sync_history_mirror()
+        rebuild_index("history")
+        rebuild_index("roadmap")
+        rebuild_index("experience")
+        rebuild_cross_index()
+        self.assertEqual(verify_all(), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

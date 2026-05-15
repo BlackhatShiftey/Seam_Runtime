@@ -1454,6 +1454,18 @@ def _render_doctor_report(payload: dict[str, object]) -> str:
         commit_gate_line = f"Commit gate: source missing ({gate.get('source')})"
     else:
         commit_gate_line = f"Commit gate: {gate_status}"
+    streams = payload.get("streams", {}) or {}
+    streams_status = streams.get("status", "unknown")
+    if streams_status == "PASS":
+        streams_line = "Streams: PASS"
+    elif streams_status == "FAIL":
+        errs = streams.get("errors", []) or []
+        first = errs[0] if errs else ""
+        streams_line = f"Streams: FAIL ({len(errs)} issue(s); first: {first})"
+    elif streams_status == "unavailable":
+        streams_line = f"Streams: unavailable ({streams.get('error','?')})"
+    else:
+        streams_line = f"Streams: {streams_status}"
     return "\n".join(
         [
             f"SEAM doctor: {payload.get('status')}",
@@ -1469,6 +1481,7 @@ def _render_doctor_report(payload: dict[str, object]) -> str:
             ),
             pg_line,
             commit_gate_line,
+            streams_line,
             (
                 "Required deps: OK"
                 if not payload.get("missing_required_dependencies")
