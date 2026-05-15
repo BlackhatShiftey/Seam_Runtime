@@ -1,6 +1,6 @@
 # SEAM Repo Ledger
 
-Last updated: 2026-05-06
+Last updated: 2026-05-15
 
 This ledger is the stable engineering memory for repo-level decisions only.
 Detailed session history, milestones, and plan transitions now live in `HISTORY.md`
@@ -102,6 +102,7 @@ and `HISTORY_INDEX.md`.
 - Agents must update this ledger when changing stable repo policy, architecture, active/archive routing, runtime safety rules, durable operator workflows, benchmark publication rules, or cross-agent protocol.
 - Agents must update `PROJECT_STATUS.md` when the current operating state or active focus changes.
 - Model-specific guides such as `CLAUDE.md`, `GEMINI.md`, and `ANTIGRAVITY.md` must route back to `AGENTS.md` and must not create a competing protocol.
+- Claude Code commit gate: the shared enforcement scripts `tools/claude/preflight_protocol.sh` and `tools/claude/session_start_brief.sh` are tracked in this repo. Each operator wires them into their own local `.claude/settings.json` as a PreToolUse Bash hook and a SessionStart hook; the `.claude/` directory itself stays gitignored and is additionally blocked from commit by the local `.git/hooks/pre-commit` policy that rejects `.claude/`, `.opencode/`, and `.agents/` paths. The preflight runs `verify_integrity`, `verify_routing`, and `verify_continuity` for any `git add`/`commit`/`push` Bash call and blocks on failure. The session brief prints the AGENTS.md read order and the latest HISTORY entry on every new session. These are Claude-specific; equivalent protection for Codex/Gemini and a git-level `pre-commit` hook for full cross-agent coverage are open follow-up work tracked in HISTORY.
 
 ## Context Budget Policy
 

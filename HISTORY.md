@@ -3413,3 +3413,57 @@ Protocol violations acknowledged in this session and now repaired: (a) AGENTS.md
 
 Unresolved next step: implement Track H1 per CONTEXT_STREAMS.md sections 9 and 10 using the non-disruptive adapter-first scope. A Claude Code settings.json hook is being added in a follow-up to enforce verify_continuity on git commit so future commits cannot land without the temporal chain being intact.
 ---END-ENTRY-#166---
+
+---BEGIN-ENTRY-#167---
+id: 167
+date: 2026-05-15T16:43:00Z
+agent: claude-opus-4-7
+status: done
+topics: protocol, history, audit, classification, plan, verify, status, ledger
+commits: none
+refs: .claude/settings.json,tools/claude/preflight_protocol.sh,tools/claude/session_start_brief.sh,REPO_LEDGER.md,HISTORY.md,HISTORY_INDEX.md
+supersedes: 166
+tokens: 672
+---
+Installed a Claude Code commit gate so the SEAM protocol cannot be skipped on future commits without the operator having to remind the model. Closes the operator request that followed HISTORY#166.
+
+New files: .claude/settings.json registers two hooks. (1) PreToolUse on the Bash tool with command tools/claude/preflight_protocol.sh: the hook reads the tool input from stdin, parses tool_input.command, and short-circuits for non-git Bash. For Bash calls that contain "git add", "git commit", or "git push", the hook cds to the repo root and runs verify_integrity, verify_routing, and verify_continuity. Any non-zero gate prints the captured log to stderr and exits 2, which Claude Code interprets as a tool-call block. Exit 0 lets the Bash call through. (2) SessionStart with command tools/claude/session_start_brief.sh: prints the AGENTS.md Session Start read order, the AGENTS.md Session End closeout steps, and the latest HISTORY entry id derived from HISTORY_INDEX.md row 14. This orients the model on protocol before any task work begins.
+
+Continuity audit configuration: the preflight hook currently invokes verify_continuity with --no-recorded-fact-audit. This matches the committed verify_continuity.py on origin/main, which does not yet import the working-tree audit modules tools/history/test_count_audit.py and tools/history/recorded_fact_audit.py. Those modules are not part of this entry's scope; HISTORY#166 already noted that their recorded-fact precedence checker over-matches per-family pytest counts inside prose as if they were total-test claims, producing false positives against HISTORY#111 and HISTORY#145. The flag will be removed from the preflight script when those modules are stabilized and committed.
+
+Scope of enforcement: these hooks bind only to Claude Code sessions, because settings.json is a Claude Code configuration file. Codex, Gemini, and other agents are not covered. Equivalent enforcement for those agents and a repo-level git pre-commit hook (so the gate also runs for human operator commits and for any agent that does not honor .claude/settings.json) are open follow-up work; this entry is the first step, not the complete coverage. The HISTORY#166 unresolved-next-step about a Claude Code settings.json hook is closed by this entry.
+
+Ledger update: REPO_LEDGER.md last-updated bumped to 2026-05-15 and a new Temporal Continuity Policy bullet records the commit-gate decision. The gate is durable operator workflow plus cross-agent protocol direction, which is why this is in the ledger rather than only in HISTORY.
+
+Smoke tests: tools/claude/preflight_protocol.sh was run with stdin {"tool_input":{"command":"git commit -m test"}} after the verify gates were green and exited 0 as expected. tools/claude/session_start_brief.sh was run standalone and emitted the read order plus latest entry #166 (now superseded by this #167 entry). The integrity, routing, and continuity gates were green at the time of test.
+
+Verification: pre-change reads completed for AGENTS.md, PROJECT_STATUS.md, REPO_LEDGER.md, HISTORY_INDEX.md, docs/CODE_LAYOUT.md, and docs/DATA_ROUTING.md per the AGENTS.md Session Start read order. py_compile not applicable since the new code is bash. Closeout: HISTORY_INDEX rebuild, snapshot write, verify_integrity, verify_routing, and verify_continuity (with --no-recorded-fact-audit until WIP audit modules stabilize) to run after this append.
+
+Unresolved next step: stabilize tools/history/test_count_audit.py and tools/history/recorded_fact_audit.py so the preflight hook can run verify_continuity without --no-recorded-fact-audit; add a tools/git-hooks/pre-commit script and an installer step so the same verify chain runs for non-Claude commits and human operator commits; consider a SessionStart hook variant that also runs build_context_pack for the active route based on recent edits.
+---END-ENTRY-#167---
+
+---BEGIN-ENTRY-#168---
+id: 168
+date: 2026-05-15T16:45:45Z
+agent: claude-opus-4-7
+status: done
+topics: protocol, history, audit, classification, plan, verify, status, ledger
+commits: none
+refs: tools/claude/preflight_protocol.sh,tools/claude/session_start_brief.sh,REPO_LEDGER.md,HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md,.gitignore
+supersedes: 167
+tokens: 514
+---
+Scope correction for the Claude Code commit gate install previously recorded in HISTORY#167. The original entry claimed .claude/settings.json was a new tracked file. That was wrong on this repo: an existing local pre-commit hook at .git/hooks/pre-commit (not tracked, operator-installed) blocks any .claude/, .opencode/, or .agents/ paths from being committed. That policy is intentional and predates this session, so .claude/settings.json must remain operator-local and not enter version control.
+
+Corrected approach: the shared enforcement logic lives in tools/claude/preflight_protocol.sh and tools/claude/session_start_brief.sh, which are tracked. Each operator who wants the Claude Code commit gate is responsible for wiring those scripts into their own .claude/settings.json on their machine. The .gitignore change earlier in this session that would have whitelisted .claude/settings.json was reverted; .claude/ stays blanket-ignored to match the .git/hooks/pre-commit policy. The REPO_LEDGER.md entry under Temporal Continuity Policy was rewritten to describe the gate as a per-operator wiring of shared scripts, not a tracked settings file.
+
+On this operator's machine the .claude/settings.json registering both hooks is already in place and was smoke-tested earlier in this session; the gate is active for this Claude Code instance immediately. Other operators must copy the two-hook configuration into their own .claude/settings.json after cloning. A future entry should add a tools/claude/install_hooks.sh helper plus a CLAUDE.md pointer so new operators get the wiring without having to read this entry.
+
+Files actually changed in this entry: tools/claude/preflight_protocol.sh and tools/claude/session_start_brief.sh (new, tracked); REPO_LEDGER.md (Temporal Continuity Policy bullet rewritten, last-updated already at 2026-05-15 from #167); HISTORY.md (#168 appended); HISTORY_INDEX.md (rebuilt); PROJECT_STATUS.md (resume pointer flipped from #167 to #168); .gitignore (reverted to blanket .claude/ ignore).
+
+Protocol notes: HISTORY#167 stays in the chain unchanged so the iteration is recoverable. This #168 entry supersedes it. No in-place edit of #167 was performed even though it was still local at the time the scope error was discovered, because the operator explicitly asked for strict protocol adherence after the earlier #165 in-place edit override.
+
+Verification: HISTORY_INDEX rebuild, snapshot, and verify_integrity / verify_routing / verify_continuity (with --no-recorded-fact-audit pending stabilization of the working-tree audit modules per HISTORY#166) to run after this append. Smoke tests for the preflight and session-brief scripts from #167 remain valid; their content is unchanged.
+
+Unresolved next step: add tools/claude/install_hooks.sh that writes the canonical .claude/settings.json wiring for new operators without requiring them to read HISTORY entries; document the wiring in CLAUDE.md. Same H1 Track H implementation work and audit-module stabilization remain open from prior entries.
+---END-ENTRY-#168---
