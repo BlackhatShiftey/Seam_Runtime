@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import os
+import subprocess
 import sys
 from importlib.util import find_spec
+from pathlib import Path
 
 from .installer import default_runtime_db_path
 from .lossless import benchmark_text_lossless
@@ -19,6 +22,38 @@ def check_pgvector(dsn: str | None) -> dict[str, object]:
         return {"configured": True, "reachable": True}
     except Exception as exc:
         return {"configured": True, "reachable": False, "error": str(exc)}
+
+
+def check_commit_gate() -> dict[str, object]:
+    try:
+        repo_root = Path(subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"], stderr=subprocess.DEVNULL
+        ).decode().strip())
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return {"status": "not-a-git-repo"}
+    source = repo_root / "tools" / "git-hooks" / "pre-commit"
+    installed = repo_root / ".git" / "hooks" / "pre-commit"
+    if not source.is_file():
+        return {"status": "source-missing", "source": str(source)}
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    if not installed.exists():
+        return {"status": "not-installed", "install_cmd": "bash tools/git-hooks/install.sh"}
+    if installed.is_symlink():
+        target = os.readlink(installed)
+        if target.endswith("tools/git-hooks/pre-commit"):
+            return {"status": "PASS", "mode": "symlink", "source_sha": source_sha}
+        return {"status": "drift", "mode": "symlink", "target": target,
+                "install_cmd": "bash tools/git-hooks/install.sh --force"}
+    try:
+        body = installed.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {"status": "unreadable", "path": str(installed)}
+    marker = f"# CANONICAL_SHA: {source_sha}"
+    if marker in body:
+        return {"status": "PASS", "mode": "copy", "source_sha": source_sha}
+    return {"status": "drift", "mode": "copy",
+            "install_cmd": "bash tools/git-hooks/install.sh --force",
+            "source_sha": source_sha}
 
 
 def build_doctor_report() -> dict[str, object]:
@@ -56,6 +91,7 @@ def build_doctor_report() -> dict[str, object]:
             "token_savings_ratio": round(lossless_result.artifact.token_savings_ratio, 6),
         },
         "pgvector": check_pgvector(pgvector_dsn),
+        "commit_gate": check_commit_gate(),
         "dependencies": dependencies,
         "required_dependencies": required_dependencies,
         "missing_required_dependencies": missing_required,

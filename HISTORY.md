@@ -3467,3 +3467,29 @@ Verification: HISTORY_INDEX rebuild, snapshot, and verify_integrity / verify_rou
 
 Unresolved next step: add tools/claude/install_hooks.sh that writes the canonical .claude/settings.json wiring for new operators without requiring them to read HISTORY entries; document the wiring in CLAUDE.md. Same H1 Track H implementation work and audit-module stabilization remain open from prior entries.
 ---END-ENTRY-#168---
+
+---BEGIN-ENTRY-#169---
+id: 169
+date: 2026-05-15T19:13:24Z
+agent: claude-opus-4-7
+status: done
+topics: protocol, history, audit, classification, plan, verify, status, ledger, doctor, installer
+commits: none
+refs: tools/git-hooks/pre-commit,tools/git-hooks/install.sh,seam_runtime/doctor.py,seam_runtime/cli.py,REPO_LEDGER.md,HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md
+supersedes: 168
+tokens: 852
+---
+Installed the canonical cross-agent commit gate as a tracked git pre-commit hook so every agent (Claude, Codex, Gemini, Aider, Cursor, OpenCode, etc.) and every human operator is gated by the same protocol enforcement, not just Claude Code sessions wired through .claude/settings.json. Closes the cross-agent coverage gap acknowledged in HISTORY#167 and HISTORY#168.
+
+New files: tools/git-hooks/pre-commit is the canonical hook. It runs for every commit because git itself executes .git/hooks/pre-commit regardless of the invoking process. Two responsibilities: (1) scope-block staged paths matching .claude/, .opencode/, .agents/, or opencode.jsonc? - matches the prior operator-local block list so accidentally staged agent-local configs are rejected; (2) verify chain - cd to repo root, run verify_integrity, verify_routing, and verify_continuity (with --no-recorded-fact-audit pending stabilization of the working-tree audit modules per HISTORY#166). Non-zero gate prints the captured log to stderr and exits 1, which blocks the commit. The hook short-circuits during merge and rebase (MERGE_HEAD, rebase-merge, rebase-apply present) since those produce intermediate states that are not expected to satisfy continuity on their own. Missing python is a soft skip with a stderr warning, not a hard block, so operators with broken environments can still commit fix-up work; the verify chain returns once python is back.
+
+New files: tools/git-hooks/install.sh wires the canonical hook into .git/hooks/pre-commit. It tries a symlink first (so future updates to tools/git-hooks/pre-commit are picked up automatically without re-running the installer); on filesystems that do not support symlinks (the current operator host is exFAT, FAT32 and some Windows configurations behave the same way), it falls back to writing a copy with a CANONICAL_SHA marker line embedded near the top so the installer and seam doctor can detect drift. Idempotent: re-running on an already-installed and matching hook is a no-op; --force overwrites and backs up the existing hook to .git/hooks/pre-commit.bak.YYYYMMDD-HHMMSS. Smoke install on the current host completed in copy mode after the previous Claude-Code-era local hook was backed up; the symlink attempt failed with EPERM on exFAT and the installer correctly fell back to copy.
+
+seam_runtime/doctor.py adds a check_commit_gate function and a commit_gate field to build_doctor_report. The check resolves the repo root via git rev-parse, hashes tools/git-hooks/pre-commit, and reports one of: PASS with mode symlink or copy when .git/hooks/pre-commit points at or matches the canonical hash; not-installed with the recommended install command; drift with the recommended --force install command when the installed hook does not match; not-a-git-repo, source-missing, or unreadable for unusual environments. seam_runtime/cli.py _render_doctor_report adds a one-line Commit gate display tied to the same statuses. The overall doctor PASS/FAIL is not affected by this field, so existing tests that assert specific keys are unchanged.
+
+Defense-in-depth model: the canonical pre-commit hook is the protocol enforcement that catches every actor that invokes git. The Claude Code preflight from HISTORY#167 and HISTORY#168 is the early warning that fires before Claude even tries to invoke git, so the model can self-correct without polluting the git error stream. Both layers run the same verify chain; the cost is a duplicate run, the benefit is a cleaner Claude Code error surface and a hard cross-agent guarantee from git.
+
+Open follow-ups remain: stabilize tools/history/test_count_audit.py and tools/history/recorded_fact_audit.py so both gates can drop --no-recorded-fact-audit; write per-agent settings wiring documentation for Codex, Gemini, Aider, Cursor, OpenCode so each agent matches the Claude Code defense-in-depth layer; add a tools/claude/install_hooks.sh helper for the Claude side wiring; implement Track H1 Context Streams substrate per CONTEXT_STREAMS.md sections 9 and 10.
+
+Verification: python -m py_compile seam_runtime/doctor.py seam_runtime/cli.py passed; standalone python -c invocation of check_commit_gate and build_doctor_report rendered the expected PASS (copy) line; pytest was not available in the local system python on this host so the existing test_cli_doctor_* tests could not be executed in this entry, but their assertion patterns are unchanged by adding a new optional field. HISTORY_INDEX rebuild, snapshot, and verify_integrity / verify_routing / verify_continuity (with --no-recorded-fact-audit) to run after this append. The canonical pre-commit hook will then run automatically on the commit that lands this entry, which is the first end-to-end smoke of the full gate.
+---END-ENTRY-#169---

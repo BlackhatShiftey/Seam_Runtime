@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# SEAM canonical pre-commit hook.
+#
+# Runs for every commit on every machine that has installed this hook (see
+# tools/git-hooks/install.sh). Catches agents (Claude, Codex, Gemini, Aider,
+# Cursor, OpenCode, etc.) and human operators in a single place — anything
+# that invokes `git commit` goes through here.
+#
+# Two responsibilities:
+#   1. Scope block: reject staged paths that should never enter version
+#      control (agent-local configs, OpenCode workspace, ad-hoc agent state).
+#   2. Verify chain: run verify_integrity, verify_routing, verify_continuity
+#      against the SEAM history protocol. Non-zero gate blocks the commit.
+#
+# Use --no-verify to bypass. Per CLAUDE.md and AGENTS.md, do not bypass
+# unless the operator explicitly authorizes it.
+
+set -u
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 0
+
+# --- 1. Scope block ----------------------------------------------------------
+
+BLOCKED_RE='^(\.claude/|\.opencode/|\.agents/|opencode\.jsonc?$)'
+
+BAD=$(git diff --cached --name-only --diff-filter=ACMR | grep -E "$BLOCKED_RE" || true)
+if [ -n "$BAD" ]; then
+  printf '%s\n' "[SEAM pre-commit] Blocked agent-local paths from commit:" >&2
+  printf '%s\n' "$BAD" >&2
+  printf '%s\n' "Unstage with: git restore --staged -- <path>" >&2
+  exit 1
+fi
+
+# --- 2. Verify chain ---------------------------------------------------------
+
+# Skip the verify chain during merges and rebases — those produce intermediate
+# states that aren't expected to satisfy continuity on their own.
+if [ -e "$REPO_ROOT/.git/MERGE_HEAD" ] || \
+   [ -d "$REPO_ROOT/.git/rebase-merge" ] || \
+   [ -d "$REPO_ROOT/.git/rebase-apply" ]; then
+  exit 0
+fi
+
+PY=python3
+command -v "$PY" >/dev/null 2>&1 || PY=python
+if ! command -v "$PY" >/dev/null 2>&1; then
+  echo "[SEAM pre-commit] python not found on PATH; skipping verify chain." >&2
+  exit 0
+fi
+
+FAIL=0
+run_gate() {
+  local label="$1"; shift
+  local log="/tmp/seam_precommit_$$_${label}.log"
+  if ! "$@" >"$log" 2>&1; then
+    echo "[SEAM pre-commit] $label FAILED:" >&2
+    cat "$log" >&2
+    FAIL=1
+  fi
+  rm -f "$log"
+}
+
+run_gate "verify_integrity"  "$PY" -m tools.history.verify_integrity
+run_gate "verify_routing"    "$PY" -m tools.history.verify_routing
+run_gate "verify_continuity" "$PY" -m tools.history.verify_continuity --no-recorded-fact-audit
+
+if [ "$FAIL" -ne 0 ]; then
+  echo "" >&2
+  echo "[SEAM pre-commit] Blocking commit. Fix the gates above before retrying." >&2
+  echo "[SEAM pre-commit] See AGENTS.md Session End and Temporal Continuity Policy." >&2
+  exit 1
+fi
+
+exit 0

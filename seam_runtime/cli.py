@@ -1440,6 +1440,20 @@ def _render_doctor_report(payload: dict[str, object]) -> str:
             pg_line += f" ({pgvector['error']})"
     else:
         pg_line = "PgVector: not configured (set SEAM_PGVECTOR_DSN to enable)"
+    gate = payload.get("commit_gate", {}) or {}
+    gate_status = gate.get("status", "unknown")
+    if gate_status == "PASS":
+        commit_gate_line = f"Commit gate: PASS ({gate.get('mode')})"
+    elif gate_status == "not-installed":
+        commit_gate_line = f"Commit gate: not installed (run {gate.get('install_cmd')})"
+    elif gate_status == "drift":
+        commit_gate_line = f"Commit gate: drift ({gate.get('mode')}; run {gate.get('install_cmd')})"
+    elif gate_status == "not-a-git-repo":
+        commit_gate_line = "Commit gate: skipped (not a git repo)"
+    elif gate_status == "source-missing":
+        commit_gate_line = f"Commit gate: source missing ({gate.get('source')})"
+    else:
+        commit_gate_line = f"Commit gate: {gate_status}"
     return "\n".join(
         [
             f"SEAM doctor: {payload.get('status')}",
@@ -1454,6 +1468,7 @@ def _render_doctor_report(payload: dict[str, object]) -> str:
                 f"estimator={payload.get('lossless', {}).get('token_estimator')})"
             ),
             pg_line,
+            commit_gate_line,
             (
                 "Required deps: OK"
                 if not payload.get("missing_required_dependencies")
