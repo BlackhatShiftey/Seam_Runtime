@@ -262,9 +262,15 @@ def dispatch_tool(runtime: SeamRuntime, request: dict[str, object]) -> dict[str,
         payload = decode_surface(artifact_path)
         result = payload.to_dict(include_payload=False)
         if truncate_text > 0 and payload.payload_format in _TEXT_PAYLOAD_FORMATS:
-            text = payload.text
-            result["payload_text"] = text[:truncate_text]
-            result["payload_text_truncated"] = len(text) > truncate_text
+            try:
+                text = payload.text
+            except UnicodeDecodeError:
+                result["payload_text"] = None
+                result["payload_text_truncated"] = False
+                result["payload_text_error"] = "payload bytes are not valid UTF-8"
+            else:
+                result["payload_text"] = text[:truncate_text]
+                result["payload_text_truncated"] = len(text) > truncate_text
         else:
             result["payload_text"] = None
             result["payload_text_truncated"] = False

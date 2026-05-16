@@ -18,6 +18,12 @@ Linux / WSL2:
 gh repo clone BlackhatShiftey/Seam Seam && cd Seam && sh ./installers/install_seam_linux.sh
 ```
 
+Linux / WSL2 repo-local development:
+
+```bash
+gh repo clone BlackhatShiftey/Seam Seam && cd Seam && sh ./installers/install_seam_linux.sh --dev
+```
+
 Open a new terminal after install:
 
 ```text
@@ -42,6 +48,12 @@ Linux / WSL2:
 sh ./installers/install_seam_linux.sh
 ```
 
+Linux / WSL2 development bootstrap:
+
+```bash
+sh ./installers/install_seam_linux.sh --dev
+```
+
 If Debian/Ubuntu is missing Python `venv`:
 
 ```bash
@@ -51,12 +63,24 @@ sudo apt-get install -y python3-venv
 
 ## What The Installer Does
 
+Default mode:
+
 - creates a dedicated SEAM runtime under the user home directory
 - installs SEAM into that runtime with `[dash]`
 - creates global `seam`, `seam-benchmark`, and `seam-dash` shims
 - configures a persistent default database
 - updates PATH or shell profile state
 - runs `seam doctor`
+
+Linux `--dev` mode:
+
+- creates or reuses the repo-local `.venv`
+- pre-creates `.venv/lib64` on POSIX filesystems so external drives that reject
+  the `venv` `lib64` symlink still work
+- installs `requirements.txt`, `.[all-extras]`, and `pytest`
+- runs `seam.py doctor`, history integrity, routing, snapshot, continuity, and
+  stream verification checks
+- does not install or modify `experimental/webui/`
 
 Default persistent database paths:
 

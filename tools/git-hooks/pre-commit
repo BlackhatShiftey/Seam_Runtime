@@ -17,8 +17,11 @@
 
 set -u
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "$REPO_ROOT" || exit 0
+REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$REPO_ROOT" || {
+  echo "[SEAM pre-commit] Cannot cd to repo root '$REPO_ROOT'; refusing to bypass gates." >&2
+  exit 1
+}
 
 # --- 1. Scope block ----------------------------------------------------------
 

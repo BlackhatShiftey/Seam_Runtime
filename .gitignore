@@ -27,6 +27,16 @@ credentials.json
 service_account.json
 config.local.*
 *.secret
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_ecdsa
+id_ecdsa.*
+.ssh/
+
+# Operator-local agent config (Codex/Claude/etc.) — never tracked
+seam_runtime/config.toml
 
 # Local agent/tooling state
 .claude/

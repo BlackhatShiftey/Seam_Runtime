@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.token_budget is not None:
             forwarded += ["--token-budget", str(args.token_budget)]
         if args.format == "json":
-            forwarded += ["--format", "json"]
+            forwarded += ["--json"]
         return legacy.main(forwarded)
 
     topics = {t.strip() for t in (args.topics or "").split(",") if t.strip()}

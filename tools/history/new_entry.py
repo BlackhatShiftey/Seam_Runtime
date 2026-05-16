@@ -64,9 +64,16 @@ def main(argv: list[str] | None = None) -> int:
     if supersedes != "none":
         supersedes = supersedes.lstrip("#")
         try:
-            int(supersedes)
+            supersedes_id = int(supersedes)
         except ValueError:
             print(f"ERROR: --supersedes must be an entry id or 'none'", file=sys.stderr)
+            return 2
+        if supersedes_id not in {e.id for e in entries}:
+            print(
+                f"ERROR: --supersedes #{supersedes_id:03d} not found in HISTORY.md "
+                f"(highest existing id is #{max((e.id for e in entries), default=0):03d})",
+                file=sys.stderr,
+            )
             return 2
 
     entry_text = format_entry(

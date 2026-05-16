@@ -103,7 +103,11 @@ class OpenAICompatibleEmbeddingModel:
         with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
             payload = json.loads(response.read().decode("utf-8"))
         vector = [float(value) for value in payload["data"][0]["embedding"]]
-        self.dimension = len(vector)
+        if len(vector) != self.dimension:
+            raise RuntimeError(
+                f"Embedding dimension drift: provider returned {len(vector)} dims, "
+                f"expected {self.dimension}. Set SEAM_EMBEDDING_DIMENSIONS to match."
+            )
         return _normalize(vector)
 
 
@@ -155,7 +159,7 @@ def cosine(left: list[float], right: list[float]) -> float:
 def _normalize(vector: list[float]) -> list[float]:
     norm = math.sqrt(sum(value * value for value in vector))
     if not norm:
-        return vector
+        return [0.0] * len(vector)
     return [value / norm for value in vector]
 
 

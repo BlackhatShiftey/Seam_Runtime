@@ -23,6 +23,12 @@ Linux / WSL2:
 gh repo clone BlackhatShiftey/Seam Seam && cd Seam && sh ./installers/install_seam_linux.sh
 ```
 
+Repo-local Linux development bootstrap:
+
+```bash
+gh repo clone BlackhatShiftey/Seam Seam && cd Seam && sh ./installers/install_seam_linux.sh --dev
+```
+
 Public release installer shape, for later release packaging:
 
 ```powershell

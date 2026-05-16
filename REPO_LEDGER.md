@@ -1,6 +1,6 @@
 # SEAM Repo Ledger
 
-Last updated: 2026-05-15
+Last updated: 2026-05-16
 
 This ledger is the stable engineering memory for repo-level decisions only.
 Detailed session history, milestones, and plan transitions now live in `HISTORY.md`
@@ -72,6 +72,11 @@ and `HISTORY_INDEX.md`.
   closed-source use still requires a separate written commercial license.
 - Compatibility CLI aliases are acceptable during naming transitions.
 - Agent continuity is protocol-driven (`AGENTS.md`), not model-specific duplicate docs.
+- Linux install has two supported flows: default `install_seam_linux.sh` creates
+  global user command shims and persistent runtime state; `install_seam_linux.sh --dev`
+  creates/reuses the repo-local Python `.venv`, handles the external-drive
+  `lib64` venv fallback, installs Python dev dependencies, runs SEAM protocol
+  verification, and deliberately leaves `experimental/webui/` untouched.
 - Cross-file duplication is disallowed; use pointer cards (`see HISTORY#NNN`).
 
 ## AI-Native Compression Policy

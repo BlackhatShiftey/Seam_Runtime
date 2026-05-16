@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hmac
 import os
 import time
 from dataclasses import dataclass, field
@@ -73,6 +74,10 @@ def _client_key(request: Any, authorization: str | None = None) -> str:
 
 def create_app(runtime: SeamRuntime | None = None) -> Any:
     Depends, FastAPI, Header, HTTPException, Request = _require_fastapi()
+    # Required: `from __future__ import annotations` defers annotation evaluation,
+    # so FastAPI's typing.get_type_hints must find `Request` in module globals.
+    # fastapi is a lazy import (optional extra), so we publish it here. Idempotent:
+    # the class is the same across create_app() calls.
     globals()["Request"] = Request
     runtime = runtime or SeamRuntime(default_runtime_db_path())
     limiter = RateLimiter(_rate_limit_from_env())
@@ -96,7 +101,7 @@ def create_app(runtime: SeamRuntime | None = None) -> Any:
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         if token:
             expected = f"Bearer {token}"
-            if authorization != expected:
+            if not authorization or not hmac.compare_digest(authorization, expected):
                 raise HTTPException(status_code=401, detail="Missing or invalid bearer token")
 
     def rate_limit_only(request: Request, authorization: str | None = Header(default=None)) -> None:
@@ -105,7 +110,7 @@ def create_app(runtime: SeamRuntime | None = None) -> Any:
 
     @app.get("/health", dependencies=[Depends(rate_limit_only)])
     def health() -> dict[str, object]:
-        return {"status": "ok", "store_path": runtime.store.path}
+        return {"status": "ok"}
 
     @app.get("/stats", dependencies=[Depends(guard)])
     def stats() -> dict[str, object]:

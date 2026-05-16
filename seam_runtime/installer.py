@@ -25,6 +25,14 @@ class InstallLayout:
     is_windows: bool
 
 
+@dataclass(frozen=True)
+class DevInstallResult:
+    repo_root: Path
+    venv_dir: Path
+    python_bin: Path
+    checks_run: tuple[str, ...]
+
+
 def detect_layout(repo_root: str | Path | None = None) -> InstallLayout:
     root = Path(repo_root or Path(__file__).resolve().parents[1]).resolve()
     is_windows = os.name == "nt"
@@ -68,6 +76,27 @@ def ensure_virtualenv(layout: InstallLayout, python_executable: str | None = Non
     return layout.venv_dir
 
 
+def repo_venv_python(repo_root: Path) -> Path:
+    if os.name == "nt":
+        return repo_root / ".venv" / "Scripts" / "python.exe"
+    return repo_root / ".venv" / "bin" / "python"
+
+
+def ensure_repo_virtualenv(repo_root: str | Path, python_executable: str | None = None) -> Path:
+    root = Path(repo_root).resolve()
+    python_bin = repo_venv_python(root)
+    if python_bin.exists():
+        return python_bin
+    venv_dir = root / ".venv"
+    if os.name != "nt":
+        # Some external-drive filesystems reject the venv lib64 symlink. A
+        # pre-created directory lets venv complete while preserving imports.
+        (venv_dir / "lib64").mkdir(parents=True, exist_ok=True)
+    interpreter = python_executable or sys.executable
+    subprocess.run([interpreter, "-m", "venv", str(venv_dir)], check=True)
+    return python_bin
+
+
 def install_repo(layout: InstallLayout, upgrade_pip: bool = True, include_dashboard: bool = True) -> None:
     python_bin = layout.venv_dir / ("Scripts/python.exe" if layout.is_windows else "bin/python")
     requirements_path = layout.repo_root / "requirements.txt"
@@ -83,6 +112,76 @@ def install_repo(layout: InstallLayout, upgrade_pip: bool = True, include_dashbo
     else:
         subprocess.run([str(python_bin), "-m", "pip", "install", package_spec], check=True)
     ensure_persistence(layout)
+
+
+def install_repo_dev_environment(repo_root: str | Path, upgrade_pip: bool = True) -> DevInstallResult:
+    root = Path(repo_root).resolve()
+    python_bin = ensure_repo_virtualenv(root)
+    requirements_path = root / "requirements.txt"
+    if upgrade_pip:
+        subprocess.run([str(python_bin), "-m", "pip", "install", "--upgrade", "pip"], check=True)
+    if requirements_path.exists():
+        subprocess.run([str(python_bin), "-m", "pip", "install", "-r", str(requirements_path)], check=True)
+    subprocess.run([str(python_bin), "-m", "pip", "install", "-e", f"{root}[all-extras]", "pytest"], check=True)
+    checks_run = run_repo_dev_checks(root, python_bin)
+    return DevInstallResult(repo_root=root, venv_dir=root / ".venv", python_bin=python_bin, checks_run=checks_run)
+
+
+def latest_history_entry_ids(repo_root: str | Path, count: int = 3) -> list[str]:
+    index_path = Path(repo_root) / "HISTORY_INDEX.md"
+    ids: list[str] = []
+    if not index_path.exists():
+        return ids
+    for line in index_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        parts = [part.strip() for part in stripped.strip("|").split("|")]
+        if not parts or not parts[0].isdigit():
+            continue
+        ids.append(parts[0])
+        if len(ids) >= count:
+            break
+    return ids
+
+
+def run_repo_dev_checks(repo_root: str | Path, python_bin: Path | None = None) -> tuple[str, ...]:
+    root = Path(repo_root).resolve()
+    python_path = python_bin or repo_venv_python(root)
+    checks: list[tuple[str, list[str]]] = [
+        ("doctor", [str(python_path), "seam.py", "doctor"]),
+        ("verify_integrity", [str(python_path), "-m", "tools.history.verify_integrity"]),
+        ("verify_routing", [str(python_path), "-m", "tools.history.verify_routing"]),
+    ]
+    entry_ids = latest_history_entry_ids(root, count=3)
+    if entry_ids:
+        checks.append(
+            (
+                "write_snapshot",
+                [
+                    str(python_path),
+                    "-m",
+                    "tools.history.write_snapshot",
+                    "--agent",
+                    "codex",
+                    "--entries",
+                    ",".join(entry_ids),
+                    "--token-budget",
+                    "1800",
+                ],
+            )
+        )
+    checks.extend(
+        [
+            ("verify_continuity", [str(python_path), "-m", "tools.history.verify_continuity"]),
+            ("verify_streams", [str(python_path), "-m", "tools.streams.verify_streams"]),
+        ]
+    )
+    ran: list[str] = []
+    for name, command in checks:
+        subprocess.run(command, check=True, cwd=root)
+        ran.append(name)
+    return tuple(ran)
 
 
 def ensure_persistence(layout: InstallLayout) -> Path:

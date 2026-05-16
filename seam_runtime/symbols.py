@@ -128,8 +128,12 @@ def build_symbol_maps(records: list[MIRLRecord], namespace: str | None = None) -
             continue
         if allowed_namespaces is not None and record.ns not in allowed_namespaces:
             continue
-        symbol = str(record.attrs.get("symbol"))
-        expansion = str(record.attrs.get("expansion"))
+        raw_symbol = record.attrs.get("symbol")
+        raw_expansion = record.attrs.get("expansion")
+        if not isinstance(raw_symbol, str) or not isinstance(raw_expansion, str):
+            continue
+        symbol = raw_symbol
+        expansion = raw_expansion
         ambiguity = float(record.attrs.get("ambiguity", 1.0))
         if expansion and symbol and ambiguity <= 0.34:
             expansions_to_symbols[expansion] = symbol

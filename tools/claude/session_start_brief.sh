@@ -13,7 +13,8 @@ cd "$REPO_ROOT" || exit 0
 PY=python3
 command -v "$PY" >/dev/null 2>&1 || PY=python
 
-LATEST=$(sed -n '14p' HISTORY_INDEX.md 2>/dev/null | awk -F'|' '{gsub(/ /,"",$2); print $2}')
+# First numeric id in the entries table (newest first) — resilient to header changes.
+LATEST=$(awk -F'|' '/^\|[ \t]*[0-9]+[ \t]*\|/ {gsub(/[ \t]/,"",$2); print $2; exit}' HISTORY_INDEX.md 2>/dev/null)
 
 cat <<EOF
 [SEAM protocol brief]

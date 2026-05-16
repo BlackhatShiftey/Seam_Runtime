@@ -7,3 +7,8 @@ __pycache__/**
 *.egg-info/**
 *.pyc
 *.pyo
+test_seam/**
+.seam/snapshots/**
+.seam/cross_index_archive/**
+.seam_chroma/**
+node_modules/**

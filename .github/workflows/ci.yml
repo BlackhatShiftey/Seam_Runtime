@@ -6,6 +6,8 @@ on:
     branches:
       - main
 
+permissions: read-all
+
 jobs:
   test-and-benchmark:
     runs-on: windows-latest

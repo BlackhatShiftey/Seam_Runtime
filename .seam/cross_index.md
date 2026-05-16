@@ -2,14 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 210
+total_events: 211
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-04-17T00:01:00Z | history:011:54508039 | session-event | done | verify, retrieval, vector, sbert, lx1, benchmark | REPO_LEDGER.md#milestone-log |
 | 2026-04-17T00:02:00Z | history:012:42f88b38 | session-event | done | compile, persist, verify, search, vector, pgvector | REPO_LEDGER.md#milestone-log |
 | 2026-04-17T00:03:00Z | history:013:31d18f0e | session-event | done | vector, pgvector, doctor | REPO_LEDGER.md#milestone-log |
 | 2026-04-17T00:04:00Z | history:014:64235421 | session-event | done | persist, vector, pgvector, installer, linux, doctor | REPO_LEDGER.md#milestone-log |
@@ -209,10 +208,11 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-05-16T00:15:17Z | history:174:aa43d093 | session-event | done | verify, history, audit, protocol, status | AGENTS.md,PROJECT_STATUS.md,REPO_LEDGER.md,tools/history/test_count_audit.py,... |
 | 2026-05-16T00:22:59Z | history:175:a27d3a0a | session-event | done | verify, history, audit, protocol, status | PROJECT_STATUS.md,tools/history/test_count_audit.py,tools/history/test_histor... |
 | 2026-05-16T00:29:22Z | history:176:96af49b3 | session-event | done | protocol, history, plan, verify, status, ledger, roadmap,... | HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md |
+| 2026-05-16T04:58:56Z | history:177:65153fde | session-event | done | audit, security, verify, history, protocol, status, class... | docker-compose.yaml,.github/workflows/ci.yml,.gitignore,.rgignore,pyproject.t... |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0010.cross.md | 2026-04-15T00:00:00Z..2026-04-17T00:00:00Z | 10 | (multi) | (multi) |
+| 0001-0011.cross.md | 2026-04-15T00:00:00Z..2026-04-17T00:01:00Z | 11 | (multi) | (multi) |

@@ -15,6 +15,7 @@ from experimental.retrieval_orchestrator.adapters import SQLiteIRAdapter
 from experimental.retrieval_orchestrator.planner import build_plan
 from seam import SeamRuntime, compile_dsl, compile_nl, decompile_ir, load_ir_lines, pack_ir, render_ir, unpack_pack
 from seam_runtime import benchmarks as benchmark_module
+from seam_runtime import installer as installer_module
 from seam_runtime.cli import run_cli
 from seam_runtime.dashboard import DEFAULT_CHAT_MODELS, SeamChatClient, TextualDashboardApp, run_dashboard
 from seam_runtime.installer import (
@@ -2951,6 +2952,109 @@ class InstallerLinuxTests(unittest.TestCase):
             for call in calls:
                 for arg in call:
                     self.assertFalse(arg.endswith("[dash]"), f"Unexpected [dash] arg in {call}")
+
+    def test_dev_virtualenv_precreates_lib64_for_posix_filesystems(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            calls: list[list[str]] = []
+
+            def _fake_run(cmd, check=True, **kwargs):  # pragma: no cover - test shim
+                calls.append(list(cmd))
+                (root / ".venv" / "bin").mkdir(parents=True, exist_ok=True)
+                (root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+
+                class _Result:
+                    returncode = 0
+
+                return _Result()
+
+            with patch("seam_runtime.installer.subprocess.run", side_effect=_fake_run):
+                self.assertTrue(hasattr(installer_module, "ensure_repo_virtualenv"))
+                python_bin = installer_module.ensure_repo_virtualenv(root, python_executable="/usr/bin/python3")
+
+            self.assertEqual(python_bin, root / ".venv" / "bin" / "python")
+            self.assertTrue((root / ".venv" / "lib64").is_dir())
+            self.assertEqual(calls[0], ["/usr/bin/python3", "-m", "venv", str(root / ".venv")])
+
+    def test_dev_install_installs_python_deps_and_ignores_existing_webui(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "requirements.txt").write_text("rich>=14.2\n", encoding="utf-8")
+            webui = root / "experimental" / "webui"
+            webui.mkdir(parents=True)
+            (webui / "package.json").write_text('{"scripts":{}}\n', encoding="utf-8")
+            (root / ".venv" / "bin").mkdir(parents=True)
+            (root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+            calls: list[tuple[list[str], Path | None]] = []
+
+            def _fake_run(cmd, check=True, cwd=None, **kwargs):  # pragma: no cover - test shim
+                calls.append((list(cmd), Path(cwd) if cwd else None))
+
+                class _Result:
+                    returncode = 0
+                    stdout = "PASS"
+
+                return _Result()
+
+            with patch("seam_runtime.installer.subprocess.run", side_effect=_fake_run):
+                self.assertTrue(hasattr(installer_module, "install_repo_dev_environment"))
+                result = installer_module.install_repo_dev_environment(root, upgrade_pip=False)
+
+            self.assertTrue(hasattr(installer_module, "DevInstallResult"))
+            self.assertIsInstance(result, installer_module.DevInstallResult)
+            commands = [cmd for cmd, _cwd in calls]
+            self.assertIn([str(root / ".venv" / "bin" / "python"), "-m", "pip", "install", "-r", str(root / "requirements.txt")], commands)
+            self.assertIn([str(root / ".venv" / "bin" / "python"), "-m", "pip", "install", "-e", f"{root}[all-extras]", "pytest"], commands)
+            self.assertNotIn((["npm", "install", "--no-bin-links"], webui), calls)
+
+    def test_run_repo_dev_checks_writes_snapshot_and_runs_protocol_gates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            python_bin = root / ".venv" / "bin" / "python"
+            python_bin.parent.mkdir(parents=True)
+            python_bin.write_text("", encoding="utf-8")
+            (root / "HISTORY_INDEX.md").write_text(
+                "| id | date | status | hash | topics | supersedes |\n"
+                "|---|---|---|---|---|---|\n"
+                "| 176 | 2026-05-16 | done | abc | installer,linux | 175 |\n"
+                "| 175 | 2026-05-16 | done | def | verify | 174 |\n"
+                "| 174 | 2026-05-16 | done | ghi | verify | 173 |\n",
+                encoding="utf-8",
+            )
+            calls: list[list[str]] = []
+
+            def _fake_run(cmd, check=True, cwd=None, **kwargs):  # pragma: no cover - test shim
+                calls.append(list(cmd))
+
+                class _Result:
+                    returncode = 0
+                    stdout = "OK"
+
+                return _Result()
+
+            with patch("seam_runtime.installer.subprocess.run", side_effect=_fake_run):
+                self.assertTrue(hasattr(installer_module, "run_repo_dev_checks"))
+                installer_module.run_repo_dev_checks(root, python_bin)
+
+            self.assertIn([str(python_bin), "seam.py", "doctor"], calls)
+            self.assertIn([str(python_bin), "-m", "tools.history.verify_integrity"], calls)
+            self.assertIn([str(python_bin), "-m", "tools.history.verify_routing"], calls)
+            self.assertIn(
+                [
+                    str(python_bin),
+                    "-m",
+                    "tools.history.write_snapshot",
+                    "--agent",
+                    "codex",
+                    "--entries",
+                    "176,175,174",
+                    "--token-budget",
+                    "1800",
+                ],
+                calls,
+            )
+            self.assertIn([str(python_bin), "-m", "tools.history.verify_continuity"], calls)
+            self.assertIn([str(python_bin), "-m", "tools.streams.verify_streams"], calls)
 
 
 class PgVectorAdapterTests(unittest.TestCase):

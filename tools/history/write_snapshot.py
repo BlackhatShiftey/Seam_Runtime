@@ -94,8 +94,16 @@ def write_snapshot(
     payload["integrity_hash"] = _compute_integrity_hash(payload)
 
     snapshots_dir.mkdir(parents=True, exist_ok=True)
-    ts = now.strftime("%Y%m%d-%H%M%S")
+    ts = now.strftime("%Y%m%d-%H%M%S-") + f"{now.microsecond:06d}"
     out_path = snapshots_dir / f"{ts}-{agent}.json"
+    if out_path.exists():
+        suffix = 1
+        while True:
+            candidate = snapshots_dir / f"{ts}-{agent}-{suffix:02d}.json"
+            if not candidate.exists():
+                out_path = candidate
+                break
+            suffix += 1
     out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return out_path
 

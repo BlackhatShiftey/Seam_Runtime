@@ -29,7 +29,17 @@ def reconcile_ir(batch: IRBatch) -> ReconcileReport:
         ordered = sorted(group, key=lambda item: (item.updated_at, item.conf), reverse=True)
         winner = ordered[0]
         for loser in ordered[1:]:
-            relation = "supersedes" if winner.updated_at >= loser.updated_at else "contradicts"
+            # supersedes: winner is strictly newer than loser.
+            # contradicts: same timestamp but loser had higher confidence in its
+            # object — newer-but-less-confident timestamp wins the sort, but the
+            # claims are simultaneous, so flag the conflict rather than implying
+            # a sequence.
+            if winner.updated_at > loser.updated_at:
+                relation = "supersedes"
+            elif winner.conf >= loser.conf:
+                relation = "supersedes"
+            else:
+                relation = "contradicts"
             actions.append({"type": relation, "winner": winner.id, "loser": loser.id})
             added_records.append(MIRLRecord(id=f"rel:{relation}:{winner.id}:{loser.id}", kind=RecordKind.REL, ns=winner.ns, scope=winner.scope, status=Status.INFERRED, conf=0.75, attrs={"src": winner.id, "predicate": relation, "dst": loser.id}))
         added_records.append(MIRLRecord(id=f"sta:reconciled:{subject}:{predicate}", kind=RecordKind.STA, ns=winner.ns, scope=winner.scope, status=Status.INFERRED, conf=winner.conf, prov=list({prov for claim in group for prov in claim.prov}), evidence=list({ev for claim in group for ev in claim.evidence}), attrs={"target": subject, "fields": {predicate: winner.attrs.get("object")}}))

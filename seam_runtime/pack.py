@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Iterable
 
@@ -10,7 +11,8 @@ from .symbols import build_symbol_maps
 def pack_records(records: Iterable[MIRLRecord], lens: str = "general", budget: int = 512, mode: str = "context", profile: str = "default", namespace: str | None = None) -> Pack:
     ordered = sorted(records, key=lambda record: record.id)
     refs = [record.id for record in ordered]
-    pack_id = f"pack:{mode}:{len(refs)}:{abs(hash((tuple(refs), lens, budget))) % 100000}"
+    pack_id_seed = f"{mode}|{lens}|{budget}|{','.join(refs)}".encode("utf-8")
+    pack_id = f"pack:{mode}:{len(refs)}:{hashlib.sha256(pack_id_seed).hexdigest()[:12]}"
     expansion_to_symbol, _ = build_symbol_maps(ordered, namespace=namespace)
 
     if mode == "exact":

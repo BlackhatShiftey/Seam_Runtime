@@ -18,8 +18,12 @@ class SQLiteStore:
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.path)
+        connection = sqlite3.connect(self.path, timeout=5.0)
         connection.row_factory = sqlite3.Row
+        if self.path != ":memory:":
+            connection.execute("pragma journal_mode=WAL")
+        connection.execute("pragma busy_timeout=5000")
+        connection.execute("pragma foreign_keys=ON")
         return connection
 
     def _init_schema(self) -> None:
@@ -186,6 +190,11 @@ class SQLiteStore:
                 create index if not exists idx_document_status_hash on document_status (source_hash);
                 create index if not exists idx_ir_edges_src on ir_edges (src_id);
                 create index if not exists idx_ir_edges_dst on ir_edges (dst_id);
+                delete from ir_edges where id not in (
+                    select min(id) from ir_edges group by src_id, edge_type, dst_id
+                );
+                create unique index if not exists idx_ir_edges_unique
+                    on ir_edges (src_id, edge_type, dst_id);
                 create index if not exists idx_machine_artifacts_source on machine_artifacts (source_type, source_id);
                 create index if not exists idx_surface_artifacts_payload on surface_artifacts (payload_sha256);
                 create index if not exists idx_surface_artifacts_source on surface_artifacts (source_ref);
@@ -366,7 +375,7 @@ class SQLiteStore:
         for evidence in record.evidence:
             edges.append((record.id, "evidence", evidence))
         for src_id, edge_type, dst_id in edges:
-            connection.execute("insert into ir_edges (src_id, edge_type, dst_id) values (?, ?, ?)", (src_id, edge_type, dst_id))
+            connection.execute("insert or ignore into ir_edges (src_id, edge_type, dst_id) values (?, ?, ?)", (src_id, edge_type, dst_id))
 
     def load_ir(self, ids: list[str] | None = None, ns: str | None = None, scope: str | None = None) -> IRBatch:
         query = "select payload_json from ir_records where 1=1"
@@ -385,11 +394,13 @@ class SQLiteStore:
         return IRBatch([MIRLRecord.from_dict(json.loads(row["payload_json"])) for row in rows])
 
     def read_pack(self, pack_id: str) -> Pack:
-        with closing(self._connect()) as connection:
-            row = connection.execute("select * from pack_store where id = ?", (pack_id,)).fetchone()
-        if row is None:
+        batch = self.load_ir(ids=[pack_id])
+        if not batch.records:
             raise KeyError(pack_id)
-        return Pack(pack_id=row["id"], mode=row["mode"], lens=row["lens"], refs=json.loads(row["refs_json"]), payload=json.loads(row["payload_json"]), budget=0, reversible=row["mode"] == "exact", token_cost=0, created_at=row["created_at"])
+        record = batch.records[0]
+        if record.kind != RecordKind.PACK:
+            raise KeyError(pack_id)
+        return Pack.from_record(record)
 
     def trace(self, root_id: str) -> TraceGraph:
         batch = self.load_ir()
@@ -788,5 +799,9 @@ def _surface_artifact_row(row: sqlite3.Row) -> dict[str, object]:
 
 
 def _file_sha256(path: str) -> str:
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 

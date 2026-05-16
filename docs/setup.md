@@ -18,6 +18,12 @@ Linux / WSL2:
 gh repo clone BlackhatShiftey/Seam Seam && cd Seam && sh ./installers/install_seam_linux.sh
 ```
 
+Linux / WSL2 repo-local development:
+
+```bash
+gh repo clone BlackhatShiftey/Seam Seam && cd Seam && sh ./installers/install_seam_linux.sh --dev
+```
+
 Verify in a new terminal:
 
 ```text
@@ -44,13 +50,11 @@ Linux / WSL2 bash:
 
 ```bash
 cd /path/to/Seam
-python3 -m venv .venv
-./.venv/bin/python -m pip install --upgrade pip
-./.venv/bin/python -m pip install -r requirements.txt
-./.venv/bin/python -m pip install -e ".[dash]"
-./.venv/bin/python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py
-./.venv/bin/python seam.py doctor
+sh ./installers/install_seam_linux.sh --dev
 ```
+
+The Linux development bootstrap installs Python dependencies only. It does not
+install or modify `experimental/webui/`.
 
 If Debian/Ubuntu says `venv` is missing:
 
@@ -62,17 +66,13 @@ sudo apt-get install -y python3-venv
 ## Resume Current Repo State On Fresh Linux
 
 After cloning and running the Linux repo-local development install above, use
-these checks before making changes:
+these extra Git state checks before making changes:
 
 ```bash
 git fetch origin
 git status --branch --short
 git rev-parse HEAD
 git rev-parse origin/main
-./.venv/bin/python -m tools.history.verify_integrity
-./.venv/bin/python -m tools.history.verify_routing
-./.venv/bin/python -m tools.history.write_snapshot --agent codex --entries 149,148,147 --token-budget 1800
-./.venv/bin/python -m tools.history.verify_continuity
 ./.venv/bin/python -m tools.history.build_context_pack --latest 5 --token-budget 1800
 ```
 
@@ -80,7 +80,8 @@ Healthy resume state:
 
 - `main...origin/main` has no ahead/behind marker.
 - `HEAD` and `origin/main` print the same SHA.
-- Integrity, routing, and continuity all report `OK`.
+- The development bootstrap reports `doctor`, integrity, routing, snapshot,
+  continuity, and stream checks as run.
 - `write_snapshot` creates a local `.seam/snapshots/` handoff for the latest
   tracked history entries. Snapshot JSON files are intentionally ignored, so
   this step is required on a fresh clone.
