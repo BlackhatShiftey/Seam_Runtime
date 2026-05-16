@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tools.history.history_lib import HISTORY_PATH, INDEX_PATH
 from tools.streams.history_adapter import sync_history_mirror, verify_history_mirror
-from tools.streams.rebuild_cross_index import collect_all_events, rebuild_cross_index
+from tools.streams.rebuild_cross_index import ARCHIVE_DIR, collect_all_events, rebuild_cross_index
 from tools.streams.rebuild_index import rebuild_index
 from tools.streams.roadmap_parser import (
     ROADMAP_PATH,
@@ -112,6 +112,15 @@ class CrossIndexTests(unittest.TestCase):
         self.assertIn("history", kinds)
         self.assertIn("roadmap", kinds)
         self.assertTrue(CROSS_INDEX_PATH.exists())
+
+    def test_rebuild_cross_index_removes_stale_archive_chunks(self) -> None:
+        ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+        stale = ARCHIVE_DIR / "9999-9999.cross.md"
+        stale.write_text("# stale\n", encoding="utf-8")
+
+        rebuild_cross_index()
+
+        self.assertFalse(stale.exists())
 
 
 class BuildContextPackTests(unittest.TestCase):

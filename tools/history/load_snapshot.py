@@ -24,6 +24,10 @@ def find_latest(snapshots_dir: Path | None = None) -> Path | None:
     from tools.history import history_lib
     if snapshots_dir is None:
         snapshots_dir = history_lib.SNAPSHOTS_DIR
+    elif not any(snapshots_dir.glob("*.json")):
+        repo_snapshot_dir = snapshots_dir / ".seam" / "snapshots"
+        if repo_snapshot_dir.exists():
+            snapshots_dir = repo_snapshot_dir
     if not snapshots_dir.exists():
         return None
     candidates = sorted(snapshots_dir.glob("*.json"))

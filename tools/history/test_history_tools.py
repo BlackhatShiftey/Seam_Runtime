@@ -19,10 +19,12 @@ from tools.history.history_lib import (
 from tools.history.rebuild_index import build_index_text, rebuild
 from tools.history.verify_integrity import parse_index_hashes, verify
 from tools.history.write_snapshot import write_snapshot
-from tools.history.load_snapshot import load_and_verify
+from tools.history.load_snapshot import find_latest, load_and_verify
 from tools.history.build_context_pack import build_context_pack
 from tools.history.verify_continuity import verify_continuity
 from tools.history.verify_routing import verify_routing
+from tools.history.recorded_fact_audit import audit_recorded_facts
+from tools.history.test_count_audit import audit_test_count_claims
 
 
 class TempRepoBase(unittest.TestCase):
@@ -219,8 +221,21 @@ class TestSnapshots(TempRepoBase):
             ok, payload, errs = load_and_verify(snap_path)
         self.assertTrue(ok, f"Errors: {errs}")
         self.assertEqual(len(payload["selected_entries"]), 3)
+        self.assertEqual(payload["latest_entry_id"], 3)
         self.assertIn("Body of entry 1.", payload["pack"])
         self.assertIn("Body of entry 3.", payload["pack"])
+
+    def test_find_latest_accepts_repo_root_path(self):
+        self.write_entries([sample_entry(1)])
+        with self.patch_paths():
+            rebuild(self.history, self.index)
+            snap_path = write_snapshot(
+                agent="claude-test",
+                entry_ids=[1],
+                token_budget=9999,
+                snapshots_dir=self.snaps,
+            )
+        self.assertEqual(find_latest(self.root), snap_path)
 
     def test_tampered_history_invalidates_snapshot(self):
         self.write_entries([sample_entry(1), sample_entry(2)])
@@ -364,6 +379,250 @@ class TestVerifyContinuity(TempRepoBase):
             )
         self.assertFalse(ok)
         self.assertTrue(any("supersedes missing entry #999" in err for err in errs))
+
+
+class TestTestCountAudit(TempRepoBase):
+    def _write_test_file(self, relative: str, count: int) -> Path:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        body = "\n\n".join(
+            f"def test_case_{idx}():\n    assert True" for idx in range(count)
+        )
+        path.write_text(body + "\n", encoding="utf-8")
+        return path
+
+    def test_audit_flags_stale_scoped_count(self):
+        self._write_test_file("tests/test_demo.py", 3)
+        doc = self.root / "ROADMAP.md"
+        doc.write_text(
+            "python -m pytest tests/test_demo.py -q passed with 2 passed\n",
+            encoding="utf-8",
+        )
+
+        issues = audit_test_count_claims(self.root, doc_paths=[doc], latest_history_only=False)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIn("claims 2", issues[0])
+        self.assertIn("actual static count is 3", issues[0])
+
+    def test_audit_flags_ambiguous_bare_count(self):
+        doc = self.root / "ROADMAP.md"
+        doc.write_text("All existing tests pass (177+).\n", encoding="utf-8")
+
+        issues = audit_test_count_claims(self.root, doc_paths=[doc], latest_history_only=False)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIn("lacks pytest path scope", issues[0])
+
+    def test_audit_flags_split_line_bare_count(self):
+        doc = self.root / "ROADMAP.md"
+        doc.write_text("existing 177+\ntests pass\n", encoding="utf-8")
+
+        issues = audit_test_count_claims(self.root, doc_paths=[doc], latest_history_only=False)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIn("lacks pytest path scope", issues[0])
+
+    def test_audit_ignores_non_pytest_fraction_count(self):
+        doc = self.root / "HISTORY.md"
+        doc.write_text(
+            "npm test in experimental/webui passed with 11/11 tests.\n",
+            encoding="utf-8",
+        )
+
+        issues = audit_test_count_claims(self.root, doc_paths=[doc], latest_history_only=False)
+
+        self.assertEqual(issues, [])
+
+    def test_audit_ignores_non_pytest_fraction_on_shared_line(self):
+        self._write_test_file("tests/test_demo.py", 1)
+        doc = self.root / "HISTORY.md"
+        doc.write_text(
+            "npm test in experimental/webui passed with 11/11 tests. "
+            "python -m pytest tests/test_demo.py -q passed with 1 passed.\n",
+            encoding="utf-8",
+        )
+
+        issues = audit_test_count_claims(self.root, doc_paths=[doc], latest_history_only=False)
+
+        self.assertEqual(issues, [])
+
+    def test_audit_flags_stale_pytest_count_after_non_pytest_sentence(self):
+        self._write_test_file("tests/test_demo.py", 3)
+        doc = self.root / "HISTORY.md"
+        doc.write_text(
+            "npm test in experimental/webui passed with 11/11 tests. "
+            "python -m pytest tests/test_demo.py -q passed with 2 passed.\n",
+            encoding="utf-8",
+        )
+
+        issues = audit_test_count_claims(self.root, doc_paths=[doc], latest_history_only=False)
+
+        self.assertEqual(len(issues), 1)
+        self.assertIn("claims 2", issues[0])
+        self.assertIn("actual static count is 3", issues[0])
+
+
+class TestRecordedFactAudit(TempRepoBase):
+    def test_audit_flags_stale_handoff_pointer(self):
+        self.write_entries([sample_entry(1), sample_entry(2)])
+        status = self.root / "PROJECT_STATUS.md"
+        status.write_text(
+            "Latest continuity handoff is `HISTORY#001`.\n",
+            encoding="utf-8",
+        )
+
+        issues = audit_recorded_facts(
+            self.root,
+            history_path=self.history,
+            doc_paths=[status],
+        )
+
+        self.assertTrue(any(issue.kind == "handoff" for issue in issues))
+        self.assertTrue(any("latest HISTORY#002" in issue.message for issue in issues))
+
+    def test_audit_flags_missing_latest_entry_ref(self):
+        entry = format_entry(
+            id=1,
+            date="2026-04-18T12:00:00Z",
+            agent="claude-sonnet-4-6",
+            status="done",
+            topics=["history"],
+            commits="none",
+            refs="missing/file.md",
+            supersedes="none",
+            tokens=10,
+            body="Changed a missing file.",
+        )
+        self.write_entries([entry])
+        status = self.root / "PROJECT_STATUS.md"
+        status.write_text("", encoding="utf-8")
+
+        issues = audit_recorded_facts(
+            self.root,
+            history_path=self.history,
+            doc_paths=[status],
+        )
+
+        self.assertTrue(any(issue.kind == "history-ref" for issue in issues))
+        self.assertTrue(any("missing/file.md" in issue.message for issue in issues))
+
+    def test_audit_flags_precedence_drop_for_same_test_scope(self):
+        test_file = self.root / "tests" / "test_demo.py"
+        test_file.parent.mkdir(parents=True)
+        test_file.write_text(
+            "\n\n".join(f"def test_case_{idx}():\n    assert True" for idx in range(150)),
+            encoding="utf-8",
+        )
+        first = format_entry(
+            id=1,
+            date="2026-04-18T12:00:00Z",
+            agent="codex",
+            status="done",
+            topics=["verify"],
+            commits="none",
+            refs="tests/test_demo.py",
+            supersedes="none",
+            tokens=10,
+            body="python -m pytest tests/test_demo.py -q passed with 180 passed",
+        )
+        second = format_entry(
+            id=2,
+            date="2026-04-19T12:00:00Z",
+            agent="codex",
+            status="done",
+            topics=["verify"],
+            commits="none",
+            refs="tests/test_demo.py",
+            supersedes="001",
+            tokens=10,
+            body="python -m pytest tests/test_demo.py -q passed with 150 passed",
+        )
+        self.write_entries([first, second])
+        status = self.root / "PROJECT_STATUS.md"
+        status.write_text("", encoding="utf-8")
+
+        issues = audit_recorded_facts(
+            self.root,
+            history_path=self.history,
+            doc_paths=[status],
+        )
+
+        self.assertTrue(any(issue.kind == "test-count-precedence" for issue in issues))
+        self.assertTrue(any("180 to 150" in issue.message for issue in issues))
+
+    def test_audit_accepts_relative_repo_root(self):
+        self._write_test_file = lambda relative, count: None  # type: ignore[attr-defined]
+        test_file = self.root / "tests" / "test_demo.py"
+        test_file.parent.mkdir(parents=True)
+        test_file.write_text("def test_case_1():\n    assert True\n", encoding="utf-8")
+        status = self.root / "PROJECT_STATUS.md"
+        status.write_text(
+            "python -m pytest tests/test_demo.py -q passed with 1 passed\n",
+            encoding="utf-8",
+        )
+        cwd = Path.cwd()
+        try:
+            import os
+            os.chdir(self.root)
+            issues = audit_recorded_facts(
+                Path("."),
+                history_path=Path("HISTORY.md"),
+                doc_paths=[Path("PROJECT_STATUS.md")],
+            )
+        finally:
+            os.chdir(cwd)
+
+        self.assertEqual(issues, [])
+
+    def test_precedence_handles_pytest_after_non_pytest_sentence(self):
+        test_file = self.root / "tests" / "test_demo.py"
+        test_file.parent.mkdir(parents=True)
+        test_file.write_text(
+            "\n\n".join(f"def test_case_{idx}():\n    assert True" for idx in range(150)),
+            encoding="utf-8",
+        )
+        first = format_entry(
+            id=1,
+            date="2026-04-18T12:00:00Z",
+            agent="codex",
+            status="done",
+            topics=["verify"],
+            commits="none",
+            refs="tests/test_demo.py",
+            supersedes="none",
+            tokens=10,
+            body=(
+                "npm test passed with 11/11 tests. "
+                "python -m pytest tests/test_demo.py -q passed with 180 passed"
+            ),
+        )
+        second = format_entry(
+            id=2,
+            date="2026-04-19T12:00:00Z",
+            agent="codex",
+            status="done",
+            topics=["verify"],
+            commits="none",
+            refs="tests/test_demo.py",
+            supersedes="001",
+            tokens=10,
+            body=(
+                "npm test passed with 11/11 tests. "
+                "python -m pytest tests/test_demo.py -q passed with 150 passed"
+            ),
+        )
+        self.write_entries([first, second])
+        status = self.root / "PROJECT_STATUS.md"
+        status.write_text("", encoding="utf-8")
+
+        issues = audit_recorded_facts(
+            self.root,
+            history_path=self.history,
+            doc_paths=[status],
+        )
+
+        self.assertTrue(any(issue.kind == "test-count-precedence" for issue in issues))
 
 
 class TestVerifyRouting(TempRepoBase):

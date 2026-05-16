@@ -2,18 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 205
+total_events: 210
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-04-15T00:05:00Z | history:006:36c4cb4a | session-event | done | mirl, retrieval, compress, lx1, roundtrip, codec | REPO_LEDGER.md#milestone-log |
-| 2026-04-16T00:00:00Z | history:007:9a40910f | session-event | done | persist, verify, roundtrip, benchmark, installer, windows | REPO_LEDGER.md#milestone-log |
-| 2026-04-16T00:01:00Z | history:008:3bfa446f | session-event | done | persist, verify, benchmark, bundle, fixture, command | REPO_LEDGER.md#milestone-log |
-| 2026-04-16T00:02:00Z | history:009:9170dba5 | session-event | done | benchmark, naming, readme, multi-agent | REPO_LEDGER.md#milestone-log |
-| 2026-04-17T00:00:00Z | history:010:e9d98a87 | session-event | done | persist, vector, pgvector | REPO_LEDGER.md#milestone-log |
 | 2026-04-17T00:01:00Z | history:011:54508039 | session-event | done | verify, retrieval, vector, sbert, lx1, benchmark | REPO_LEDGER.md#milestone-log |
 | 2026-04-17T00:02:00Z | history:012:42f88b38 | session-event | done | compile, persist, verify, search, vector, pgvector | REPO_LEDGER.md#milestone-log |
 | 2026-04-17T00:03:00Z | history:013:31d18f0e | session-event | done | vector, pgvector, doctor | REPO_LEDGER.md#milestone-log |
@@ -209,10 +204,15 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-05-15T19:13:24Z | history:169:a06543fe | session-event | done | protocol, history, audit, classification, plan, verify, s... | tools/git-hooks/pre-commit,tools/git-hooks/install.sh,seam_runtime/doctor.py,... |
 | 2026-05-15T19:59:46Z | history:170:941f2b6d | session-event | done | protocol, history, plan, verify, status, ledger, roadmap,... | tools/streams/__init__.py,tools/streams/streams_lib.py,tools/streams/history_... |
 | 2026-05-15T21:15:18Z | history:171:65ae1a6a | session-event | done | protocol, history, plan, verify, status, ledger, roadmap,... | ROADMAP.md,tools/streams/build_context_pack.py,tools/streams/bloat_report.py,... |
+| 2026-05-15T21:52:49Z | history:172:0cc3f09f | session-event | done | verify, history, audit, status, protocol | tools/history/recorded_fact_audit.py,tools/history/test_count_audit.py,tools/... |
+| 2026-05-15T22:25:58Z | history:173:735e9a04 | session-event | done | installer, linux, verify, status, history, audit | .gitignore,experimental/webui/package.json,PROJECT_STATUS.md,HISTORY.md,HISTO... |
+| 2026-05-16T00:15:17Z | history:174:aa43d093 | session-event | done | verify, history, audit, protocol, status | AGENTS.md,PROJECT_STATUS.md,REPO_LEDGER.md,tools/history/test_count_audit.py,... |
+| 2026-05-16T00:22:59Z | history:175:a27d3a0a | session-event | done | verify, history, audit, protocol, status | PROJECT_STATUS.md,tools/history/test_count_audit.py,tools/history/test_histor... |
+| 2026-05-16T00:29:22Z | history:176:96af49b3 | session-event | done | protocol, history, plan, verify, status, ledger, roadmap,... | HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0005.cross.md | 2026-04-15T00:00:00Z..2026-04-15T00:04:00Z | 5 | (multi) | (multi) |
+| 0001-0010.cross.md | 2026-04-15T00:00:00Z..2026-04-17T00:00:00Z | 10 | (multi) | (multi) |

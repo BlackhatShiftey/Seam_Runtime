@@ -87,6 +87,7 @@ def write_snapshot(
         "token_budget": token_budget,
         "tokens_used": tokens_used,
         "index_version": _index_version(),
+        "latest_entry_id": max(entry_ids) if entry_ids else None,
         "selected_entries": selected,
         "pack": "\n\n".join(pack_chunks) if include_pack else "",
     }

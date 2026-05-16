@@ -68,6 +68,7 @@ Bounded reading protocol that keeps session-start cost flat as the repo grows. T
 - Update `REPO_LEDGER.md` when a change affects stable repo policy, architecture, active/archive routing, runtime safety rules, durable operator workflows, or cross-agent protocol. Routine implementation details belong in `HISTORY.md` with pointer cards from docs when needed.
 - Update `PROJECT_STATUS.md` when the current operating state or active focus changes. Do not leave status files stale after changing what future agents should believe.
 - Use concise refs to changed files, tests, commands, and snapshots. Record failures as failures, skipped verification as skipped, and assumptions as assumptions.
+- Recorded facts must be scoped enough to audit. Counts, handoff pointers, file refs, and other checkable values must name the command/path/scope that produced them; `verify_continuity` audits recorded facts for current mismatches and precedence drops so data does not silently disappear between entries.
 - Keep context packs bounded. Prefer `build_context_pack --topics <tags> --latest <n> --token-budget <budget>` over broad history reads.
 - Use route-aware packs for durable areas: `build_context_pack --route maintenance/docker`, `--route protocol/context`, or another route from `tools/history/routing_manifest.json`.
 
@@ -108,4 +109,4 @@ Valid status values:
 
 Only use tags from this controlled set:
 
-`compile, mirl, persist, verify, retrieval, search, rank, vector, sbert, chroma, pgvector, docker, lexical, compress, lx1, roundtrip, codec, benchmark, holdout, bundle, fixture, diff, gold-standard, dashboard, tui, textual, animation, graph, chat, installer, windows, linux, wsl2, pyproject, extras, command, doctor, demo, naming, alias, readme, ledger, roadmap, plan, status, history, session, handoff, snapshot, mcp, multi-agent, protocol, integrity, classification, audit`
+`compile, mirl, persist, verify, retrieval, search, rank, vector, sbert, chroma, pgvector, docker, lexical, compress, lx1, roundtrip, codec, benchmark, holdout, bundle, fixture, diff, gold-standard, dashboard, tui, textual, animation, graph, chat, installer, windows, linux, wsl2, pyproject, extras, command, doctor, demo, naming, alias, readme, docs, ledger, roadmap, plan, status, history, session, handoff, snapshot, mcp, multi-agent, protocol, integrity, classification, audit, security, surface`

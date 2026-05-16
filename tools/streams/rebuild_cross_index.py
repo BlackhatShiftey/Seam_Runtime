@@ -69,6 +69,8 @@ def rebuild_cross_index() -> dict[str, object]:
     cold = items[:-HOT_ZONE_MAX] if total > HOT_ZONE_MAX else []
 
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    for stale in ARCHIVE_DIR.glob("*.cross.md"):
+        stale.unlink()
     archive_pointers: list[str] = []
     if cold:
         chunk_path = ARCHIVE_DIR / f"0001-{len(cold):04d}.cross.md"

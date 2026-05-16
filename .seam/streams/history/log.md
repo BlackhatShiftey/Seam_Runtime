@@ -3551,3 +3551,103 @@ Open follow-ups remaining: stabilize tools/history/test_count_audit.py and tools
 
 Verification: pre-change reads of AGENTS.md, PROJECT_STATUS.md, REPO_LEDGER.md, HISTORY_INDEX.md, docs/CODE_LAYOUT.md, docs/DATA_ROUTING.md, and docs/roadmap/CONTEXT_STREAMS.md completed before state changes. roadmap_parser re-emitted log and state with 34 items. cross_index.md regenerated with archive chunk 0001-0004. tools.streams.test_streams ran 11/11 PASS. verify_integrity OK, verify_routing OK, verify_continuity OK (with --no-recorded-fact-audit pending audit module stabilization), verify_streams OK. The canonical pre-commit hook ran on the commit that lands this entry and gated on the same chain.
 ---END-ENTRY-#171---
+
+---BEGIN-ENTRY-#172---
+id: 172
+date: 2026-05-15T21:52:49Z
+agent: codex-gpt-5
+status: done
+topics: verify, history, audit, status, protocol
+commits: none
+refs: tools/history/recorded_fact_audit.py,tools/history/test_count_audit.py,tools/history/verify_continuity.py,tools/history/test_history_tools.py,AGENTS.md,REPO_LEDGER.md,PROJECT_STATUS.md,docs/howto/README.md,docs/roadmap/CONTEXT_STREAMS.md,HISTORY.md,HISTORY_INDEX.md
+supersedes: 171
+tokens: 434
+---
+Investigated the roadmap test-count discrepancy and added a recorded-fact discrepancy gate so scoped data does not silently disappear between logs. Root cause: no tests were found missing. The smaller 157 figure is the current static count under test_seam_all only: test_seam_all/test_seam.py has 151 test functions and test_seam_all/test_skill_factory.py has 6. The earlier 177 claim was scoped to a different command, python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q, when tools/history/test_history_tools.py had 26 test functions. This entry adds more history-tooling coverage, so tools/history/test_history_tools.py now has 32 static test functions.
+
+New state: tools/history/test_count_audit.py extracts scoped test-count facts from active docs and the latest history entry, verifies hard-coded scoped counts against static test definitions, and flags ambiguous bare counts without a pytest path scope. tools/history/recorded_fact_audit.py coordinates typed recorded-fact checks and is wired into tools.history.verify_continuity. The initial fact types are scoped test-count claims, handoff pointers, latest-entry refs that point at missing files, and same-scope test-count precedence drops. The precedence check compares chronological facts for the same pytest command scope and flags a later decrease, for example a later 150-passed claim after an earlier same-scope 180-passed claim. This is intentionally generic enough for future extractors to be added as more recorded data types become checkable.
+
+Docs and protocol updates: AGENTS.md now requires recorded facts to be scoped enough to audit. REPO_LEDGER.md records the stable policy that verify_continuity includes recorded-fact discrepancy auditing. PROJECT_STATUS.md now calls out the audit gate and corrects the cross-index archive pointer to the actual .seam/cross_index_archive/0001-0005.cross.md file present on disk. docs/roadmap/CONTEXT_STREAMS.md no longer uses an ambiguous existing-177-plus test gate, and docs/howto/README.md no longer hard-codes a combined pytest count.
+
+Verification performed before this entry: python3 -m unittest tools.history.test_history_tools -v passed for 32 history-tooling tests. python3 -m py_compile tools/history/recorded_fact_audit.py tools/history/test_count_audit.py tools/history/verify_continuity.py passed. Static recount command reported test_seam_all/test_seam.py 151, tools/history/test_history_tools.py 32, and test_seam_all/test_skill_factory.py 6. Full pytest was not run because pytest is not installed in this Ubuntu system python; this was already observed earlier in the session. After this append, rebuild_index, recorded-fact audit, verify_integrity, verify_routing, verify_continuity, verify_streams, and snapshot write still need to run.
+---END-ENTRY-#172---
+
+---BEGIN-ENTRY-#173---
+id: 173
+date: 2026-05-15T22:25:58Z
+agent: codex-gpt-5
+status: done
+topics: installer, linux, verify, status, history, audit
+commits: none
+refs: .gitignore,experimental/webui/package.json,PROJECT_STATUS.md,HISTORY.md,HISTORY_INDEX.md,.seam/streams/history/log.md,.seam/streams/history/index.md,.seam/cross_index.md,.seam/cross_index_archive/0001-0006.cross.md
+supersedes: 172
+tokens: 308
+---
+Completed repo-local dependency setup on Ubuntu and made the setup path compatible with this external drive filesystem.
+
+Python setup: created .venv with python3 -m venv after working around the filesystem refusing the lib64 symlink by pre-creating .venv/lib64 as a directory, upgraded pip, installed requirements.txt, then installed the editable package with all-extras plus pytest. The repo-local environment now has dashboard, server, pgvector, sentence-transformers/rerank, and pytest support. .gitignore now ignores .venv/ so the local environment does not appear as an untracked repo artifact.
+
+WebUI setup: npm install failed on this filesystem because npm could not create node_modules/.bin symlinks. npm install --no-bin-links succeeded. experimental/webui/package.json now calls the installed package entrypoints directly with node for dev/build/preview/test/test:watch, avoiding reliance on symlinked .bin shims while preserving normal npm script names.
+
+Operator guidance: do not install SEAM globally for development. Use the repo-local .venv and call .venv/bin/seam, .venv/bin/python, or temporarily prepend .venv/bin to PATH while working in this checkout. Keep generated .venv/, node_modules/, and dist artifacts local/ignored.
+
+Verification performed before this entry: .venv/bin/python -m pip check returned no broken requirements. .venv/bin/python seam.py doctor returned PASS, including required deps OK and sentence_transformers installed; PgVector was correctly reported as not configured because SEAM_PGVECTOR_DSN is unset. npm test in experimental/webui passed with 11/11 tests. npm run build in experimental/webui passed using the symlink-free scripts. .venv/bin/python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q passed with 183 tests. Post-entry closeout still needs derived history index/stream regeneration, snapshot write, and integrity/routing/continuity/streams verification.
+---END-ENTRY-#173---
+
+---BEGIN-ENTRY-#174---
+id: 174
+date: 2026-05-16T00:15:17Z
+agent: codex-gpt-5
+status: done
+topics: verify, history, audit, protocol, status
+commits: none
+refs: AGENTS.md,PROJECT_STATUS.md,REPO_LEDGER.md,tools/history/test_count_audit.py,tools/history/recorded_fact_audit.py,tools/history/load_snapshot.py,tools/history/write_snapshot.py,tools/history/test_history_tools.py,tools/streams/rebuild_cross_index.py,tools/streams/test_streams.py,.seam/cross_index.md,.seam/cross_index_archive,.seam/snapshots,HISTORY.md,HISTORY_INDEX.md
+supersedes: 173
+tokens: 180
+---
+Resolved the history-protocol audit findings that followed #173. The pytest count audit now scopes matched counts to the sentence and line prefix around the claim so npm/Vitest output on a shared verification line is not treated as pytest evidence, and regression coverage covers that case. Recorded-fact and test-count audit entrypoints now normalize relative repo roots and doc paths. Snapshot load/write now accepts repo-root find_latest calls and writes latest_entry_id into new snapshots. Cross-index rebuild now removes stale archive chunks before writing the current chunk. The controlled topic vocabulary now includes docs/security/surface so legacy entries remain valid without rewriting append-only history.
+
+Verification before this entry: python3 -m unittest tools.history.test_history_tools tools.streams.test_streams -v passed. .venv/bin/python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q passed with 187 passed. Recorded-fact audit now only reports #173's stale archive ref, which this superseding entry and post-entry derived-state rebuild close out.
+---END-ENTRY-#174---
+
+---BEGIN-ENTRY-#175---
+id: 175
+date: 2026-05-16T00:22:59Z
+agent: codex-gpt-5
+status: done
+topics: verify, history, audit, protocol, status
+commits: none
+refs: PROJECT_STATUS.md,tools/history/test_count_audit.py,tools/history/test_history_tools.py,HISTORY.md,HISTORY_INDEX.md,.seam/streams/history/log.md,.seam/streams/history/index.md,.seam/cross_index.md,.seam/cross_index_archive,.seam/snapshots
+supersedes: 174
+tokens: 104
+---
+Tightened the final mixed-line test-count audit behavior after #174. The audit now evaluates claim matches against the active claim segment, so pytest evidence that appears after another tool's verification sentence is scoped correctly and non-pytest fraction output remains ignored. Added regression coverage for stale pytest counts and precedence drops that occur after a non-pytest sentence on the same line.
+
+Verification before this entry: python3 -m unittest tools.history.test_history_tools tools.streams.test_streams -v passed. .venv/bin/python -m pytest test_seam_all/test_seam.py tools/history/test_history_tools.py -q passed with 189 passed.
+---END-ENTRY-#175---
+
+---BEGIN-ENTRY-#176---
+id: 176
+date: 2026-05-16T00:29:22Z
+agent: claude-opus-4-7
+status: done
+topics: protocol, history, plan, verify, status, ledger, roadmap, classification, audit, handoff
+commits: none
+refs: HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md
+supersedes: 175
+tokens: 1079
+---
+Session handoff. The Track H1 Context Streams substrate is fully implemented, measured, and the recorded-fact audit gate is stable. All four verify gates pass without --no-recorded-fact-audit. Next session can pick up cleanly without re-orienting.
+
+What landed this session and the immediately preceding codex-gpt-5 session: HISTORY#165 captured the Context Streams design after a revision pass (cross-index made derived, Phase 1 path migration deferred, line-count corrected, scope contamination removed). HISTORY#166 was the protocol catch-up that recorded the revision and the 4cde6e5 commit. HISTORY#167/168 installed the Claude Code commit gate scripts under tools/claude/ with operator-local .claude/settings.json wiring; the scope was corrected to keep .claude/ out of git per the existing .git/hooks/pre-commit policy that rejects .claude/, .opencode/, and .agents/. HISTORY#169 added the canonical cross-agent pre-commit hook at tools/git-hooks/pre-commit with a symlink-or-copy installer at tools/git-hooks/install.sh, plus a commit_gate field in seam doctor. HISTORY#170 implemented Track H1: tools/streams/ package, history compatibility adapter producing byte-equivalent mirrors of root HISTORY.md and HISTORY_INDEX.md, roadmap stream parser, derived cross_index.md with two-tier hot-plus-archive layout, verify_streams gate, streams field on seam doctor, AGENTS.md Context Loop section. HISTORY#171 closed the remaining Phase 1 gaps: seam:item markers on every non-H track in ROADMAP.md (34 items total, not just 4), generic tools/streams/build_context_pack.py with byte-equivalent --stream history delegation, tools/streams/bloat_report.py reporting measured reductions of 93.5 percent for roadmap reads, 90.5 percent for history map reads, and 91.0 percent for cross-stream recent reads. HISTORY#172 through #175 stabilized the recorded-fact audit so pytest-count claims are sentence-scoped and same-scope precedence drops are detected without false positives on prose, and added repo-local .venv setup notes for this external-drive filesystem.
+
+State at handoff: latest HISTORY entry is this #176, latest snapshot will follow this append, integrity OK, routing OK, continuity OK with the recorded-fact audit enabled, streams OK. Cross-index hot zone is at the 200-event cap with cold archive chunk .seam/cross_index_archive/0001-0009.cross.md present. The two-tier indexing is exercised. Pre-commit hook is installed in copy mode at .git/hooks/pre-commit and gates every commit on the full verify chain. .venv exists with all-extras plus pytest for repo-local work; the .gitignore excludes .venv from staging. node_modules in experimental/webui uses --no-bin-links per HISTORY#173 because this filesystem rejects symlinked .bin shims.
+
+Open architecture decision for next session: the user asked whether to build a generalized "infinite indexer" for roadmap plus docs plus ledgers plus source plus experience that stores full context in SQLite with metadata like the history protocol, uses vector acceleration for context layers, and supports endlessly growing libraries. A codex-gpt-5 audit framed this as a new context_index SQLite table modeled on history's pattern, with four-layer progressive disclosure and embedded compact projections. My dissection: that audit was run against a stale working tree that did not yet show the H1 substrate landing; what the user wants substantially exists already as the streams substrate plus the existing projection_index table in seam_runtime/storage.py. Recommended course captured in the active session transcript: extend H1 forward into H4 library streams and H3 retrieval integration rather than fork a parallel context_index. Concrete first slice would be tools/streams/library_walker.py that ingests docs/ and docs/roadmap/ and docs/ledgers/ by markdown heading and source by AST symbol, emitting one universal stream event per unit with byte/line range plus content sha plus topics, then populating the existing projection_index table with one compact projection per event for vector-accelerated retrieval, then implementing tools.streams.build_context_pack --include history,roadmap,library.docs with default exclusion of status done and superseded items and an --around event-id flag that walks cross_index.md. PROJECT_STATUS.md and REPO_LEDGER.md do not need new streams in this slice; they remain authored-canonical narrative views like ROADMAP.md was before markers were added. The user did not select a final approach before requesting handoff; the next session should confirm approach before coding.
+
+Open follow-ups carried forward: build tools/streams/library_walker.py for H4 library streams; populate projection_index from stream events for vector acceleration; implement H3 retrieval integration with --include and --layer and --around flags; add tools/claude/install_hooks.sh helper plus per-agent wiring docs for Codex/Gemini/Aider/Cursor/OpenCode (the canonical git hook covers them today but the Claude defense-in-depth pattern can be replicated per agent); benchmark suite work is unblocked any time the operator wants to switch to it. H2 improvement streams stay deferred per CONTEXT_STREAMS.md section 12 until ~4 weeks of H1 operational data accumulates. Path canonicality flip for history from root to .seam/streams/history/ remains explicitly deferred per CONTEXT_STREAMS.md section 9 until every consumer is proven to read from either path.
+
+Recommended next-session orientation: read PROJECT_STATUS.md, REPO_LEDGER.md, HISTORY_INDEX.md, docs/CODE_LAYOUT.md, docs/DATA_ROUTING.md, and docs/roadmap/CONTEXT_STREAMS.md sections 9 through 16 to refresh the design. Read .seam/streams/roadmap/state.md instead of full ROADMAP.md to see which tracks are active. Read .seam/cross_index.md hot zone for the recent cross-stream timeline. Use python -m tools.history.build_context_pack --topics protocol,history,classification,audit --latest 5 --token-budget 2000 for surgical history. Do not cat HISTORY.md. The pre-commit hook will gate the first commit so any state change must satisfy verify_integrity, verify_routing, verify_continuity, and verify_streams.
+
+Verification: pre-change reads of AGENTS.md, PROJECT_STATUS.md, REPO_LEDGER.md, HISTORY_INDEX.md, docs/CODE_LAYOUT.md, docs/DATA_ROUTING.md, and recent HISTORY entries 171 through 175 via build_context_pack. All four verify gates pass at handoff time. The canonical pre-commit hook will run on the commit that lands this entry.
+---END-ENTRY-#176---

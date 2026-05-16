@@ -17,6 +17,7 @@ from tools.history.history_lib import (
     read_history_bytes,
 )
 from tools.history.load_snapshot import find_latest, load_and_verify
+from tools.history.recorded_fact_audit import audit_recorded_facts
 from tools.history.verify_integrity import verify as verify_integrity
 from tools.history.verify_routing import verify_routing
 
@@ -124,6 +125,7 @@ def verify_continuity(
     require_latest_snapshot: bool = True,
     scan_secrets: bool = True,
     verify_routes: bool = True,
+    audit_recorded_claims: bool = True,
 ) -> tuple[bool, list[str]]:
     errors: list[str] = []
 
@@ -166,6 +168,13 @@ def verify_continuity(
         if not ok:
             errors.extend(f"routing: {err}" for err in route_errors)
 
+    if audit_recorded_claims:
+        recorded_fact_errors = audit_recorded_facts(
+            history_path.parent,
+            history_path=history_path,
+        )
+        errors.extend(f"recorded-fact: {issue.format()}" for issue in recorded_fact_errors)
+
     return len(errors) == 0, errors
 
 
@@ -177,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-snapshot", action="store_true", help="skip latest snapshot check")
     p.add_argument("--no-secret-scan", action="store_true", help="skip session-link/key scan")
     p.add_argument("--no-routing", action="store_true", help="skip routing taxonomy check")
+    p.add_argument("--no-recorded-fact-audit", action="store_true", help="skip checkable recorded-fact claim audit")
     p.add_argument("--json", action="store_true")
     args = p.parse_args(argv)
 
@@ -187,6 +197,7 @@ def main(argv: list[str] | None = None) -> int:
         require_latest_snapshot=not args.no_snapshot,
         scan_secrets=not args.no_secret_scan,
         verify_routes=not args.no_routing,
+        audit_recorded_claims=not args.no_recorded_fact_audit,
     )
 
     if args.json:
