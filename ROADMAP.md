@@ -1417,9 +1417,76 @@ phase: 1
 
 Trust evidence on demand from the runtime, CLI, contracts, audit ledger, validation reports, provenance, and benchmark bundles. The dashboard becomes the visualization layer for that evidence, not the source of it.
 
-Items: threat model (K0), capability and permission model (K1), tamper-evident audit ledger (K2), secrets scanning and redaction (K3), optional encrypted SQLite store (K4), versioned contracts (K5), unified `seam trust report` (K6), operation validation reports (K7), OpenLineage export (K8), OpenTelemetry correlation (K9), supply-chain proof / SBOM / release attestation (K10), security test suite (K11), incident response and vulnerability disclosure (K12), verified benchmark bundles with **Benchmark Integrity Levels BIL-0 through BIL-6** (K13).
+Items: threat model (K0), capability and permission model (K1), tamper-evident audit ledger (K2), secrets scanning and redaction (K3), optional encrypted SQLite store (K4), versioned contracts (K5), unified `seam trust report` (K6), operation validation reports (K7), OpenLineage export (K8), OpenTelemetry correlation (K9), supply-chain proof / SBOM / release attestation (K10), security test suite (K11), incident response and vulnerability disclosure (K12), verified benchmark bundles with **Benchmark Integrity Levels BIL-0 through BIL-6** (K13), store-aware contradiction reports (K14), provenance stress tests (K15), diagnostic JSON evidence mode (K16), session-root manifests/signatures (K17), and stake-weighted memory signals (K18).
 
 Track I (external memory benchmarks) and Track L (Skills Compiler) consume Track K primitives in their later phases.
+
+### K-Spine: Memory Trust and Causal Integrity
+
+<!-- seam:item
+id: roadmap:track:K14
+status: planned
+status-since: 2026-05-18
+status-by: history:196
+supersedes: none
+topics: verify, audit, retrieval
+priority: 1
+phase: 1
+-->
+
+**K14 — Second Inspector / store-aware contradiction report.** Add a validation layer above structural MIRL verification that compares a new batch against existing SQLite records before persistence. First scope: direct `STA target + field` conflicts and simple `CLM subject + predicate` conflicts. Output a machine-readable report with `collision`, `existing_record_id`, `new_record_id`, `severity`, `reason`, and provenance/evidence refs. Default behavior should report/mark contested records; hard blocking belongs behind an explicit strict flag.
+
+<!-- seam:item
+id: roadmap:track:K15
+status: planned
+status-since: 2026-05-18
+status-by: history:196
+supersedes: roadmap:track:K14
+topics: verify, audit, provenance
+priority: 1
+phase: 2
+-->
+
+**K15 — Provenance Stress Test.** When K14 finds a high-severity collision against high-confidence or high-evidence records, require a raw-data audit before accepting the new fact as verified. The stress test should compare evidence spans, source refs, source hashes, timestamps, and agent/provenance records; unresolved collisions remain contested rather than silently overwriting older truth.
+
+<!-- seam:item
+id: roadmap:track:K16
+status: planned
+status-since: 2026-05-18
+status-by: history:196
+supersedes: roadmap:track:K14
+topics: verify, command, audit
+priority: 1
+phase: 2
+-->
+
+**K16 — Diagnostic JSON evidence mode.** Add strict machine-readable reporting for trust-critical commands (`verify`, `persist`, `reconcile`, future `trust report`) using JSON/MIRL-shaped evidence objects: record ids, proofs, error codes, collision ids, and provenance refs. This is a CLI/reporting contract, not a claim that model reasoning can be made non-linguistic.
+
+<!-- seam:item
+id: roadmap:track:K17
+status: planned
+status-since: 2026-05-18
+status-by: history:196
+supersedes: roadmap:track:K2,roadmap:track:K7
+topics: integrity, audit, snapshot
+priority: 2
+phase: 3
+-->
+
+**K17 — Causal handshake / session-root manifests.** After the audit ledger and validation reports exist, compute a canonical session-root manifest over database state, latest audit event, schema/version metadata, and relevant stream roots. Optional signing should sign the manifest/root hash, not raw SQLite bytes, and must keep key identity/declassification boundaries explicit.
+
+<!-- seam:item
+id: roadmap:track:K18
+status: planned
+status-since: 2026-05-18
+status-by: history:196
+supersedes: roadmap:track:K14,roadmap:track:K15
+topics: retrieval, rank, audit
+priority: 2
+phase: 4
+-->
+
+**K18 — Stake-weighted memory signals.** Add a retrieval/ranking signal that records operational merit from successful task completions, but never treats merit as truth. Weight must be penalized by unresolved collisions, missing provenance, stale evidence, and failed stress tests. It is a ranking feature consumed after K14/K15, not an integrity substitute.
 
 ---
 

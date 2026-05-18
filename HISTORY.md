@@ -4109,3 +4109,17 @@ tokens: 162
 ---
 Follow-up to HISTORY#194 after the second Windows CI run showed the root cause was narrower: the lock was held on HISTORY_INDEX.md itself, and rebuild_index opened HISTORY_INDEX.md through a separate handle for write. Windows denies that write while the byte-range lock is held. Moved the OS advisory lock to a dedicated lock path instead of the generated index file: real git checkouts use .git/seam-history.lock so no worktree lock artifact is created, while tests without .git fall back to a temporary sidecar beside the patched index path. Kept the process-local threading.Lock so same-process threads serialize before acquiring the OS lock.\n\nVerification before recording this entry: .venv/bin/python -m pytest tools/history/test_history_tools.py::TestNewEntryLock::test_new_entry_lock_serializes_concurrent_writes -q -> 1 passed. Previous #194 process-local-only fix was insufficient on Windows and is superseded by this sidecar-lock correction.
 ---END-ENTRY-#195---
+
+---BEGIN-ENTRY-#196---
+id: 196
+date: 2026-05-18T10:43:26Z
+agent: codex
+status: done
+topics: roadmap, history, verify
+commits: none
+refs: ROADMAP.md,docs/roadmap/TRUST_SECURITY_AUDITABILITY.md,.seam/streams/roadmap/state.md,PROJECT_STATUS.md
+supersedes: 195
+tokens: 143
+---
+Track K memory-trust spine roadmap update landed after PR #30 merge. Added K14-K18 seam:item cards to ROADMAP.md for store-aware contradiction reports, provenance stress tests, diagnostic JSON evidence mode, session-root manifests/signatures, and stake-weighted memory signals. Updated docs/roadmap/TRUST_SECURITY_AUDITABILITY.md with the Memory Trust Spine Addendum. The ordering keeps contradiction detection and provenance stress testing ahead of signing and merit weighting, so SEAM does not confuse signatures or operational success with truth.\n\nReran tools.streams.roadmap_parser after the roadmap edit; it now reports 55 items/events, confirming K14-K18 are parsed into the roadmap stream. Updated PROJECT_STATUS.md to point at this handoff and to record that PR #30 squash-merged on main as decd1dd after Windows/Ubuntu CI plus registry-plan passed.
+---END-ENTRY-#196---

@@ -176,6 +176,38 @@ seam bench publish-transparency benchmark.seam-bundle
 
 Gate: dashboard benchmark claims show integrity level, signer, input hashes, audit linkage, reproducibility status, and verification result. Track I (external memory benchmarks) seals its bundles at the highest BIL level available.
 
+## Memory Trust Spine Addendum
+
+These items extend Track K from general auditability into active memory-trust behavior. They are intentionally ordered so SEAM learns to detect contradictions before it assigns economic/operational weight or signs state roots.
+
+### K14 — Second Inspector / store-aware contradiction report
+
+Add a validation layer above `verify_ir()` that can see the current SQLite store. Structural verification remains batch-local; contradiction detection compares incoming records to persisted high-confidence records.
+
+First implementation scope:
+
+- direct `STA` collisions on the same `target` and field with different values
+- simple `CLM` collisions on the same `subject` and `predicate` with incompatible objects
+- machine-readable reports containing new/existing record ids, severity, reason, confidence, and provenance/evidence refs
+
+Default behavior should report or mark contested records. Hard blocking should require an explicit strict-trust mode so existing ingest flows do not become brittle before the stress-test policy is proven.
+
+### K15 — Provenance Stress Test
+
+When K14 finds a high-severity collision against records with strong evidence, force a raw-data audit before the new fact can be accepted as verified. The stress test compares evidence spans, source refs, source hashes, timestamps, agent/provenance records, and document status rows. Unresolved collisions remain contested instead of silently replacing older records.
+
+### K16 — Diagnostic JSON evidence mode
+
+Trust-critical commands need a strict machine-readable output mode: record ids, proofs, error codes, collision ids, provenance refs, and validation decisions. This should be implemented as `--format json`, `--report <path>`, or equivalent report surfaces for verify/persist/reconcile/trust flows. It is a reporting contract, not a claim that model reasoning can be made non-linguistic.
+
+### K17 — Causal handshake / session-root manifests
+
+After the audit ledger and operation validation reports exist, compute a canonical session-root manifest over database state, latest audit event, schema/version metadata, and relevant stream roots. Optional signing should sign this manifest/root hash, not raw SQLite bytes. Key identity and declassification boundaries must be explicit so private continuity does not accidentally become public identity linkage.
+
+### K18 — Stake-weighted memory signals
+
+Operational merit from successful task completions can become a retrieval/ranking signal only after contradiction and provenance stress-test reports exist. Merit weight is not truth. It must be penalized by unresolved collisions, missing provenance, stale evidence, and failed stress tests.
+
 ## Dashboard reframe
 
 The dashboard is the SEAM auditability visualization layer. It visualizes trust report status, capability registry status, audit verification, REST endpoint protection, agent-tool capability checks, redaction warnings, provenance, lineage, surface-hash verification, BIL levels, benchmark-bundle verification, export/delete/import history, validation reports, and security-gate status. It does not generate trust evidence itself.

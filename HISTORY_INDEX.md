@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 195
-total_tokens: ~40165
-latest_id: 195
+total_entries: 196
+total_tokens: ~40308
+latest_id: 196
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,7 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 196 | 2026-05-18 | done | 345810237ffd9c95 | roadmap,history,verify | 195 |
 | 195 | 2026-05-18 | done | bbc6e6d30fc0ca3e | verify,history,protocol | 194 |
 | 194 | 2026-05-18 | done | 33aefde3e9a9e3ca | verify,history,protocol | 193 |
 | 193 | 2026-05-18 | done | 9b402292209d9db1 | verify,continuity,roadmap,protocol | 192 |
@@ -236,7 +237,7 @@ compact: true
 - graph: count=2 latest=#099, #030
 - handoff: count=7 latest=#190, #186, #176, #136, #135
 - harden: count=1 latest=#182
-- history: count=140 latest=#195, #194, #192, #191, #184
+- history: count=141 latest=#196, #195, #194, #192, #191
 - holdout: count=4 latest=#152, #093, #092, #036
 - installer: count=12 latest=#177, #173, #169, #100, #099
 - integrity: count=5 latest=#133, #103, #102, #101, #048
@@ -264,7 +265,7 @@ compact: true
 - registry: count=1 latest=#178
 - retrieval: count=15 latest=#189, #188, #187, #181, #099
 - retry: count=1 latest=#182
-- roadmap: count=46 latest=#193, #191, #180, #178, #176
+- roadmap: count=47 latest=#196, #193, #191, #180, #178
 - roundtrip: count=2 latest=#007, #006
 - salvage: count=1 latest=#179
 - sbert: count=3 latest=#023, #022, #011
@@ -280,12 +281,12 @@ compact: true
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tui: count=25 latest=#137, #121, #120, #119, #118
 - vector: count=20 latest=#182, #181, #099, #066, #044
-- verify: count=129 latest=#195, #194, #193, #192, #191
+- verify: count=130 latest=#196, #195, #194, #193, #192
 - windows: count=12 latest=#125, #123, #091, #084, #083
 - wsl2: count=1 latest=#021
 
 ## status rollup
 
 - roots: 66
-- done: 175
+- done: 176
 - planned: 20
