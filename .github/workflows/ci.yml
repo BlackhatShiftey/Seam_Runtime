@@ -64,3 +64,40 @@ jobs:
         with:
           name: external-memory-benchmark-plan
           path: external-memory-benchmark-plan.json
+
+  pgvector-integration:
+    runs-on: ubuntu-latest
+    services:
+      pgvector:
+        image: pgvector/pgvector:0.8.2-pg18-trixie
+        env:
+          POSTGRES_DB: seam_ci
+          POSTGRES_USER: seam_ci
+          POSTGRES_PASSWORD: seam_ci_password
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U seam_ci -d seam_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: python -m pip install -e ".[server]"
+
+      - name: Install test dependencies
+        run: python -m pip install pytest psycopg[binary]
+
+      - name: Run pgvector real-adapter integration tests
+        env:
+          PGPASSWORD: seam_ci_password
+          SEAM_PGVECTOR_DSN: postgresql://seam_ci@localhost:55432/seam_ci
+        run: python -m pytest tests/audit/test_pgvector_real_adapter.py -q

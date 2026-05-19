@@ -2,14 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 265
+total_events: 266
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-04-20T20:36:17Z | history:053:e90a7871 | session-event | done | dashboard, textual, chat, command, history, snapshot | seam_runtime/dashboard.py,test_seam.py |
 | 2026-04-20T21:07:09Z | history:054:b25c62e4 | session-event | done | dashboard, textual, chat, command, history, snapshot | seam_runtime/dashboard.py,test_seam.py |
 | 2026-04-20T21:12:37Z | history:055:b683221c | session-event | done | dashboard, textual, chat, tui, history, snapshot | seam_runtime/dashboard.py,test_seam.py,branding/screenshots/retro-preview-v8-... |
 | 2026-04-20T21:22:06Z | history:056:8c027a4a | session-event | done | dashboard, textual, chat, tui, command, history, snapshot | seam_runtime/dashboard.py,test_seam.py,branding/screenshots/retro-preview-v9-... |
@@ -209,10 +208,11 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-05-19T07:47:47Z | history:208:4857205d | session-event | done | audit, security, verify, multi-agent, protocol, docs, sur... | docs/SOP_WEBUI_BATCH_HARDENING_DEEPSEEK.md,docs/prompts/DEEPSEEK_WEBUI_BATCH_... |
 | 2026-05-19T08:48:15Z | history:209:30392e3d | session-event | done | audit, verify, streams, integrity, security | tools/streams/streams_lib.py,.gitignore,tools/history/test_count_audit.py,too... |
 | 2026-05-19T15:02:40Z | history:210:d8bccd3e | session-event | done | audit, verify, security, protocol, multi-agent, streams, mcp | .github/workflows/ci.yml,tests/audit/test_ci_verify_gates.py,tests/audit/test... |
+| 2026-05-19T18:30:00Z | history:211:39fe0103 | session-event | done | audit, verify, benchmark, ci, pgvector, mcp | .github/workflows/ci.yml,tests/audit/test_sys_metrics_honesty.py,tests/audit/... |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0065.cross.md | 2026-04-15T00:00:00Z..2026-04-20T20:22:36Z | 65 | (multi) | (multi) |
+| 0001-0066.cross.md | 2026-04-15T00:00:00Z..2026-04-20T20:36:17Z | 66 | (multi) | (multi) |

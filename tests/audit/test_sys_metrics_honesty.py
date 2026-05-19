@@ -36,18 +36,74 @@ def test_sys_metrics_response_shape(metrics_client):
 
 
 def test_sys_metrics_live_on_linux(metrics_client):
-    """CPU, mem, disk report 'live' on Linux."""
+    """CPU, mem report 'live' numeric on Linux; tolerate the first zero-delta window."""
     import sys as _sys
+    import time
     if not _sys.platform.startswith("linux"):
         pytest.skip("live checks only valid on Linux")
-    # First call sets baseline, second computes delta.
+    # Prime the baseline.
     metrics_client.get("/sys-metrics")
-    resp = metrics_client.get("/sys-metrics")
-    assert resp.status_code == 200
-    body = resp.json()
+    # Poll up to ~500ms total (10 attempts x 50ms) for a numeric live value.
+    # USER_HZ is typically 100 on Linux, so jiffies advance every ~10ms;
+    # the first few back-to-back reads may legitimately observe total_delta == 0.
+    body = None
+    for _ in range(10):
+        time.sleep(0.05)
+        resp = metrics_client.get("/sys-metrics")
+        assert resp.status_code == 200
+        body = resp.json()
+        if body["cpu"]["source"] == "live" and isinstance(body["cpu"]["value"], (int, float)):
+            break
+    assert body is not None
     for key in ("cpu", "mem"):
         assert body[key]["source"] == "live", f"{key} should be live"
-        assert isinstance(body[key]["value"], (int, float)), f"{key} value should be numeric"
+        assert isinstance(body[key]["value"], (int, float)), (
+            f"{key} value should be numeric after retry, got {body[key]}"
+        )
+
+
+def test_sys_metrics_cpu_zero_delta_returns_live_null(metrics_client):
+    """When /proc/stat read yields total_delta == 0, cpu reports source=live with value=None.
+
+    This is the contract that the live-on-linux test must tolerate via retry.
+    _last_cpu_times is a nonlocal closure variable inside create_app and cannot
+    be imported. Instead, we stub /proc/stat to return an identical synthetic
+    line on two sequential calls. The first call primes _last_cpu_times; the
+    second observes total_delta == 0 and returns live + value=None.
+    """
+    import sys as _sys
+    if not _sys.platform.startswith("linux"):
+        pytest.skip("zero-delta contract only meaningful on Linux")
+    import builtins as _builtins
+    _real_open = _builtins.open
+
+    fake_line = "cpu  0 0 0 100 0 0 0 0\n"
+
+    class _FakeStat:
+        def __init__(self, line: str) -> None:
+            self._line = line
+        def readline(self) -> str:
+            return self._line
+        def __enter__(self):
+            return self
+        def __exit__(self, *a, **kw):
+            return False
+
+    def _stub_open(file, *args, **kwargs):
+        if isinstance(file, str) and file == "/proc/stat":
+            return _FakeStat(fake_line)
+        return _real_open(file, *args, **kwargs)
+
+    with mock.patch("builtins.open", side_effect=_stub_open):
+        # First call primes _last_cpu_times with the fake values.
+        metrics_client.get("/sys-metrics")
+        # Second call reads the same fake values -> total_delta == 0.
+        resp = metrics_client.get("/sys-metrics")
+    assert resp.status_code == 200
+    cpu = resp.json()["cpu"]
+    assert cpu["source"] == "live", f"cpu source should be live on zero-delta, got {cpu}"
+    assert cpu["value"] is None, f"cpu value should be None on zero-delta, got {cpu}"
+    assert cpu["error"] is None, f"cpu error should be None on zero-delta, got {cpu}"
 
 
 def test_sys_metrics_gpu_net_unsupported(metrics_client):

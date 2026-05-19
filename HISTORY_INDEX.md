@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 210
-total_tokens: ~45175
-latest_id: 210
+total_entries: 211
+total_tokens: ~45755
+latest_id: 211
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,7 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 211 | 2026-05-19 | done | 39fe010334832ecb | audit,verify,benchmark,ci,+ | 210 |
 | 210 | 2026-05-19 | done | d8bccd3efc4e1873 | audit,verify,security,protocol,+ | 209 |
 | 209 | 2026-05-19 | done | 30392e3df970c846 | audit,verify,streams,integrity,+ | 208 |
 | 208 | 2026-05-19 | done | 4857205d379df911 | audit,security,verify,multi-agent,+ | 207 |
@@ -227,12 +228,12 @@ compact: true
 - alias: count=2 latest=#033, #002
 - animation: count=4 latest=#068, #052, #032, #028
 - atomicity: count=1 latest=#182
-- audit: count=43 latest=#210, #209, #208, #207, #206
-- benchmark: count=52 latest=#206, #198, #197, #189, #188
+- audit: count=44 latest=#211, #210, #209, #208, #207
+- benchmark: count=53 latest=#211, #206, #198, #197, #189
 - bundle: count=2 latest=#015, #008
 - chat: count=14 latest=#137, #074, #073, #072, #071
 - chroma: count=2 latest=#017, #001
-- ci: count=1 latest=#191
+- ci: count=2 latest=#211, #191
 - classification: count=11 latest=#177, #176, #171, #170, #169
 - codec: count=13 latest=#132, #131, #130, #129, #128
 - command: count=59 latest=#190, #189, #188, #185, #149
@@ -260,7 +261,7 @@ compact: true
 - linux: count=6 latest=#177, #173, #136, #135, #021
 - locking: count=1 latest=#182
 - lx1: count=6 latest=#206, #197, #088, #018, #011
-- mcp: count=10 latest=#210, #183, #182, #149, #148
+- mcp: count=11 latest=#211, #210, #183, #182, #149
 - memory: count=2 latest=#182, #178
 - mirl: count=21 latest=#145, #132, #131, #130, #129
 - models: count=1 latest=#182
@@ -269,7 +270,7 @@ compact: true
 - operator: count=1 latest=#179
 - pack: count=1 latest=#183
 - persist: count=20 latest=#199, #181, #047, #044, #042
-- pgvector: count=19 latest=#179, #149, #121, #119, #084
+- pgvector: count=20 latest=#211, #179, #149, #121, #119
 - plan: count=12 latest=#180, #176, #171, #170, #169
 - protocol: count=58 latest=#210, #208, #205, #195, #194
 - pyproject: count=4 latest=#094, #051, #049, #022
@@ -296,12 +297,12 @@ compact: true
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tui: count=25 latest=#137, #121, #120, #119, #118
 - vector: count=21 latest=#199, #182, #181, #099, #066
-- verify: count=144 latest=#210, #209, #208, #207, #206
+- verify: count=145 latest=#211, #210, #209, #208, #207
 - windows: count=12 latest=#125, #123, #091, #084, #083
 - wsl2: count=1 latest=#021
 
 ## status rollup
 
 - roots: 66
-- done: 190
+- done: 191
 - planned: 20

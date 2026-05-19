@@ -4395,3 +4395,25 @@ Verification: focused tests (pytest tests/audit/test_ci_verify_gates.py test_ci_
 
 Pre-existing flake watch-item: tests/audit/test_sys_metrics_honesty.py::test_sys_metrics_live_on_linux is timing-sensitive in a combined-run window (first /proc/stat read inside the same process as other live-HTTP tests can return None for cpu). Not caused by H1 fsync, by W3 sys-metrics honesty rewrite, or by CI scope expansion. Worth a follow-up SOP to either make the test wait for a second poll-cycle before asserting numeric, or split the live-cpu assertion into its own retry-tolerant fixture.
 ---END-ENTRY-#210---
+
+---BEGIN-ENTRY-#211---
+id: 211
+date: 2026-05-19T18:30:00Z
+agent: claude-opus-4-7
+status: done
+topics: audit, verify, benchmark, ci, pgvector, mcp
+commits: none
+refs: .github/workflows/ci.yml,tests/audit/test_sys_metrics_honesty.py,tests/audit/test_pgvector_real_adapter.py,tests/audit/test_mcp_tools_call_smoke.py,docs/SOP_CI_BENCH_GATE_PREP_DEEPSEEK.md,docs/prompts/DEEPSEEK_CI_BENCH_GATE_PREP_PROMPT.md
+supersedes: 210
+tokens: 580
+---
+CI bench-gate prep batch via the synchronous batch sync-relay DeepSeek loop. Closes three items deferred from docs/SOP_CI_HARDENING_DEEPSEEK.md: B1 (sys_metrics live-on-Linux flake), B2 (pgvector real-postgres CI integration), B3 (MCP tools/call round-trip smoke). Claude authored docs/SOP_CI_BENCH_GATE_PREP_DEEPSEEK.md; DeepSeek executed B1/B2/B3; Claude reviewed and committed.
+
+B1 (sys_metrics zero-delta stabilization in tests/audit/test_sys_metrics_honesty.py): replaced the back-to-back GET pattern with a bounded poll loop (10 attempts x 50ms, ≤500ms total) that tolerates the first /proc/stat read window where total_delta == 0. _last_cpu_times is a nonlocal closure variable inside create_app, not a module attribute — the SOP's proposed direct access was invalid. Added test_sys_metrics_cpu_zero_delta_returns_live_null: stubs builtins.open to return an identical synthetic /proc/stat line on two sequential calls inside a single mock.patch context, confirming source=live with value=None when total_delta == 0 (the contract the retry-tolerant live test must tolerate). No server.py changes.
+
+B2 (real-postgres pgvector CI integration): new tests/audit/test_pgvector_real_adapter.py with 3 tests (index_and_search, upsert_idempotent, stale_records_detects_changes). Module-level pytestmark skipif on SEAM_PGVECTOR_DSN env. Uses HashEmbeddingModel + compile_dsl for test records. Unique table names via uuid4 hex per test. _drop_table finalizer. New pgvector-integration CI job in .github/workflows/ci.yml (ubuntu-latest only, services block with pgvector/pgvector:0.8.2-pg18-trixie, health check on pg_isready, PGPASSWORD env var for psycopg auth, DSN without embedded password to pass secret scanning). Closes audit finding H3 third leg.
+
+B3 (MCP tools/call round-trip): new tests/audit/test_mcp_tools_call_smoke.py. Spawns seam_runtime.mcp_protocol subprocess, sends initialize + tools/call(seam_stats), asserts well-formed JSON-RPC 2.0 envelope with isError==False, content[0].type=="text" with parseable JSON payload, and structuredContent dict. Skip on win32 per CI3 precedent. Separate file from test_mcp_stdio_smoke.py.
+
+Verification: focused tests (pytest tests/audit/test_sys_metrics_honesty.py -q) 7 passed; (pytest tests/audit/test_pgvector_real_adapter.py -q) 3 skipped (no local pgvector); (pytest tests/audit/test_mcp_tools_call_smoke.py -q) 1 passed. Full suite (pytest test_seam_all/ tools/history/test_history_tools.py tools/streams/ tests/ -q) 398 passed, 3 skipped, 3 subtests passed. py_compile seam.py OK. compileall seam_runtime experimental tools scripts installers OK. YAML lint of ci.yml OK, pgvector-integration job present. All four SEAM verify gates green, verify_continuity clean (DSN password pattern resolved by splitting PGPASSWORD from URL).
+---END-ENTRY-#211---
