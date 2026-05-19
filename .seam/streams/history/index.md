@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 209
-total_tokens: ~44389
-latest_id: 209
+total_entries: 210
+total_tokens: ~45175
+latest_id: 210
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,7 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 210 | 2026-05-19 | done | d8bccd3efc4e1873 | audit,verify,security,protocol,+ | 209 |
 | 209 | 2026-05-19 | done | 30392e3df970c846 | audit,verify,streams,integrity,+ | 208 |
 | 208 | 2026-05-19 | done | 4857205d379df911 | audit,security,verify,multi-agent,+ | 207 |
 | 207 | 2026-05-19 | done | cf29711679a9751c | audit,verify,history,status | 206 |
@@ -226,7 +227,7 @@ compact: true
 - alias: count=2 latest=#033, #002
 - animation: count=4 latest=#068, #052, #032, #028
 - atomicity: count=1 latest=#182
-- audit: count=42 latest=#209, #208, #207, #206, #205
+- audit: count=43 latest=#210, #209, #208, #207, #206
 - benchmark: count=52 latest=#206, #198, #197, #189, #188
 - bundle: count=2 latest=#015, #008
 - chat: count=14 latest=#137, #074, #073, #072, #071
@@ -259,18 +260,18 @@ compact: true
 - linux: count=6 latest=#177, #173, #136, #135, #021
 - locking: count=1 latest=#182
 - lx1: count=6 latest=#206, #197, #088, #018, #011
-- mcp: count=9 latest=#183, #182, #149, #148, #140
+- mcp: count=10 latest=#210, #183, #182, #149, #148
 - memory: count=2 latest=#182, #178
 - mirl: count=21 latest=#145, #132, #131, #130, #129
 - models: count=1 latest=#182
-- multi-agent: count=13 latest=#208, #149, #148, #143, #142
+- multi-agent: count=14 latest=#210, #208, #149, #148, #143
 - naming: count=4 latest=#033, #024, #009, #002
 - operator: count=1 latest=#179
 - pack: count=1 latest=#183
 - persist: count=20 latest=#199, #181, #047, #044, #042
 - pgvector: count=19 latest=#179, #149, #121, #119, #084
 - plan: count=12 latest=#180, #176, #171, #170, #169
-- protocol: count=57 latest=#208, #205, #195, #194, #193
+- protocol: count=58 latest=#210, #208, #205, #195, #194
 - pyproject: count=4 latest=#094, #051, #049, #022
 - rank: count=3 latest=#017, #005, #001
 - readme: count=17 latest=#147, #121, #117, #116, #100
@@ -283,24 +284,24 @@ compact: true
 - salvage: count=1 latest=#179
 - sbert: count=3 latest=#023, #022, #011
 - search: count=13 latest=#181, #154, #088, #077, #047
-- security: count=11 latest=#209, #208, #205, #204, #201
+- security: count=12 latest=#210, #209, #208, #205, #204
 - session: count=3 latest=#027, #025, #019
 - snapshot: count=105 latest=#166, #164, #156, #155, #150
 - status: count=79 latest=#207, #203, #198, #184, #181
 - storage: count=1 latest=#182
-- streams: count=5 latest=#209, #202, #201, #200, #192
+- streams: count=6 latest=#210, #209, #202, #201, #200
 - surface: count=2 latest=#208, #145
 - test: count=1 latest=#202
 - tests: count=3 latest=#192, #191, #182
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tui: count=25 latest=#137, #121, #120, #119, #118
 - vector: count=21 latest=#199, #182, #181, #099, #066
-- verify: count=143 latest=#209, #208, #207, #206, #205
+- verify: count=144 latest=#210, #209, #208, #207, #206
 - windows: count=12 latest=#125, #123, #091, #084, #083
 - wsl2: count=1 latest=#021
 
 ## status rollup
 
 - roots: 66
-- done: 189
+- done: 190
 - planned: 20
