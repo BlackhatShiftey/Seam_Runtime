@@ -4305,3 +4305,17 @@ Phase 6 (full verification): `.venv/bin/python -m pytest test_seam_all/ tools/hi
 
 Open: vector O(N) search remains P2, holdout fixtures still need generation, MCP auth-by-design docs gap, append_event crash-safety window (read-all+write-all under lock), history mirror lacks atomic write. All deferred -- need operator direction or larger scope than this pass.
 ---END-ENTRY-#206---
+
+---BEGIN-ENTRY-#207---
+id: 207
+date: 2026-05-19T04:01:03Z
+agent: codex
+status: done
+topics: audit, verify, history, status
+commits: dc77124082f1
+refs: test_seam_all/test_seam.py,HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md,.seam/streams/history/log.md,.seam/cross_index.md
+supersedes: 206
+tokens: 146
+---
+Reviewed and landed the DeepSeek parallel audit branch locally. Verified the LX1 type-preservation test-only change against seam_runtime/lx1.py behavior, corrected HISTORY#206 to use the controlled topic vocabulary, regenerated derived history and stream indexes, tracked the cross-index archive rotation, and fast-forwarded main to dc77124082f1. Verification before merge: focused LX1 tests passed (3 passed, 177 deselected), full active suite passed (358 passed, 1 warning, 3 subtests passed), py_compile and compileall passed, integrity/routing/continuity/streams gates passed, diff checks were clean, candidate secret/session-link scan found no matches, and benchmark smoke passed (external plan reported 0/9 configured runners as expected, LoCoMo quickstart 10/10 correct with stub judge, long_context PASS 2/2). WebUI build was not rerun because experimental/webui was not changed.
+---END-ENTRY-#207---

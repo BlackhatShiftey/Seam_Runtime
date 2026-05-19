@@ -1,6 +1,6 @@
 # SEAM Project Status
 
-Last updated: 2026-05-19 (HISTORY#206 — DeepSeek parallel audit pass complete)
+Last updated: 2026-05-19 (HISTORY#207 — Codex reviewed and landed DeepSeek audit pass)
 
 ## Current State
 
@@ -28,7 +28,7 @@ SEAM is operating as a local machine-first memory runtime with:
 ## Current Resume Point
 
 - `main` is the source-of-truth branch. After pulling, verify local `HEAD` equals `origin/main` before starting new work.
-- Latest continuity handoff is `HISTORY#206` — DeepSeek parallel audit pass complete per `docs/SOP_DEEPSEEK_PARALLEL_AUDIT_EXECUTION.md`. Phase 0-6 executed: baseline verified, claims calibrated by 5 parallel workers, LX1 float/int type preservation tests added (P1 fix), benchmark smoke passed (LoCoMo quickstart + long_context), adversarial review clean. `HISTORY#205` is the SOP document; `HISTORY#204` is the prior audit remediation pass; `HISTORY#203` is the WebUI finished dashboard wiring commit.
+- Latest continuity handoff is `HISTORY#207` — Codex reviewed and fast-forwarded the DeepSeek audit/debug branch onto `main` at `dc77124082f1`. The branch added LX1 float/int type-preservation tests, corrected the HISTORY#206 topic metadata before landing, regenerated derived history/stream/cross-index files, and reran focused tests, the full active suite, SEAM gates, diff/secret checks, and benchmark smoke. `HISTORY#206` is the DeepSeek parallel audit pass; `HISTORY#205` is the SOP document; `HISTORY#204` is the prior audit remediation pass; `HISTORY#203` is the WebUI finished dashboard wiring commit.
 - A fresh Linux clone should run `sh ./installers/install_seam_linux.sh --dev`, then verify local `HEAD` equals `origin/main` before starting new work.
 - GitHub PR state as of 2026-05-18: PRs #22, #18, #23, #25 (SOP 0), #26, #27 (SOP 1), #28 (SOP 2), #29 (SOPs 3+4), and #30 (production readiness remediation) merged. Track I (SOPs 0-4) is complete on `main`. PR #19 is still draft, conflicting, and must be treated as a partial extraction source because its branch contains private-session-link material in commit metadata. PR #24 (Track I 5-SOP handoff series) was draft and is superseded.
 - **Track I COMPLETE milestone.** Next track is the operator's choice per ROADMAP.md: Track J (Prompt Codec), Track K (Trust/Security/Auditability + BIL bundles), Track L (Agent/Skills Compiler), or Track H Phase 2-4 (improvement streams, retrieval integration, generalized library streams). Do not resume from already-merged branches or stale squash-merged PR refs. Do not propose or start Tracks J/K/L without operator direction.
