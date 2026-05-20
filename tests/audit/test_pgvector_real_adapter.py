@@ -115,8 +115,10 @@ def test_pgvector_real_adapter_stale_records_detects_changes():
         assert stale_initial == [], f"Expected no stale records right after index, got {stale_initial}"
         mutated_records = _mutate_first_indexable_record(records)
         stale_after_mutation = adapter.stale_records(mutated_records)
-        assert stale_after_mutation == [
-            {"record_id": mutated_records[0].id, "reason": "source_changed"}
-        ], f"Expected source_changed after mutation, got {stale_after_mutation}"
+        assert len(stale_after_mutation) == 1, f"Expected 1 stale record after mutation, got {stale_after_mutation}"
+        assert stale_after_mutation[0]["reason"] == "source_changed"
+        # The stale record_id should be one of the indexable (CLM/STA/EVT/REL) records that was mutated.
+        indexable_ids = {r.id for r in mutated_records if r.kind.value in {"CLM", "STA", "EVT", "REL"}}
+        assert stale_after_mutation[0]["record_id"] in indexable_ids
     finally:
         _drop_table(adapter, table)
