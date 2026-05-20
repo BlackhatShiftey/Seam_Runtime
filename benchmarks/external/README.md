@@ -58,7 +58,7 @@ bundles:
 
 ```bash
 seam bench external --quickstart locomo --adapter seam --judge stub --output locomo-result.json
-seam bench seal locomo-result.json --level BIL-2 --output locomo.seam-bundle.json
+seam bench seal locomo-result.json --level BIL-2 --allow-stub-seal --output locomo.seam-bundle.json
 seam bench verify locomo.seam-bundle.json
 seam bench inspect locomo.seam-bundle.json
 ```
@@ -68,3 +68,8 @@ BIL-4 audit-chain linkage, BIL-5 transparency logs, and BIL-6 independent
 reruns require operator policy decisions and are not implemented yet.
 LLM judge scores remain informational; sealing records the evidence but
 does not make probabilistic judge scores a deterministic gate.
+Stub-judge results require the explicit `--allow-stub-seal` flag so test-only
+judge output cannot be mistaken for independently judged evidence. BIL result
+hashes exclude volatile timing fields such as run start time, elapsed seconds,
+and per-case latency measurements; those fields remain present in the sealed
+result payload for inspection.

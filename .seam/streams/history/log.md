@@ -4523,3 +4523,21 @@ Deferred to Stage 2 (follow-up DeepSeek SOP): the naive _tokens split in seam_ru
 
 Verification: .venv/bin/python -m pytest test_seam_all/ tools/history/test_history_tools.py tools/streams/ tests/ -q passed 416 tests, skipped 3, subtests 3. py_compile across seam_runtime and tools passed with 0 errors. All four SEAM verify gates green (integrity, continuity, routing, streams). bloat_report regenerated cleanly with the new numbers.
 ---END-ENTRY-#216---
+
+---BEGIN-ENTRY-#217---
+id: 217
+date: 2026-05-20T04:47:38Z
+agent: codex
+status: done
+topics: benchmark, audit, verify, command, docs, status, history, security
+commits: none
+refs: seam_runtime/benchmark_integrity.py,seam_runtime/benchmark_baseline_policy.py,seam_runtime/cli.py,test_seam_all/test_benchmark_integrity.py,tests/audit/test_baseline_policy.py,tests/audit/test_bench_stub_seal_gate.py,tests/audit/test_benchmark_reproducibility.py,benchmarks/external/README.md,docs/roadmap/TRUST_SECURITY_AUDITABILITY.md,docs/SOP_TRACK_K_BIL_PHASE1_REPAIR_HANDOFF.md,PROJECT_STATUS.md
+supersedes: 216
+tokens: 493
+---
+Codex audited and repaired DeepSeek's follow-up Track K BIL/baseline patch after the operator asked whether DeepSeek was breaking anything. The audit found four real issues: BIL-2 result hashes were nondeterministic across identical quickstart runs because volatile timing fields were hashed; stub-judge seal refusal surfaced as a raw CLI traceback and contradicted active quickstart docs; benchmark gate auto-baseline did not pass the current candidate path into resolve_baseline, so a newest candidate under benchmarks/runs could self-baseline; holdout filtering used string-prefix matching and could exclude sibling directories such as holdout-extra. Also removed the unused _stable_timing helper/test because it did not stabilize emitted benchmark latency fields.
+
+Repairs: seam_runtime/benchmark_integrity.py now hashes a stable result projection excluding run_started_at, elapsed_seconds, created_at, retrieval_latency_ms, and answer_latency_ms while leaving those fields in the sealed payload. seam bench seal catches BIL policy ValueError as a clean SystemExit message, exposes --allow-stub-seal for explicit test-judge sealing, and docs now show the required flag. New seam_runtime/benchmark_baseline_policy.py resolves local public baselines from merge-base reachability, excludes the current candidate when provided, and excludes only the actual benchmarks/runs/holdout path segment. Added focused audit coverage for deterministic BIL hashes, stub-seal refusal/override, baseline current-run exclusion, and holdout sibling handling. Wrote docs/SOP_TRACK_K_BIL_PHASE1_REPAIR_HANDOFF.md as the operator handoff SOP.
+
+Verification performed with .venv/bin/python: focused BIL/baseline/stub/reproducibility tests passed 24; full active pytest scope test_seam_all/ tools/history/ tools/streams/ tests/ passed 429 tests, skipped 3, and passed 3 subtests; py_compile seam.py passed; compileall seam_runtime benchmarks tools scripts installers passed; git diff --check passed. Benchmark smoke ran LoCoMo quickstart with stub judge, confirmed seal without --allow-stub-seal exits non-zero without traceback, then sealed with --allow-stub-seal as BIL-2 and verified/inspected PASS with 4/4 checks. BIL-3 signing, BIL-4 audit-chain linkage, BIL-5 transparency logs, BIL-6 independent reruns, broader CI baseline-source policy, and real latency stabilization remain deferred.
+---END-ENTRY-#217---

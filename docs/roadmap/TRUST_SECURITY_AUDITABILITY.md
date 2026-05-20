@@ -178,6 +178,8 @@ Gate: dashboard benchmark claims show integrity level, signer, input hashes, aud
 
 Phase 1 implementation note: current implementation supports BIL-0
 through BIL-2 for benchmark result files and external benchmark bundles.
+The BIL result hash is computed from a stable projection that excludes
+volatile timing fields while leaving those fields in the inspected payload.
 BIL-3 through BIL-6 remain planned until signing identity,
 audit-ledger linkage, transparency-log target, and independent-rerun
 policy are decided.

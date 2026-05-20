@@ -9,6 +9,13 @@ from typing import Any
 BUNDLE_VERSION = "SEAM-BENCHMARK-BUNDLE/1"
 INPUT_MANIFEST_VERSION = "SEAM-BENCHMARK-INPUT-MANIFEST/1"
 SUPPORTED_BIL_LEVELS = {"BIL-0", "BIL-1", "BIL-2"}
+VOLATILE_RESULT_HASH_KEYS = {
+    "answer_latency_ms",
+    "created_at",
+    "elapsed_seconds",
+    "retrieval_latency_ms",
+    "run_started_at",
+}
 
 
 def canonical_json(value: Any) -> str:
@@ -31,7 +38,19 @@ def write_json_payload(path: str | Path, payload: dict[str, Any]) -> None:
 
 
 def result_hash(result: dict[str, Any]) -> str:
-    return sha256_canonical(result)
+    return sha256_canonical(stable_result_hash_input(result))
+
+
+def stable_result_hash_input(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: stable_result_hash_input(item)
+            for key, item in value.items()
+            if key not in VOLATILE_RESULT_HASH_KEYS
+        }
+    if isinstance(value, list):
+        return [stable_result_hash_input(item) for item in value]
+    return copy.deepcopy(value)
 
 
 def build_input_manifest(result: dict[str, Any]) -> dict[str, Any]:
@@ -89,9 +108,22 @@ def build_input_manifest(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def seal_benchmark_bundle(result: dict[str, Any], *, level: str = "BIL-2") -> dict[str, Any]:
+def seal_benchmark_bundle(
+    result: dict[str, Any], *, level: str = "BIL-2", allow_stub_seal: bool = False
+) -> dict[str, Any]:
     if level not in SUPPORTED_BIL_LEVELS or level == "BIL-0":
         raise ValueError(f"unsupported BIL level for sealing: {level}")
+    if level in {"BIL-1", "BIL-2"} and not allow_stub_seal:
+        for case in result.get("cases") or []:
+            judge = case.get("judge")
+            if isinstance(judge, dict) and judge.get("judge_name") in {
+                "stub",
+                "stub-informational-only",
+            }:
+                raise ValueError(
+                    "stub judge cannot be sealed above BIL-0; "
+                    "pass allow_stub_seal=True to override"
+                )
     result_copy = copy.deepcopy(result)
     manifest = build_input_manifest(result_copy) if level == "BIL-2" else None
     return {

@@ -9,6 +9,7 @@ import sys
 from importlib.util import find_spec
 from pathlib import Path
 
+from .benchmark_baseline_policy import resolve_baseline
 from .benchmark_integrity import (
     inspect_benchmark_integrity,
     load_json_payload,
@@ -419,6 +420,7 @@ def build_parser() -> argparse.ArgumentParser:
     bench_seal_parser.add_argument("result", help="Benchmark result JSON path")
     bench_seal_parser.add_argument("--level", choices=["BIL-1", "BIL-2"], default="BIL-2")
     bench_seal_parser.add_argument("--output", required=True, help="Write sealed bundle JSON to this path")
+    bench_seal_parser.add_argument("--allow-stub-seal", action="store_true", help="Allow sealing a result with a stub judge above BIL-0")
     bench_seal_parser.add_argument("--format", choices=["pretty", "json"], default="pretty")
 
     bench_verify_parser = bench_subparsers.add_parser("verify", help="Verify a sealed benchmark BIL bundle")
@@ -727,7 +729,13 @@ def run_cli(argv: list[str] | None = None) -> None:
 
     if args.command == "bench" and args.bench_command == "seal":
         result_payload = load_json_payload(args.result)
-        bundle = seal_benchmark_bundle(result_payload, level=args.level)
+        try:
+            bundle = seal_benchmark_bundle(
+                result_payload, level=args.level,
+                allow_stub_seal=getattr(args, "allow_stub_seal", False),
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc))
         write_json_payload(args.output, bundle)
         report = inspect_benchmark_integrity(bundle)
         if args.format == "json":
@@ -1042,7 +1050,14 @@ def run_cli(argv: list[str] | None = None) -> None:
             return
         if args.benchmark_command == "gate":
             bundle = _resolve_benchmark_ref(runtime, args.bundle)
-            baseline = _resolve_benchmark_ref(runtime, args.baseline) if args.baseline else None
+            if args.baseline:
+                baseline = _resolve_benchmark_ref(runtime, args.baseline)
+            else:
+                current_run = Path(bundle) if isinstance(bundle, str) and Path(bundle).exists() else None
+                policy_result = resolve_baseline(current_run=current_run)
+                baseline = policy_result
+                if baseline is None and args.format != "json":
+                    print("note: no baseline found — first-run gate, skipping regression check")
             payload = runtime.evaluate_benchmark_gate(bundle, baseline=baseline, policy=args.policy)
             if args.format == "json":
                 print(json.dumps(payload, indent=2))
@@ -1762,7 +1777,6 @@ def _record_signal(record: dict[str, object]) -> str:
     if "target" in attrs:
         return f"target={attrs.get('target')}"
     return ""
-
 
 
 
