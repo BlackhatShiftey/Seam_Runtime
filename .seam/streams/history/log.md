@@ -4461,3 +4461,21 @@ Resolved by keeping MCP seam_context strictly read-only: seam_runtime/mcp.py no 
 
 tests/audit/test_context_pack_persist_policy.py now asserts the MCP seam_context metadata keeps readOnlyHint=true and does not expose a persist input. Focused MCP/context tests passed 7. Full active pytest suite after this correction passed 405 tests, skipped 3, and passed 3 subtests. py_compile seam.py and compileall seam_runtime experimental tools scripts installers passed.
 ---END-ENTRY-#213---
+
+---BEGIN-ENTRY-#214---
+id: 214
+date: 2026-05-20T00:37:49Z
+agent: codex
+status: done
+topics: benchmark, audit, verify, docs, plan, security, history
+commits: none
+refs: docs/SOP_TRACK_K_BIL_PHASE1_DEEPSEEK.md,docs/prompts/DEEPSEEK_TRACK_K_BIL_PHASE1_PROMPT.md,PROJECT_STATUS.md
+supersedes: 213
+tokens: 221
+---
+Authored the Track K BIL Phase 1 DeepSeek execution SOP and paste-ready prompt. The SOP scopes the first Benchmark Integrity Level implementation to BIL-0 through BIL-2 only: raw result inspection, deterministic result hashing, and deterministic input-manifest hashing for sealed benchmark bundles. It directs DeepSeek to create seam_runtime/benchmark_integrity.py, add seam bench seal/verify/inspect CLI commands, test quickstart LoCoMo stub sealing, and document current BIL support.
+
+Policy decisions intentionally deferred: BIL-3 signing identity, BIL-4 audit-chain linkage, BIL-5 transparency-log target, BIL-6 independent-rerun definition, and CI baseline-source selection for benchmark gate. The SOP also preserves the current rule that LLM judge scores are informational; BIL seals the evidence file but does not promote probabilistic judge output into deterministic gates.
+
+Non-overlapping Codex smoke while preparing the SOP: .venv/bin/python -m seam bench external --plan --format json exited 0 and showed the expected 9 required benchmark env vars not configured locally; .venv/bin/python -m seam bench external --quickstart locomo --adapter seam --judge stub --output /tmp/seam-current-locomo-stub.json exited 0 and wrote the current stub report. git diff --check passed before closeout.
+---END-ENTRY-#214---
