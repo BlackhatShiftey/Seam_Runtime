@@ -8,7 +8,7 @@ from .mirl import IRBatch, MIRLRecord, RecordKind, SearchCandidate, SearchResult
 from .symbols import build_symbol_maps
 
 
-def search_batch(batch: IRBatch, query: str, scope: str | None = None, limit: int = 5, vector_scores: dict[str, float] | None = None, namespace: str | None = None) -> SearchResult:
+def search_batch(batch: IRBatch, query: str, scope: str | None = None, limit: int = 5, vector_scores: dict[str, float] | None = None, namespace: str | None = None, include_raw: bool = False) -> SearchResult:
     _, symbol_to_expansion = build_symbol_maps(batch.records, namespace=namespace)
     expanded_query = _expand_query(query, symbol_to_expansion)
     tokens = _tokens(expanded_query)
@@ -19,8 +19,11 @@ def search_batch(batch: IRBatch, query: str, scope: str | None = None, limit: in
     candidates: list[SearchCandidate] = []
     vector_scores = vector_scores or {}
 
+    candidate_kinds = {RecordKind.CLM, RecordKind.STA, RecordKind.EVT, RecordKind.REL}
+    if include_raw:
+        candidate_kinds = candidate_kinds | {RecordKind.RAW}
     for record in records:
-        if record.kind not in {RecordKind.CLM, RecordKind.STA, RecordKind.EVT, RecordKind.REL}:
+        if record.kind not in candidate_kinds:
             continue
         lexical = _lexical_score(record, tokens)
         semantic = vector_scores.get(record.id, _semantic_score(record, query_vector))

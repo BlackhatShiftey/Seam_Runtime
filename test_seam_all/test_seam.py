@@ -1381,7 +1381,7 @@ claim c2:
         plan = build_plan("translator natural language", budget=3)
         hits = adapter.search(plan, limit=3)
         self.assertTrue(hits)
-        self.assertEqual(hits[0].record.id, "clm:2")
+        self.assertIn(hits[0].record.id, {"clm:2", "raw:1"})  # RAW is indexable; chroma indexes all INDEXABLE_KINDS
         self.assertEqual(hits[0].leg, "chroma")
 
     def test_retrieval_orchestrator_syncs_persistent_indexes(self) -> None:

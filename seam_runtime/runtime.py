@@ -119,11 +119,11 @@ class SeamRuntime:
             raise RuntimeError("Vector indexing failed; rolled back SQLite record write") from exc
         return persist_report
 
-    def search_ir(self, query: str, lens: str = "general", scope: str | None = None, budget: int = 5) -> SearchResult:
+    def search_ir(self, query: str, lens: str = "general", scope: str | None = None, budget: int = 5, include_raw: bool = False) -> SearchResult:
         batch = self.store.load_ir(scope=scope)
         vector_scores = self.vector_adapter.search(query, limit=max(budget * 3, 10))
         namespace = batch.records[0].ns if batch.records else None
-        return search_batch(batch, query=query, scope=scope, limit=max(1, budget), vector_scores=vector_scores, namespace=namespace)
+        return search_batch(batch, query=query, scope=scope, limit=max(1, budget), vector_scores=vector_scores, namespace=namespace, include_raw=include_raw)
 
     def memory_search(self, query: str, scope: str | None = None, budget: int = 5) -> dict[str, object]:
         result = self.search_ir(query, scope=scope, budget=budget)

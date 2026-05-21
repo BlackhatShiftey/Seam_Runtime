@@ -68,7 +68,7 @@ class SeamLocomoAdapter:
 
         rt = _open_runtime(self._db_path(scope_id))
         t0 = _time.monotonic()
-        result = rt.search_ir(question, scope="thread", budget=self.budget)
+        result = rt.search_ir(question, scope="thread", budget=self.budget, include_raw=True)
         retrieval_latency_ms = (_time.monotonic() - t0) * 1000.0
 
         if not result.candidates:
