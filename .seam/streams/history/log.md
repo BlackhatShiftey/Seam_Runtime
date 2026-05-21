@@ -4668,3 +4668,35 @@ Out of scope for this entry: the worktree still carries uncommitted P2 fixes (be
 
 Next step: walk the remaining P2 worktree items before declaring "all six P2 fixes merged on main" — the P3 SOP's stated prerequisite.
 ---END-ENTRY-#222---
+
+---BEGIN-ENTRY-#223---
+id: 223
+date: 2026-05-21T14:37:12Z
+agent: claude
+status: done
+topics: benchmark, locomo, longmemeval, beam, retrieval, vector, nl, test, docs, history
+commits: f46c99d,10f49df,051778c,55ad91d,c615e83,09d2a55,6a2a05e
+refs: seam_runtime/vector.py,tests/audit/test_raw_vector_indexable.py,seam_runtime/nl.py,tests/audit/test_conversation_turn_compile.py,benchmarks/external/common/dataset.py,benchmarks/external/locomo/adapters/seam.py,benchmarks/external/mem0_harness/adapter.py,benchmarks/external/beam/run.py,benchmarks/external/longmemeval/run.py,seam_runtime/cli.py,tests/audit/test_beam_routing.py,tests/audit/test_locomo_full_dataset_routing.py,tests/audit/test_longmemeval_routing.py,test_seam_all/test_locomo_judge.py,tests/audit/test_openai_judge_gpt5.py,experimental/webui/public/dashboard.html,docs/SOP_TRACK_M_P2_LOCOMO_RETRIEVAL_WIRING.md,docs/SOP_TRACK_M_P3_LOCOMO_SCORE_IMPROVEMENTS.md,.gitignore
+supersedes: 222
+tokens: 1118
+---
+Claude walked the remaining Track M P2/P3 worktree per the sync-relay protocol and committed seven items individually after re-running the new and modified test surface (57 tests passed under PYTHONPATH=.). The branch now has the full Track M stabilization scope landed; what remains is HISTORY/index/snapshot bookkeeping, a verify chain pass, and the operator-authorized push to main.
+
+Commit f46c99d: RAW records become first-class indexable kind. seam_runtime/vector.py adds RecordKind.RAW to INDEXABLE_KINDS and special-cases render_record_text to return the content attr directly when present. Test: 6 cases covering RAW in INDEXABLE_KINDS, content rendering, fallback rendering, CLM unchanged, index_records writing a vector for RAW, and content-based search.
+
+Commit 10f49df: compile_conversation_turn extracts speaker/date/location/action. seam_runtime/nl.py adds a new compile function for single conversation turns that builds RAW + SPAN + PROV + speaker ENT + per-fact CLM records. Speaker comes from a "Name:" prefix; dates match three patterns; locations are pulled after "in/at/to"; capitalized multi-word entities tag as "mentioned"; action verbs (went_to, attended, met, learned, felt) produce predicate-typed CLMs. Falls back to a single content CLM when nothing extracts. Test: 11 cases covering the full extraction surface plus a sanity check that compile_nl behavior is unchanged.
+
+Commit 051778c: BEAM and LongMemEval official dataset shapes plus parallel runners. benchmarks/external/beam/run.py supports both Hugging Face rows JSON and BEAM directory layouts, with _parse_probing_questions handling dict and ast.literal_eval string shapes and _beam_gold_answer folding rubric criteria into the gold answer. EXPECTED_BY_TRACK replaces hard-coded 100/2000 with 35/700 (1m) and 10/200 (10m) per the public release. BEAM-10m "deferred" hard refusal becomes a dry-run path. benchmarks/external/longmemeval/run.py adds an _official_case parser for the cleaned question_id/question_type/haystack_dates/haystack_sessions shape and keeps the local synthetic shape for backward compatibility; EXPECTED_CATEGORIES rebuilt to the six official categories. benchmarks/external/common/dataset.py adds _coerce_text so scalar question/answer values normalize to str. benchmarks/external/locomo/adapters/seam.py and benchmarks/external/mem0_harness/adapter.py fix the WAL/SHM sidecar deletion path which previously formed "foo.db.db-wal" — now appends "-wal"/"-shm" directly to the file path. seam_runtime/cli.py forwards --workers through `seam bench external <target>` to all three runners. Tests refresh the affected routing/judge assertions and add parallel-runner case-ordering and scope-ingest-counting coverage.
+
+Commit 55ad91d: OpenAI judge GPT-5 reasoning-model regression. tests/audit/test_openai_judge_gpt5.py pins the request shape so the GPT-5 branch (max_completion_tokens, reasoning_effort, no legacy max_tokens) stays distinct from the legacy non-reasoning branch (max_tokens, no max_completion_tokens), and provider errors surface the exception class name without leaking secret values into the rationale.
+
+Commit c615e83: WebUI dashboard wires live stats. experimental/webui/public/dashboard.html replaces hard-coded mock values in the MemoryFullView Vector Index and Graph stat tables (model name, 1,400,751 records, 11,297 "(mock)" drift, 142,706 components, etc.) with reads from the /stats endpoint's sysStats response. Empty / unloaded states fall back to zeros with a "no vectors indexed" hint instead of presenting mocks as real values.
+
+Commit 09d2a55: Track M P2/P3 SOPs landed. docs/SOP_TRACK_M_P2_LOCOMO_RETRIEVAL_WIRING.md captures the six wiring fixes (commits d17068a..60a8e2e on this branch). docs/SOP_TRACK_M_P3_LOCOMO_SCORE_IMPROVEMENTS.md captures the nine score and hygiene fixes (commits be7d739..84e4778 on this branch). Together these are the durable operator handoffs that explain the per-fix scope, branch flow, paste-relay protocol, and verification gates.
+
+Commit 6a2a05e: gitignore /run_*.json. Operator-driven LoCoMo smoke runs leave files like run_a.json at repo root. They are not publication evidence; the sealed bundles under benchmarks/runs/ are. Pattern matches the existing benchmarks/runs/holdout/*.json exclusion.
+
+Verification: PYTHONPATH=. .venv/bin/pytest on the new and modified test surface (test_raw_vector_indexable, test_conversation_turn_compile, test_openai_judge_gpt5, test_beam_routing, test_locomo_full_dataset_routing, test_longmemeval_routing, test_seam_all/test_locomo_judge.py) passed 57 cases in 151.73 seconds. Baseline verify chain was clean before the commits; rerun pending after this entry, index rebuild, and snapshot.
+
+Next step: rebuild HISTORY_INDEX.md, refresh the history stream mirror and cross-index, write a bounded snapshot, run the verify chain, and (operator-authorized) push the branch and merge to main.
+---END-ENTRY-#223---
