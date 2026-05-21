@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import traceback
 from pathlib import Path
-from typing import TextIO
+from typing import Iterator, TextIO
 
 from .installer import default_runtime_db_path
 from .mcp import TOOL_METADATA, dispatch_tool
@@ -22,6 +23,14 @@ JSONRPC_METHOD_NOT_FOUND = -32601
 JSONRPC_INVALID_PARAMS = -32602
 JSONRPC_INTERNAL_ERROR = -32603
 
+_DEFAULT_MCP_MAX_LINE_BYTES = 5_000_000
+
+MAX_MCP_LINE_BYTES: int = int(
+    os.environ.get("SEAM_MCP_MAX_LINE_BYTES", str(_DEFAULT_MCP_MAX_LINE_BYTES))
+)
+
+_OVERSIZED_LINE = object()
+
 
 class JsonRpcError(Exception):
     def __init__(self, code: int, message: str, data: object | None = None) -> None:
@@ -29,6 +38,48 @@ class JsonRpcError(Exception):
         self.code = code
         self.message = message
         self.data = data
+
+
+def _read_capped_lines(stream: TextIO, max_bytes: int) -> Iterator[str | object]:
+    """Yield lines from *stream*, substituting ``_OVERSIZED_LINE`` for any
+    line whose UTF-8 byte length exceeds *max_bytes*.
+
+    For streams backed by a binary buffer (``sys.stdin``) the read is
+    genuinely bounded via ``readline(max_bytes + 1)`` so that an oversized
+    line never occupies memory in full.  Pure-text streams (``io.StringIO``
+    in tests) fall back to a character read; the sentinel remains the
+    same ``_OVERSIZED_LINE`` object.
+    """
+    binary = getattr(stream, "buffer", None)
+    if binary is not None:
+        yield from _read_capped_binary_lines(binary, max_bytes)
+    else:
+        for line in stream:
+            if not line:
+                return
+            if len(line.encode("utf-8")) > max_bytes:
+                yield _OVERSIZED_LINE
+                continue
+            yield line
+
+
+def _read_capped_binary_lines(binary: object, max_bytes: int) -> Iterator[str | object]:
+    readline = getattr(binary, "readline")
+    if readline is None:
+        return
+    while True:
+        chunk: bytes = readline(max_bytes + 1)
+        if not chunk:
+            return
+        if len(chunk) > max_bytes or not chunk.endswith(b"\n"):
+            # Drain the rest of this physical line in bounded chunks.
+            while True:
+                tail: bytes = readline(8192)
+                if not tail or tail.endswith(b"\n"):
+                    break
+            yield _OVERSIZED_LINE
+            continue
+        yield chunk.decode("utf-8")
 
 
 def run_mcp_server(
@@ -45,7 +96,19 @@ def run_mcp_server(
 
     input_stream = input_stream or sys.stdin
     output_stream = output_stream or sys.stdout
-    for line in input_stream:
+    for raw_line in _read_capped_lines(input_stream, MAX_MCP_LINE_BYTES):
+        if raw_line is _OVERSIZED_LINE:
+            _write_jsonrpc(
+                output_stream,
+                _error_response(
+                    None,
+                    JSONRPC_INVALID_REQUEST,
+                    "Invalid Request",
+                    {"reason": "request too large"},
+                ),
+            )
+            continue
+        line = raw_line
         if not line.strip():
             continue
         for response in _handle_jsonrpc_line(runtime, line):
