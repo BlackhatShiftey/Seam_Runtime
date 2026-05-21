@@ -4732,40 +4732,40 @@ function MemoryFullView() {
 
                 <div>
                   <StatSection icon="◯" title="Vector Index" hint="embedding-based acceleration" color="#9b6cff">
-                    <StatTable color="#9b6cff" rows={[
-                    { label: 'model', value: 'text-embedding-3-small', hint: 'OpenAI · 1536-dim' },
-                    { label: 'dimensionality', value: '1536' },
+                    <StatTable color="#9b6cff" rows={(() => {
+                      const vm = sysStats?.vector_models?.[0];
+                      return [
+                    { label: 'model', value: vm ? vm.model : 'none', hint: vm ? `${vm.dimension}-dim` : 'no vectors indexed' },
+                    { label: 'dimensionality', value: vm ? String(vm.dimension) : '—' },
                     { label: 'distance metric', value: 'cosine' },
-                    { label: 'records embedded', value: sysStats ? sysStats.vector_entries.toLocaleString() : '1,400,751', color: '#7efdb9' },
-                    { label: 'drifted (stale)', value: '11,297 (mock)', color: '#f4d676', hint: 'newer MIRL update than embed' },
-                    { label: 'sqlite backend', value: '99.2%', bar: 0.992 },
-                    { label: 'chroma backend', value: '99.2%', bar: 0.992 },
-                    { label: 'pgvector backend', value: 'disabled', color: '#5a7a9a' },
-                    { label: 'avg vector search', value: '18 ms' },
-                    { label: 'p99 vector search', value: '46 ms' },
-                    { label: 'cache hit rate', value: '76%', bar: 0.76, color: '#7efdb9' },
-                    { label: 'reindex queue', value: '2,840', hint: '< 60s lag' },
-                    { label: 'next reindex sweep', value: '04:00 UTC' }]
-                    } />
+                    { label: 'records embedded', value: sysStats ? sysStats.vector_entries.toLocaleString() : '0', color: '#7efdb9' },
+                    { label: 'drifted (stale)', value: sysStats ? sysStats.drifted_vectors.toLocaleString() : '0', color: sysStats?.drifted_vectors > 0 ? '#f4d676' : '#7efdb9', hint: 'newer MIRL update than embed' },
+                    { label: 'sqlite backend', value: sysStats?.vector_entries > 0 ? 'active' : 'empty', color: sysStats?.vector_entries > 0 ? '#7efdb9' : '#5a7a9a' },
+                    { label: 'pgvector backend', value: 'disabled', color: '#5a7a9a' }];
+                    })()}
+                    />
                   </StatSection>
 
                   <StatSection icon="◇" title="Graph" hint="relation graph over records" color="#d391ff">
-                    <StatTable color="#d391ff" rows={[
-                    { label: 'nodes', value: sysStats ? sysStats.total_records.toLocaleString() : '1,412,048' },
-                    { label: 'edges total', value: sysStats ? sysStats.edge_count.toLocaleString() : '841,203' },
-                    { label: 'avg degree', value: '1.19 (mock)' },
-                    { label: 'max degree', value: '847 (mock)', hint: '@SEAM hub' },
-                    { label: 'connected components', value: '142,706 (mock)' },
-                    { label: 'clustering coefficient', value: '0.31 (mock)' },
-                    { label: 'edge: relates_to', value: '412,894 (mock)', color: '#9b6cff' },
-                    { label: 'edge: derived_from', value: '184,103 (mock)', color: '#7fe0ff' },
-                    { label: 'edge: contradicts', value: '596 (mock)', color: '#ff6b6b' },
-                    { label: 'edge: supersedes', value: '12,847 (mock)', color: '#f4d676' },
-                    { label: 'edge: source_of', value: '108,442 (mock)', color: '#66b8ff' },
-                    { label: 'edge: alias_of', value: '17,785 (mock)', color: '#8df6ff' },
-                    { label: 'edge: other', value: '104,536 (mock)', color: '#5a7a9a' },
-                    { label: 'avg walk depth (ret)', value: '2.4 hops (mock)' }]
-                    } />
+                    <StatTable color="#d391ff" rows={(() => {
+                      const ek = sysStats?.edge_kinds || {};
+                      const ekTotal = Object.values(ek).reduce((s, v) => s + v, 0);
+                      const edgeRows = Object.entries(ek).map(([k, v]) => ({
+                        label: `edge: ${k}`,
+                        value: v.toLocaleString(),
+                        color: k === 'relates_to' ? '#9b6cff' : k === 'derived_from' ? '#7fe0ff' : k === 'contradicts' ? '#ff6b6b' : k === 'supersedes' ? '#f4d676' : k === 'source_of' ? '#66b8ff' : k === 'alias_of' ? '#8df6ff' : '#5a7a9a'
+                      }));
+                      return [
+                    { label: 'nodes', value: sysStats ? sysStats.total_records.toLocaleString() : '0' },
+                    { label: 'edges total', value: sysStats ? sysStats.edge_count.toLocaleString() : '0' },
+                    { label: 'avg degree', value: sysStats ? String(sysStats.avg_degree) : '0' },
+                    { label: 'max degree', value: sysStats ? String(sysStats.max_degree) : '0', hint: sysStats?.max_degree_node || '' },
+                    { label: 'connected nodes', value: sysStats ? sysStats.connected_nodes.toLocaleString() : '0' },
+                    { label: 'isolated nodes', value: sysStats ? sysStats.isolated_nodes.toLocaleString() : '0' },
+                    ...edgeRows
+                      ];
+                    })()}
+                    />
                   </StatSection>
                 </div>
 
@@ -4813,11 +4813,7 @@ function MemoryFullView() {
                         { label: 'Exactness Rate', value: `${(benchData.summary.exactness_rate * 100).toFixed(1)}%`, bar: benchData.summary.exactness_rate, color: '#7efdb9' },
                         { label: 'Token Savings (p50)', value: `${(benchData.summary.token_savings_p50 * 100).toFixed(1)}%`, bar: benchData.summary.token_savings_p50 },
                       ] : [
-                        { label: 'Status', value: 'Not run yet', color: '#5a7a9a' },
-                        { label: 'hit@1', value: '0.74 (mock)', bar: 0.74, color: '#5a7a9a' },
-                        { label: 'hit@5', value: '0.91 (mock)', bar: 0.91, color: '#5a7a9a' },
-                        { label: 'hit@10', value: '0.96 (mock)', bar: 0.96, color: '#5a7a9a' },
-                        { label: 'MAP', value: '0.79 (mock)', bar: 0.79, color: '#5a7a9a' }
+                        { label: 'Status', value: 'Not run yet — click ⏵ above', color: '#5a7a9a' },
                       ]
                     } />
                   </StatSection>
@@ -4826,17 +4822,12 @@ function MemoryFullView() {
                 <div>
                   <StatSection icon="↓" title="Ingest Pipeline" hint="rolling 24h" color="#7efdb9">
                     <StatTable color="#7efdb9" rows={[
-                    { label: 'files ingested today', value: '14' },
-                    { label: 'records created today', value: '2,847' },
-                    { label: 'avg records / file', value: '203' },
-                    { label: 'parse + chunk', value: '890 rec/s', bar: 0.89 },
-                    { label: 'compile MIRL', value: '520 rec/s', bar: 0.52 },
-                    { label: 'embed vectors', value: '380 rec/s', bar: 0.38 },
-                    { label: 'persist SQLite', value: '312 rec/s', bar: 0.31 },
-                    { label: 'sync ledger (dedupe)', value: '7,184 entries' },
-                    { label: 'duplicates skipped today', value: '42' },
+                    { label: 'files ingested today', value: sysStats ? sysStats.docs_today.toLocaleString() : '0' },
+                    { label: 'records created today', value: sysStats ? sysStats.records_today.toLocaleString() : '0' },
+                    { label: 'avg records / file', value: sysStats && sysStats.docs_today > 0 ? Math.round(sysStats.records_today / sysStats.docs_today).toLocaleString() : '—' },
+                    { label: 'total documents', value: sysStats ? sysStats.doc_status_count.toLocaleString() : '0' },
+                    { label: 'duplicate guard', value: 'source_hash dedup', color: '#7efdb9' },
                     { label: 'parse errors', value: '0', color: '#7efdb9' },
-                    { label: 'auto-ingest active', value: 'no', color: '#5a7a9a' },
                     { label: 'chunk size', value: '512 tokens' },
                     { label: 'overlap', value: '64 tokens' }]
                     } />
@@ -4844,34 +4835,24 @@ function MemoryFullView() {
 
                   <StatSection icon="✦" title="Refinement Agent" hint="contradiction loop, drift, compaction" color="#f4d676">
                     <StatTable color="#f4d676" rows={[
-                    { label: 'passes / 24h', value: '2,847' },
-                    { label: 'records re-scored', value: '184,108' },
-                    { label: 'contradictions detected', value: '596 total' },
-                    { label: 'contradictions active', value: '3', color: '#f4d676' },
-                    { label: 'contradictions resolved', value: '593', color: '#7efdb9' },
-                    { label: 'drift compactions / 24h', value: '12' },
-                    { label: 'duplicate clusters merged', value: '1,247' },
-                    { label: 'records superseded today', value: '184' },
-                    { label: 'agent: refinement-4', value: 'active', color: '#7efdb9' },
-                    { label: 'last full pass', value: '02:14 UTC' },
-                    { label: 'avg pass duration', value: '11.4 s' }]
+                    { label: 'contradictions detected', value: sysStats ? sysStats.contradicted_count.toLocaleString() + ' total' : '0' },
+                    { label: 'records superseded', value: sysStats ? sysStats.superseded_count.toLocaleString() : '0' },
+                    { label: 'drifted vectors', value: sysStats ? sysStats.drifted_vectors.toLocaleString() : '0', color: sysStats?.drifted_vectors > 0 ? '#f4d676' : '#7efdb9' },
+                    { label: 'isolated nodes', value: sysStats ? sysStats.isolated_nodes.toLocaleString() : '0' }]
                     } />
                   </StatSection>
 
                   <StatSection icon="⏻" title="Subsystem Health" hint="daemon, runtime, REST" color="#66b8ff">
                     <StatTable color="#66b8ff" rows={[
                     { label: 'seam version', value: 'v0.1.0' },
-                    { label: 'python', value: '3.12.2' },
-                    { label: 'daemon uptime', value: '14d 06h 22m', color: '#7efdb9' },
-                    { label: 'restarts (30d)', value: '0', color: '#7efdb9' },
-                    { label: 'REST API', value: ':8765', color: '#7efdb9' },
-                    { label: 'WebSocket connections', value: '2 active' },
-                    { label: 'memory (RSS)', value: '412 MB' },
-                    { label: 'CPU (rolling)', value: '7.8%' },
-                    { label: 'open file descriptors', value: '184' },
-                    { label: 'deadlocks', value: '0', color: '#7efdb9' },
-                    { label: 'slow queries (>100ms)', value: '3', color: '#f4d676' },
-                    { label: 'last error', value: 'none in 14d', color: '#7efdb9' }]
+                    { label: 'REST API', value: 'connected', color: '#7efdb9' },
+                    { label: 'total records', value: sysStats ? sysStats.total_records.toLocaleString() : '0' },
+                    { label: 'namespaces', value: sysStats ? String(sysStats.namespaces) : '0' },
+                    { label: 'scopes', value: sysStats ? String(sysStats.scopes) : '0' },
+                    { label: 'benchmark runs', value: sysStats ? String(sysStats.benchmark_runs) : '0' },
+                    { label: 'machine artifacts', value: sysStats ? sysStats.machine_artifacts.toLocaleString() : '0' },
+                    { label: 'surface artifacts', value: sysStats ? sysStats.surface_artifacts.toLocaleString() : '0' },
+                    { label: 'pack entries', value: sysStats ? sysStats.pack_entries.toLocaleString() : '0' }]
                     } />
                   </StatSection>
                 </div>
