@@ -19,10 +19,16 @@ class SeamLocomoAdapter:
 
     name = "seam"
 
-    def __init__(self, db_path: str | None = None, budget: int = 2000) -> None:
+    def __init__(
+        self,
+        db_path: str | None = None,
+        budget: int = 2000,
+        include_evidence_closure: bool = True,
+    ) -> None:
         # TODO: default db_path should be tmp_path, not a gitignored project dir
         self._db_root = Path(db_path) if db_path is not None else Path("test_seam/locomo")
         self.budget = budget
+        self.include_evidence_closure = include_evidence_closure
 
     # ------------------------------------------------------------------
     # Protocol methods
@@ -49,10 +55,12 @@ class SeamLocomoAdapter:
         )
 
     def answer(self, scope_id: str, question: str) -> AdapterAnswer:
-        """Search the scope's memory for relevant records, pack them, and
-        return the packed text as retrieved context.
+        """Search the scope's memory and return source evidence text.
 
-        No LLM calls are made; ``generated_answer`` is always ``None``.
+        Standard LoCoMo scoring uses token overlap against retrieved context.
+        The default context pack is useful for SEAM graph inspection but elides
+        natural-language evidence into symbolic records, so this adapter follows
+        evidence/provenance and SPAN-to-RAW links before returning source text.
         """
         import time as _time
 
@@ -63,21 +71,65 @@ class SeamLocomoAdapter:
         result = rt.search_ir(question, scope="thread", budget=self.budget)
         retrieval_latency_ms = (_time.monotonic() - t0) * 1000.0
 
-        record_ids = [candidate.record.id for candidate in result.candidates]
-
-        if not record_ids:
+        if not result.candidates:
             return AdapterAnswer(
                 retrieved_context="",
                 retrieval_latency_ms=retrieval_latency_ms,
             )
 
-        pack = rt.pack_ir(record_ids, lens="general", budget=self.budget)
-        pack_dict = pack.to_dict() if hasattr(pack, "to_dict") else {}
-        retrieved_context = json.dumps(pack_dict, sort_keys=True, indent=2)
+        if self.include_evidence_closure:
+            retrieved_context = self._build_evidence_context(rt, result)
+        else:
+            record_ids = [candidate.record.id for candidate in result.candidates]
+            pack = rt.pack_ir(record_ids, lens="general", budget=self.budget)
+            pack_dict = pack.to_dict() if hasattr(pack, "to_dict") else {}
+            retrieved_context = json.dumps(pack_dict, sort_keys=True, indent=2)
+
         return AdapterAnswer(
             retrieved_context=retrieved_context,
             retrieval_latency_ms=retrieval_latency_ms,
         )
+
+    def _build_evidence_context(self, rt, result) -> str:
+        """Build a bounded text context from candidate evidence closure."""
+        closure_ids: set[str] = set()
+        for candidate in result.candidates:
+            closure_ids.add(candidate.record.id)
+            closure_ids.update(candidate.record.evidence or [])
+            closure_ids.update(candidate.record.prov or [])
+
+        if closure_ids:
+            first_batch = rt.store.load_ir(ids=list(closure_ids))
+            for record in first_batch.records:
+                if record.kind.value == "SPAN":
+                    raw_id = record.attrs.get("raw_id")
+                    if isinstance(raw_id, str) and raw_id:
+                        closure_ids.add(raw_id)
+
+        if not closure_ids:
+            return ""
+
+        batch = rt.store.load_ir(ids=sorted(closure_ids))
+        text_snippets: list[str] = []
+        seen: set[str] = set()
+        for record in batch.records:
+            if record.kind.value != "RAW":
+                continue
+            content = record.attrs.get("content")
+            if isinstance(content, str) and content and content not in seen:
+                seen.add(content)
+                text_snippets.append(content)
+
+        if text_snippets:
+            return _trim_context("\n".join(text_snippets), self.budget)
+
+        try:
+            pack = rt.pack_ir(sorted(closure_ids), lens="general", budget=self.budget, mode="exact")
+        except ValueError:
+            record_ids = [candidate.record.id for candidate in result.candidates]
+            pack = rt.pack_ir(record_ids, lens="general", budget=self.budget)
+        pack_dict = pack.to_dict() if hasattr(pack, "to_dict") else {}
+        return _trim_context(json.dumps(pack_dict, sort_keys=True, indent=2), self.budget)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -114,3 +166,9 @@ def _remove_db_files(db_path: Path) -> None:
         sidecar = db_path.with_name(db_path.name + suffix)
         if sidecar.exists():
             sidecar.unlink()
+
+
+def _trim_context(text: str, budget: int) -> str:
+    if budget <= 0 or len(text) <= budget:
+        return text
+    return text[:budget]

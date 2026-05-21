@@ -206,6 +206,148 @@ def verify_benchmark_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def validate_publication_readiness(
+    result: dict[str, Any],
+    *,
+    git_sha: str = "",
+    fixture_hash: str = "",
+    dataset_name: str = "",
+    bil_verification: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Check whether a benchmark result is ready for competitive publication.
+
+    A result is publication-ready only when ALL of:
+    - judge is non-stub
+    - dataset name and fixture hash are provided
+    - git SHA is provided
+    - adapter name is present in the result
+    - per-category metrics present (when categories exist in cases)
+    - BIL-2 verification passes
+
+    Stub-judge results are REFUSED for publication regardless of BIL level.
+    """
+    checks: list[dict[str, Any]] = []
+    cases = result.get("cases") or []
+
+    # Judge must be non-stub
+    judge_names: set[str] = set()
+    for case in cases:
+        j = case.get("judge")
+        if isinstance(j, dict):
+            jn = j.get("judge_name", "")
+            if jn:
+                judge_names.add(jn)
+    stub_judge = "stub" in judge_names or "stub-informational-only" in judge_names
+    if stub_judge:
+        checks.append({
+            "id": "judge_non_stub",
+            "status": "FAIL",
+            "message": "stub judge results cannot be published as competitive claims",
+        })
+    elif not judge_names:
+        checks.append({
+            "id": "judge_present",
+            "status": "FAIL",
+            "message": "no judge present in result; real judge required for publication",
+        })
+    else:
+        checks.append({"id": "judge_non_stub", "status": "PASS", "message": ""})
+
+    # Dataset and fixture hash
+    if not dataset_name:
+        checks.append({
+            "id": "dataset_named",
+            "status": "FAIL",
+            "message": "dataset name is required for publication",
+        })
+    else:
+        checks.append({"id": "dataset_named", "status": "PASS", "message": ""})
+    if not fixture_hash:
+        checks.append({
+            "id": "fixture_hash_present",
+            "status": "FAIL",
+            "message": "fixture hash is required for publication",
+        })
+    else:
+        checks.append({"id": "fixture_hash_present", "status": "PASS", "message": ""})
+
+    # Git SHA
+    if not git_sha:
+        checks.append({
+            "id": "git_sha_present",
+            "status": "FAIL",
+            "message": "git SHA is required for publication",
+        })
+    else:
+        checks.append({"id": "git_sha_present", "status": "PASS", "message": ""})
+
+    # Adapter name
+    adapter = result.get("adapter")
+    if not adapter:
+        checks.append({
+            "id": "adapter_named",
+            "status": "FAIL",
+            "message": "adapter name is required for publication",
+        })
+    else:
+        checks.append({"id": "adapter_named", "status": "PASS", "message": ""})
+
+    # Per-category metrics (when categories present in cases)
+    categories_present = {c.get("category") for c in cases if c.get("category")}
+    if categories_present:
+        per_category_data = (
+            result.get("per_category")
+            or (result.get("scores") or {}).get("per_category")
+            or (result.get("scores") or {}).get("category_breakdown")
+        )
+        if per_category_data:
+            checks.append({"id": "per_category_metrics", "status": "PASS", "message": ""})
+        else:
+            checks.append({
+                "id": "per_category_metrics",
+                "status": "WARN",
+                "message": (
+                    f"cases have categories ({sorted(categories_present)}) but no "
+                    f"per-category score aggregation present; runner should compute breakdown"
+                ),
+            })
+    else:
+        checks.append({"id": "per_category_metrics", "status": "PASS", "message": "no categories present; skipped"})
+
+    if not isinstance(bil_verification, dict):
+        checks.append({
+            "id": "bil2_verified",
+            "status": "FAIL",
+            "message": "passing BIL-2 verification is required for publication",
+        })
+    else:
+        bil = bil_verification.get("bil") if isinstance(bil_verification.get("bil"), dict) else {}
+        status = bil_verification.get("status")
+        level = bil.get("level")
+        if status == "PASS" and level == "BIL-2":
+            checks.append({"id": "bil2_verified", "status": "PASS", "message": ""})
+        else:
+            checks.append({
+                "id": "bil2_verified",
+                "status": "FAIL",
+                "message": f"BIL-2 verification must PASS; got status={status!r}, level={level!r}",
+            })
+
+    ready = all(c["status"] in ("PASS", "WARN") for c in checks)
+    return {
+        "version": "SEAM-PUBLICATION-READINESS/1",
+        "ready": ready,
+        "checks": checks,
+        "summary": {
+            "total": len(checks),
+            "passed": sum(1 for c in checks if c["status"] == "PASS"),
+            "warned": sum(1 for c in checks if c["status"] == "WARN"),
+            "failed": sum(1 for c in checks if c["status"] == "FAIL"),
+        },
+        "publication_blocked_by": [c["id"] for c in checks if c["status"] == "FAIL"],
+    }
+
+
 def inspect_benchmark_integrity(payload: dict[str, Any]) -> dict[str, Any]:
     if payload.get("version") == BUNDLE_VERSION:
         verification = verify_benchmark_bundle(payload)

@@ -1,6 +1,6 @@
 # SEAM Repo Ledger
 
-Last updated: 2026-05-16
+Last updated: 2026-05-21
 
 This ledger is the stable engineering memory for repo-level decisions only.
 Detailed session history, milestones, and plan transitions now live in `HISTORY.md`
@@ -67,6 +67,10 @@ and `HISTORY_INDEX.md`.
 - Holographic surfaces are queryable visual containers for embedded MIRL or `SEAM-RC/1`; they are not a replacement for SQLite canonical truth and are not a claim of free compression.
 - `seam surface compile` is the default source-to-surface operator flow: compile source text into MIRL, then encode MIRL into `SEAM-HS/1` with `rgb24` unless a denser mode is explicitly requested.
 - Benchmark claims must be auditable (bundle hash, case hashes, fixture hashes, git SHA), diffed against a prior run, pass the benchmark gate, and stay separated from publish-only holdout runs.
+- External memory benchmark claims require a non-stub judge plus passing BIL-2
+  bundle verification before `validate_publication_readiness` can return
+  publication-ready. Stub judge output is smoke-only even when it can be sealed
+  with an explicit test override.
 - Benchmark evidence proves SEAM value but never expands license rights; hosted,
   SaaS, commercial, embedded, redistribution, customer-deployment, or
   closed-source use still requires a separate written commercial license.

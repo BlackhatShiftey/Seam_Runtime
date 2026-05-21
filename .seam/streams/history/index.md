@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 219
-total_tokens: ~49668
-latest_id: 219
+total_entries: 220
+total_tokens: ~50428
+latest_id: 220
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,7 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 220 | 2026-05-21 | done | a230b025f5642aa4 | benchmark,audit,verify,pgvector,+ | 219 |
 | 219 | 2026-05-20 | done | a514a61534acd62a | audit,verify,pgvector,test,+ | 218 |
 | 218 | 2026-05-20 | done | bbeb7960b6271bcc | security,audit,verify,mcp,+ | 217 |
 | 217 | 2026-05-20 | done | 7eab930807fea085 | benchmark,audit,verify,command,+ | 216 |
@@ -236,15 +237,15 @@ compact: true
 - alias: count=2 latest=#033, #002
 - animation: count=4 latest=#068, #052, #032, #028
 - atomicity: count=1 latest=#182
-- audit: count=52 latest=#219, #218, #217, #216, #215
-- benchmark: count=59 latest=#219, #217, #216, #215, #214
+- audit: count=53 latest=#220, #219, #218, #217, #216
+- benchmark: count=60 latest=#220, #219, #217, #216, #215
 - bundle: count=2 latest=#015, #008
 - chat: count=14 latest=#137, #074, #073, #072, #071
 - chroma: count=2 latest=#017, #001
 - ci: count=2 latest=#211, #191
 - classification: count=11 latest=#177, #176, #171, #170, #169
 - codec: count=13 latest=#132, #131, #130, #129, #128
-- command: count=62 latest=#217, #216, #215, #190, #189
+- command: count=63 latest=#220, #217, #216, #215, #190
 - compile: count=13 latest=#154, #047, #046, #043, #042
 - compress: count=26 latest=#145, #144, #132, #131, #130
 - concepts: count=1 latest=#180
@@ -252,7 +253,7 @@ compact: true
 - dashboard: count=64 latest=#218, #204, #203, #197, #163
 - diff: count=4 latest=#153, #093, #092, #037
 - docker: count=3 latest=#149, #085, #084
-- docs: count=15 latest=#219, #217, #216, #215, #214
+- docs: count=16 latest=#220, #219, #217, #216, #215
 - doctor: count=8 latest=#170, #169, #140, #139, #138
 - extras: count=1 latest=#022
 - fixture: count=5 latest=#187, #145, #092, #039, #008
@@ -260,7 +261,7 @@ compact: true
 - graph: count=2 latest=#099, #030
 - handoff: count=7 latest=#190, #186, #176, #136, #135
 - harden: count=1 latest=#182
-- history: count=152 latest=#219, #218, #217, #216, #215
+- history: count=153 latest=#220, #219, #218, #217, #216
 - holdout: count=4 latest=#152, #093, #092, #036
 - installer: count=13 latest=#204, #177, #173, #169, #100
 - integrity: count=7 latest=#218, #209, #133, #103, #102
@@ -278,7 +279,7 @@ compact: true
 - operator: count=1 latest=#179
 - pack: count=2 latest=#218, #183
 - persist: count=23 latest=#218, #213, #212, #199, #181
-- pgvector: count=22 latest=#219, #212, #211, #179, #149
+- pgvector: count=23 latest=#220, #219, #212, #211, #179
 - plan: count=13 latest=#214, #180, #176, #171, #170
 - protocol: count=60 latest=#218, #213, #210, #208, #205
 - pyproject: count=4 latest=#094, #051, #049, #022
@@ -293,10 +294,10 @@ compact: true
 - salvage: count=1 latest=#179
 - sbert: count=3 latest=#023, #022, #011
 - search: count=13 latest=#181, #154, #088, #077, #047
-- security: count=16 latest=#218, #217, #215, #214, #210
+- security: count=17 latest=#220, #218, #217, #215, #214
 - session: count=3 latest=#027, #025, #019
 - snapshot: count=105 latest=#166, #164, #156, #155, #150
-- status: count=82 latest=#219, #217, #215, #207, #203
+- status: count=83 latest=#220, #219, #217, #215, #207
 - storage: count=1 latest=#182
 - streams: count=7 latest=#216, #210, #209, #202, #201
 - surface: count=3 latest=#218, #208, #145
@@ -305,13 +306,13 @@ compact: true
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tokenizer: count=1 latest=#216
 - tui: count=25 latest=#137, #121, #120, #119, #118
-- vector: count=22 latest=#218, #199, #182, #181, #099
-- verify: count=153 latest=#219, #218, #217, #216, #215
+- vector: count=23 latest=#220, #218, #199, #182, #181
+- verify: count=154 latest=#220, #219, #218, #217, #216
 - windows: count=12 latest=#125, #123, #091, #084, #083
 - wsl2: count=1 latest=#021
 
 ## status rollup
 
 - roots: 66
-- done: 199
+- done: 200
 - planned: 20

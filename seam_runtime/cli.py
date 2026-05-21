@@ -405,6 +405,7 @@ def build_parser() -> argparse.ArgumentParser:
         "external",
         help="Run or plan external memory benchmarks (LoCoMo, MemBench, etc.)",
     )
+    bench_external_parser.add_argument("target", nargs="?", choices=["locomo", "longmemeval", "beam"], help="Run a specific external benchmark")
     bench_external_parser.add_argument("--scope", default="required", help="required, all, or a single benchmark id")
     bench_external_parser.add_argument("--plan", action="store_true", help="Print the configured/missing runner plan and exit 0")
     bench_external_parser.add_argument("--strict", action="store_true", help="Fail when required runners are NOT_CONFIGURED")
@@ -415,6 +416,10 @@ def build_parser() -> argparse.ArgumentParser:
     bench_external_parser.add_argument("--adapter", choices=["seam", "mem0", "zep"], default="seam", help="Memory system under test")
     bench_external_parser.add_argument("--judge", choices=["none", "stub", "claude", "openai"], default=None, help="LLM judge in addition to string-match scoring")
     bench_external_parser.add_argument("--judge-model", default=None, help="Override the default judge model id")
+    bench_external_parser.add_argument("--dataset-path", help="Local dataset path for locomo, longmemeval, or beam")
+    bench_external_parser.add_argument("--dry-run", action="store_true", help="Validate external benchmark inputs without full execution")
+    bench_external_parser.add_argument("--track", choices=["1m", "10m"], default="1m", help="BEAM track")
+    bench_external_parser.add_argument("--limit", type=int, default=None, help="Limit external benchmark cases where supported")
 
     bench_seal_parser = bench_subparsers.add_parser("seal", help="Seal a benchmark result as a BIL bundle")
     bench_seal_parser.add_argument("result", help="Benchmark result JSON path")
@@ -700,6 +705,41 @@ def run_cli(argv: list[str] | None = None) -> None:
         return
 
     if args.command == "bench" and args.bench_command == "external":
+        if args.target:
+            cmd: list[str]
+            if args.target == "locomo":
+                cmd = [sys.executable, "-m", "benchmarks.external.locomo.run"]
+                if args.dataset_path:
+                    cmd.extend(["--dataset-path", args.dataset_path])
+                else:
+                    raise SystemExit("locomo requires --dataset-path for explicit benchmark runs")
+                if args.adapter:
+                    cmd.extend(["--adapter", args.adapter])
+                if args.limit is not None:
+                    cmd.extend(["--limit", str(args.limit)])
+            elif args.target == "longmemeval":
+                if not args.dataset_path:
+                    raise SystemExit("longmemeval requires --dataset-path")
+                cmd = [sys.executable, "-m", "benchmarks.external.longmemeval.run", "--dataset-path", args.dataset_path]
+            elif args.target == "beam":
+                if not args.dataset_path:
+                    raise SystemExit("beam requires --dataset-path")
+                cmd = [
+                    sys.executable, "-m", "benchmarks.external.beam.run",
+                    "--track", args.track, "--dataset-path", args.dataset_path,
+                ]
+            else:
+                raise SystemExit(f"Unknown external benchmark target: {args.target!r}")
+            if args.dry_run:
+                cmd.append("--dry-run")
+            if args.output:
+                cmd.extend(["--output", args.output])
+            if args.judge:
+                cmd.extend(["--judge", args.judge])
+            if args.judge_model:
+                cmd.extend(["--judge-model", args.judge_model])
+            result = subprocess.run(cmd, check=False)
+            raise SystemExit(result.returncode)
         if args.quickstart:
             if args.quickstart == "locomo":
                 cmd = [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart"]
@@ -1777,6 +1817,5 @@ def _record_signal(record: dict[str, object]) -> str:
     if "target" in attrs:
         return f"target={attrs.get('target')}"
     return ""
-
 
 

@@ -1,0 +1,104 @@
+"""Tests for full LoCoMo dataset routing and dry-run validation."""
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+
+QUICKSTART_PATH = Path(__file__).resolve().parent.parent.parent / "benchmarks" / "external" / "locomo" / "fixtures" / "quickstart.json"
+
+
+class TestLoCoMoFullDatasetRouting:
+    def test_quickstart_dry_run_validates_categories(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart", "--dry-run"],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, f"Dry-run failed: {result.stderr}"
+        report = json.loads(result.stdout)
+        assert report["mode"] == "dry-run"
+        assert report["case_count"] == 10
+        assert report["valid"] is True  # quickstart uses numeric synthetic categories
+        fh = report["fixture_hash"]
+        assert isinstance(fh, str) and len(fh) == 64
+        # Numeric synthetic categories (1, 2) should not produce validation errors
+        assert len(report["validation_issues"]) == 0
+
+    def test_dry_run_reports_fixture_hash(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart", "--dry-run"],
+            capture_output=True, text=True, timeout=30,
+        )
+        report = json.loads(result.stdout)
+        fh1 = report["fixture_hash"]
+        result2 = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart", "--dry-run"],
+            capture_output=True, text=True, timeout=30,
+        )
+        report2 = json.loads(result2.stdout)
+        assert fh1 == report2["fixture_hash"], "Fixture hash should be deterministic"
+
+    def test_dry_run_reports_category_counts(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart", "--dry-run"],
+            capture_output=True, text=True, timeout=30,
+        )
+        report = json.loads(result.stdout)
+        cats = report["categories"]
+        assert len(cats) > 0, "Expected category breakdown"
+        total = sum(cats.values())
+        assert total == report["case_count"]
+
+    def test_missing_dataset_path_errors_cleanly(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run", "--dataset-path", "/nonexistent/path/locomo.json", "--dry-run"],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode != 0
+        assert "not found" in result.stderr.lower()
+
+    def test_dry_run_estimates_judge_calls(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart", "--dry-run", "--judge", "stub"],
+            capture_output=True, text=True, timeout=30,
+        )
+        report = json.loads(result.stdout)
+        assert report["estimated_judge_calls"] == 0  # stub judge is not counted
+
+    def test_dry_run_outputs_valid_json(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart", "--dry-run"],
+            capture_output=True, text=True, timeout=30,
+        )
+        report = json.loads(result.stdout)
+        required_keys = ["dataset_path", "case_count", "categories", "fixture_hash", "mode"]
+        for key in required_keys:
+            assert key in report, f"Missing key: {key}"
+
+    def test_full_dataset_json_validation(self):
+        """Validate that the quickstart fixture passes category checks when used as --dataset-path."""
+        result = subprocess.run(
+            [sys.executable, "-m", "benchmarks.external.locomo.run",
+             "--dataset-path", str(QUICKSTART_PATH), "--dry-run"],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, f"Dry-run via --dataset-path failed: {result.stderr}"
+        report = json.loads(result.stdout)
+        assert report["case_count"] == 10
+        # Synthetic numeric categories accepted; no validation errors
+        assert len(report["validation_issues"]) == 0
+
+    def test_seam_cli_routes_locomo_dataset_dry_run(self):
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "seam", "bench", "external", "locomo",
+                "--dataset-path", str(QUICKSTART_PATH), "--dry-run", "--format", "json",
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        report = json.loads(result.stdout)
+        assert report["mode"] == "dry-run"
+        assert report["case_count"] == 10

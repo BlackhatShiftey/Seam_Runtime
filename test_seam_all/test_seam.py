@@ -3673,6 +3673,11 @@ class _FakePgCursor:
             if "information_schema.columns" in sql_lower:
                 self._rows = [("source_hash",)]
                 return
+            if "pg_get_constraintdef" in sql_lower or "pg_constraint" in sql_lower:
+                # Migration check: report composite PK already present so
+                # no ALTER TABLE runs against the fake store.
+                self._rows = [("PRIMARY KEY (record_id, model_name)",)]
+                return
             if "source_hash, dimension" in sql_lower:
                 record_id, model_name = params
                 entry = self._store.get(record_id)

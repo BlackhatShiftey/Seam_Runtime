@@ -86,7 +86,29 @@ class PgVectorAdapter:
                 if cursor.fetchone() is None:
                     cursor.execute(f"alter table {self.table_name} add column source_hash text not null default ''")
                 cursor.execute(f"create index if not exists {self.table_name}_model_name_idx on {self.table_name} (model_name)")
+                self._migrate_composite_pk(cursor)
             connection.commit()
+
+    def _migrate_composite_pk(self, cursor) -> None:
+        """Idempotent: upgrade single-column PK (record_id) to composite (record_id, model_name)."""
+        cursor.execute(
+            """
+            select pg_get_constraintdef(c.oid)
+            from pg_constraint c
+            join pg_class t on c.conrelid = t.oid
+            where t.relname = %s and c.contype = 'p'
+            """,
+            (self.table_name,),
+        )
+        pk_row = cursor.fetchone()
+        if pk_row is None:
+            return
+        pk_def = pk_row[0]
+        if "record_id" in pk_def and "model_name" not in pk_def:
+            cursor.execute(f"alter table {self.table_name} drop constraint if exists {self.table_name}_pkey")
+            cursor.execute(
+                f"alter table {self.table_name} add primary key (record_id, model_name)"
+            )
 
     def index_records(self, records: list[MIRLRecord]) -> None:
         _validate_table_name(self.table_name)

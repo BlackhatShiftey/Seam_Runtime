@@ -18,24 +18,74 @@ to set before invocation.
 The `--plan` step is always safe (no side effects) and lets you validate wiring
 before any work runs.
 
-## LoCoMo quickstart
+## LoCoMo
+
+### Quickstart
 
 ```bash
-seam bench external --quickstart locomo
+seam bench external --quickstart locomo --adapter seam --judge stub
 ```
 
 Runs a bundled 10-case synthetic fixture against the SEAM adapter using
 string-match scoring (EM, token F1, context recall). Completes in under
 60 seconds with no network access and no dataset download required.
 
-The full LoCoMo dataset (`snap-research/locomo` on HuggingFace) can be run
-with:
+### Full dataset dry-run
 
 ```bash
-seam bench external locomo --dataset /path/to/locomo.json
+seam bench external locomo \
+    --dataset-path /path/to/locomo.json --dry-run --format json
 ```
 
-## Where adapters go
+Validates dataset shape, prints case/category counts and fixture hash
+without executing the adapter or judge.
+
+### Full run
+
+```bash
+seam bench external locomo \
+    --dataset-path /path/to/locomo.json --adapter seam --judge claude --output run.json
+```
+
+The full LoCoMo dataset (`snap-research/locomo` on HuggingFace) is required.
+Stub judge results are smoke-only; publication requires a real judge.
+
+## LongMemEval
+
+```bash
+seam bench external longmemeval \
+    --dataset-path /path/to/longmemeval.json --dry-run --format json
+```
+
+500 questions, 5 categories (information extraction, multi-session reasoning,
+temporal reasoning, knowledge updates, abstention). Dry-run validates dataset
+shape and reports expected totals.
+
+## BEAM
+
+```bash
+seam bench external beam \
+    --track 1m --dataset-path /path/to/beam-dataset-dir --dry-run --format json
+```
+
+BEAM-1M: 100 conversations, 2,000 probing questions. BEAM-10M is explicitly
+deferred and blocked by the runner.
+
+## mem0 harness adapter
+
+```bash
+.venv/bin/python -m benchmarks.external.mem0_harness.adapter --dry-run
+```
+
+SEAM adapter for the `mem0ai/memory-benchmarks` harness. See
+`benchmarks/external/mem0_harness/README.md` for setup instructions.
+
+## Publication gate
+
+Stub-judge results are refused for competitive publication. The publication
+gate (`seam_runtime.benchmark_integrity.validate_publication_readiness`)
+requires: non-stub judge, dataset name, fixture hash, git SHA, adapter name,
+and BIL-2 verification. See `tests/audit/test_track_m_publication_gate.py`.
 
 ## Judges
 
