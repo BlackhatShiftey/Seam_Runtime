@@ -121,8 +121,8 @@ def _format_messages(messages: list[dict[str, str]]) -> str:
 def _remove_db_files(db_path: Path) -> None:
     if db_path.exists():
         db_path.unlink()
-    for suffix in (".db-wal", ".db-shm"):
-        sidecar = db_path.with_name(db_path.name + suffix)
+    for suffix in ("-wal", "-shm"):
+        sidecar = Path(str(db_path) + suffix)
         if sidecar.exists():
             sidecar.unlink()
 

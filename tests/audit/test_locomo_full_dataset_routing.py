@@ -171,6 +171,32 @@ class TestLoCoMoFullDatasetRouting:
         assert report["case_count"] == 1
         assert report["valid"] is True
 
+    def test_official_locomo_scalar_answers_are_normalized_to_strings(self, tmp_path):
+        from benchmarks.external.common.dataset import load_locomo_cases
+
+        dataset_path = tmp_path / "locomo-scalar-answer.json"
+        dataset_path.write_text(json.dumps([
+            {
+                "sample_id": "sample-1",
+                "conversation": {
+                    "session_1": [
+                        {"speaker": "Caroline", "text": "I have visited Paris 3 times."},
+                    ],
+                },
+                "qa": [
+                    {
+                        "question": "How many times has Caroline visited Paris?",
+                        "answer": 3,
+                        "category": 2,
+                    },
+                ],
+            }
+        ]), encoding="utf-8")
+
+        cases = load_locomo_cases(dataset_path)
+
+        assert cases[0].gold_answer == "3"
+
     def test_seam_cli_routes_locomo_dataset_dry_run(self):
         result = subprocess.run(
             [

@@ -123,3 +123,34 @@ class TestLongMemEvalRouting:
             assert report["valid"] is False
         finally:
             Path(tmp_path).unlink(missing_ok=True)
+
+    def test_official_cleaned_shape_parses_question_records(self):
+        from benchmarks.external.longmemeval.run import _load_longmemeval_cases
+
+        dataset = [
+            {
+                "question_id": "q-1",
+                "question_type": "temporal-reasoning",
+                "question": "What happened first?",
+                "answer": "The car service",
+                "haystack_dates": ["2023/04/10 (Mon) 17:50"],
+                "haystack_sessions": [[
+                    {"role": "user", "content": "I got my car serviced first."},
+                    {"role": "assistant", "content": "Good to hear."},
+                ]],
+            }
+        ]
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(dataset, f)
+            tmp_path = f.name
+
+        try:
+            cases = _load_longmemeval_cases(tmp_path)
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+        assert len(cases) == 1
+        assert cases[0].case_id == "q-1"
+        assert cases[0].category == "temporal-reasoning"
+        assert cases[0].gold_answer == "The car service"
+        assert cases[0].conversation[0].speaker == "user"

@@ -274,8 +274,8 @@ def _remove_db_files(db_path: Path) -> None:
     """Remove a SQLite database file and any WAL / SHM sidecars."""
     if db_path.exists():
         db_path.unlink()
-    for suffix in (".db-wal", ".db-shm"):
-        sidecar = db_path.with_name(db_path.name + suffix)
+    for suffix in ("-wal", "-shm"):
+        sidecar = Path(str(db_path) + suffix)
         if sidecar.exists():
             sidecar.unlink()
 

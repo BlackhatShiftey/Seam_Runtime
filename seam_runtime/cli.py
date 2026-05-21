@@ -420,6 +420,7 @@ def build_parser() -> argparse.ArgumentParser:
     bench_external_parser.add_argument("--dry-run", action="store_true", help="Validate external benchmark inputs without full execution")
     bench_external_parser.add_argument("--track", choices=["1m", "10m"], default="1m", help="BEAM track")
     bench_external_parser.add_argument("--limit", type=int, default=None, help="Limit external benchmark cases where supported")
+    bench_external_parser.add_argument("--workers", type=int, default=1, help="Parallel case workers where supported")
 
     bench_seal_parser = bench_subparsers.add_parser("seal", help="Seal a benchmark result as a BIL bundle")
     bench_seal_parser.add_argument("result", help="Benchmark result JSON path")
@@ -717,10 +718,18 @@ def run_cli(argv: list[str] | None = None) -> None:
                     cmd.extend(["--adapter", args.adapter])
                 if args.limit is not None:
                     cmd.extend(["--limit", str(args.limit)])
+                if args.workers is not None:
+                    cmd.extend(["--workers", str(args.workers)])
             elif args.target == "longmemeval":
                 if not args.dataset_path:
                     raise SystemExit("longmemeval requires --dataset-path")
                 cmd = [sys.executable, "-m", "benchmarks.external.longmemeval.run", "--dataset-path", args.dataset_path]
+                if args.adapter:
+                    cmd.extend(["--adapter", args.adapter])
+                if args.limit is not None:
+                    cmd.extend(["--limit", str(args.limit)])
+                if args.workers is not None:
+                    cmd.extend(["--workers", str(args.workers)])
             elif args.target == "beam":
                 if not args.dataset_path:
                     raise SystemExit("beam requires --dataset-path")
@@ -728,6 +737,12 @@ def run_cli(argv: list[str] | None = None) -> None:
                     sys.executable, "-m", "benchmarks.external.beam.run",
                     "--track", args.track, "--dataset-path", args.dataset_path,
                 ]
+                if args.adapter:
+                    cmd.extend(["--adapter", args.adapter])
+                if args.limit is not None:
+                    cmd.extend(["--limit", str(args.limit)])
+                if args.workers is not None:
+                    cmd.extend(["--workers", str(args.workers)])
             else:
                 raise SystemExit(f"Unknown external benchmark target: {args.target!r}")
             if args.dry_run:
@@ -751,6 +766,8 @@ def run_cli(argv: list[str] | None = None) -> None:
                     cmd.extend(["--judge", args.judge])
                 if args.judge_model:
                     cmd.extend(["--judge-model", args.judge_model])
+                if args.workers is not None:
+                    cmd.extend(["--workers", str(args.workers)])
                 result = subprocess.run(cmd, check=False)
                 raise SystemExit(result.returncode)
             raise SystemExit(f"Unknown quickstart target: {args.quickstart!r}")
@@ -1817,5 +1834,3 @@ def _record_signal(record: dict[str, object]) -> str:
     if "target" in attrs:
         return f"target={attrs.get('target')}"
     return ""
-
-

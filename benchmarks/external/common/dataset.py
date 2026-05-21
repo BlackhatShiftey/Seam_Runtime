@@ -12,6 +12,12 @@ QUICKSTART_FIXTURE_PATH = (
 )
 
 
+def _coerce_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value)
+
+
 def load_locomo_cases(path: str | Path) -> list[BenchmarkCase]:
     """Parse a LoCoMo JSON file into BenchmarkCase records.
 
@@ -48,8 +54,8 @@ def load_locomo_cases(path: str | Path) -> list[BenchmarkCase]:
             if "answer" not in qa:
                 continue
             case_id = f"{sample_id}::q{qa_index}"
-            question = qa["question"]
-            gold_answer = qa["answer"]
+            question = _coerce_text(qa["question"])
+            gold_answer = _coerce_text(qa["answer"])
             # category may be absent, an int, or a str
             raw_category = qa.get("category")
             category: str | None = (
