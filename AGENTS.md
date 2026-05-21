@@ -29,7 +29,11 @@ If state changed:
 4. Run `python -m tools.history.verify_continuity` and `python -m tools.streams.verify_streams`.
 5. If `ROADMAP.md` changed: rerun `python -m tools.streams.roadmap_parser` to refresh the roadmap stream + state view; if any stream changed: rerun `python -m tools.streams.rebuild_cross_index` to refresh the derived global timeline.
 
-Use `tools/history/*` scripts for the canonical history protocol and `tools/streams/*` scripts for the multi-stream substrate (history mirror, roadmap, experience, cross-index).
+If you created a git worktree during the session: finish it. Either commit, push, and `git worktree remove` it, or remove the worktree even if abandoning the work. Never leave a dirty worktree on a stale base for the next agent to find — that pattern caused real regressions before (see HISTORY#223 worktree triage).
+
+If you created a working branch: push it if the work is real, delete it locally if the work is fully merged. Stale branches accumulate across multi-agent sessions and look like active work to the next agent.
+
+Use `tools/history/*` scripts for the canonical history protocol and `tools/streams/*` scripts for the multi-stream substrate (history mirror, roadmap, experience, cross-index). Run `python -m tools.git.scan_stale_branches` on-demand to audit branch health; the repo has `delete_branch_on_merge` enabled on GitHub so merged PR branches auto-delete.
 
 ## Context Loop
 
