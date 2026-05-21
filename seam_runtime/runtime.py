@@ -120,10 +120,20 @@ class SeamRuntime:
         return persist_report
 
     def search_ir(self, query: str, lens: str = "general", scope: str | None = None, budget: int = 5, include_raw: bool = False) -> SearchResult:
+        from .bm25 import BM25Index
+
         batch = self.store.load_ir(scope=scope)
         vector_scores = self.vector_adapter.search(query, limit=max(budget * 3, 10))
         namespace = batch.records[0].ns if batch.records else None
-        return search_batch(batch, query=query, scope=scope, limit=max(1, budget), vector_scores=vector_scores, namespace=namespace, include_raw=include_raw)
+        bm25 = None
+        if include_raw:
+            bm25 = BM25Index()
+            for record in batch.records:
+                if record.kind == RecordKind.RAW:
+                    content = record.attrs.get("content")
+                    if isinstance(content, str) and content:
+                        bm25.add(record.id, content)
+        return search_batch(batch, query=query, scope=scope, limit=max(1, budget), vector_scores=vector_scores, namespace=namespace, include_raw=include_raw, bm25_index=bm25)
 
     def ingest_conversation_turn(
         self,

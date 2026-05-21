@@ -4,11 +4,12 @@ import re
 from collections import Counter, defaultdict
 from typing import Iterable
 
+from .bm25 import BM25Index
 from .mirl import IRBatch, MIRLRecord, RecordKind, SearchCandidate, SearchResult, cosine_similarity, iter_textual_fields
 from .symbols import build_symbol_maps
 
 
-def search_batch(batch: IRBatch, query: str, scope: str | None = None, limit: int = 5, vector_scores: dict[str, float] | None = None, namespace: str | None = None, include_raw: bool = False) -> SearchResult:
+def search_batch(batch: IRBatch, query: str, scope: str | None = None, limit: int = 5, vector_scores: dict[str, float] | None = None, namespace: str | None = None, include_raw: bool = False, bm25_index: BM25Index | None = None) -> SearchResult:
     _, symbol_to_expansion = build_symbol_maps(batch.records, namespace=namespace)
     expanded_query = _expand_query(query, symbol_to_expansion)
     tokens = _tokens(expanded_query)
@@ -22,10 +23,14 @@ def search_batch(batch: IRBatch, query: str, scope: str | None = None, limit: in
     candidate_kinds = {RecordKind.CLM, RecordKind.STA, RecordKind.EVT, RecordKind.REL}
     if include_raw:
         candidate_kinds = candidate_kinds | {RecordKind.RAW}
+    bm25_scores: dict[str, float] = bm25_index.score(query) if bm25_index else {}
+    max_bm25 = max(bm25_scores.values()) if bm25_scores else 1.0
     for record in records:
         if record.kind not in candidate_kinds:
             continue
         lexical = _lexical_score(record, tokens)
+        if record.kind == RecordKind.RAW and record.id in bm25_scores:
+            lexical = max(lexical, bm25_scores[record.id] / max(max_bm25, 1.0))
         semantic = vector_scores.get(record.id, _semantic_score(record, query_vector))
         graph_bonus = _graph_score(record, tokens, graph)
         temporal = _temporal_score(record)
