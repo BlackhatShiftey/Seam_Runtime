@@ -28,12 +28,16 @@ from benchmarks.external.common.runner import (
 )
 
 
-def build_adapter(name: str, answerer: str | None = None, answerer_model: str | None = None):
+def build_adapter(name: str, answerer: str | None = None, answerer_model: str | None = None, decomposer: str | None = None, decomposer_model: str | None = None, decomposer_max_subq: int = 3):
     """Lazy-import factory so SEAM-only runs don't require Mem0/Zep installed."""
     if name == "seam":
         from benchmarks.external.locomo.adapters.seam import SeamLocomoAdapter
 
-        return SeamLocomoAdapter(answerer=answerer, answerer_model=answerer_model)
+        return SeamLocomoAdapter(
+            answerer=answerer, answerer_model=answerer_model,
+            decomposer=decomposer, decomposer_model=decomposer_model,
+            decomposer_max_subq=decomposer_max_subq,
+        )
     if name == "mem0":
         from benchmarks.external.locomo.adapters.mem0 import Mem0LocomoAdapter
 
@@ -186,6 +190,23 @@ def main() -> None:
         default=None,
         help="Override the default cross-check judge model id",
     )
+    parser.add_argument(
+        "--decomposer",
+        choices=["none", "openai", "claude"],
+        default="none",
+        help="Decompose multi-hop questions into sub-questions (default: none)",
+    )
+    parser.add_argument(
+        "--decomposer-model",
+        default=None,
+        help="Override the default decomposer model id",
+    )
+    parser.add_argument(
+        "--decomposer-max-subq",
+        type=int,
+        default=3,
+        help="Max sub-questions for decomposition (default: 3)",
+    )
     args = parser.parse_args()
 
     dataset_path = args.dataset_path or args.dataset
@@ -220,12 +241,17 @@ def main() -> None:
         raise SystemExit(0 if report["valid"] else 1)
 
     answerer = None if args.answerer == "none" else args.answerer
+    decomposer = None if args.decomposer == "none" else args.decomposer
     judge_cross = build_judge(args.judge_cross, model=args.judge_cross_model) if args.judge_cross != "none" else None
 
     # Run benchmark
     if args.workers > 1:
         report = run_benchmark_grouped_parallel(
-            adapter_factory=lambda: build_adapter(args.adapter, answerer=answerer, answerer_model=args.answerer_model),
+            adapter_factory=lambda: build_adapter(
+                args.adapter, answerer=answerer, answerer_model=args.answerer_model,
+                decomposer=decomposer, decomposer_model=args.decomposer_model,
+                decomposer_max_subq=args.decomposer_max_subq,
+            ),
             adapter_name=args.adapter,
             cases=cases,
             scope_id=_locomo_scope_id,
@@ -238,7 +264,11 @@ def main() -> None:
             workers=args.workers,
         )
     else:
-        adapter = build_adapter(args.adapter, answerer=answerer, answerer_model=args.answerer_model)
+        adapter = build_adapter(
+            args.adapter, answerer=answerer, answerer_model=args.answerer_model,
+            decomposer=decomposer, decomposer_model=args.decomposer_model,
+            decomposer_max_subq=args.decomposer_max_subq,
+        )
         judge = build_judge(args.judge, model=args.judge_model)
         report = run_benchmark_grouped(
             adapter=adapter,

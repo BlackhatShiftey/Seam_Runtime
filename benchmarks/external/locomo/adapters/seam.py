@@ -29,6 +29,9 @@ class SeamLocomoAdapter:
         include_evidence_closure: bool = True,
         answerer: str | None = None,
         answerer_model: str | None = None,
+        decomposer: str | None = None,
+        decomposer_model: str | None = None,
+        decomposer_max_subq: int = 3,
     ) -> None:
         # TODO: default db_path should be tmp_path, not a gitignored project dir
         self._db_root = Path(db_path) if db_path is not None else Path("test_seam/locomo")
@@ -36,6 +39,9 @@ class SeamLocomoAdapter:
         self.include_evidence_closure = include_evidence_closure
         self._answerer = answerer
         self._answerer_model = answerer_model
+        self._decomposer = decomposer
+        self._decomposer_model = decomposer_model
+        self._decomposer_max_subq = decomposer_max_subq
 
     # ------------------------------------------------------------------
     # Protocol methods
@@ -73,20 +79,34 @@ class SeamLocomoAdapter:
         from seam_runtime.runtime import SeamRuntime  # lazy
 
         rt = _open_runtime(self._db_path(scope_id))
-        t0 = _time.monotonic()
-        result = rt.search_ir(question, scope="thread", budget=self.budget, include_raw=True)
-        retrieval_latency_ms = (_time.monotonic() - t0) * 1000.0
 
-        if not result.candidates:
+        questions = [question]
+        if self._decomposer:
+            sub = self._decompose(question)
+            if sub:
+                questions = sub[: self._decomposer_max_subq] + [question]
+
+        closures: list[set[str]] = []
+        retrieval_latency_ms = 0.0
+        for q in questions:
+            t0 = _time.monotonic()
+            result = rt.search_ir(q, scope="thread", budget=self.budget, include_raw=True)
+            retrieval_latency_ms += (_time.monotonic() - t0) * 1000.0
+            if result.candidates:
+                closures.append(self._collect_closure_ids(result))
+
+        merged = set().union(*closures) if closures else set()
+
+        if not merged:
             return AdapterAnswer(
                 retrieved_context="",
                 retrieval_latency_ms=retrieval_latency_ms,
             )
 
         if self.include_evidence_closure:
-            retrieved_context = self._build_evidence_context(rt, result)
+            retrieved_context = self._build_evidence_context_from_ids(rt, merged)
         else:
-            record_ids = [candidate.record.id for candidate in result.candidates]
+            record_ids = sorted(merged)
             pack = rt.pack_ir(record_ids, lens="general", budget=self.budget)
             pack_dict = pack.to_dict() if hasattr(pack, "to_dict") else {}
             retrieved_context = json.dumps(pack_dict, sort_keys=True, indent=2)
@@ -118,14 +138,33 @@ class SeamLocomoAdapter:
             return _claude_short_answer(self._answerer_model or "claude-haiku-4-5-20251001", prompt)
         raise ValueError(f"unknown answerer {self._answerer!r}")
 
-    def _build_evidence_context(self, rt, result) -> str:
-        """Build a bounded text context from candidate evidence closure."""
+    def _decompose(self, question: str) -> list[str]:
+        prompt = (
+            "Decompose the question into 1-3 atomic sub-questions that each "
+            "ask about a single fact, entity, or event. Reply with one "
+            "sub-question per line and nothing else. If the question is "
+            "already atomic, reply with the original question only.\n\n"
+            f"Question: {question}\nSub-questions:"
+        )
+        if self._decomposer == "openai":
+            text = _openai_short_answer(self._decomposer_model or "gpt-4o-mini", prompt, max_tokens=128)
+        elif self._decomposer == "claude":
+            text = _claude_short_answer(self._decomposer_model or "claude-haiku-4-5-20251001", prompt, max_tokens=128)
+        else:
+            return []
+        return [line.strip() for line in text.splitlines() if line.strip()][: self._decomposer_max_subq]
+
+    def _collect_closure_ids(self, result) -> set[str]:
+        """Collect record IDs from search result candidates and their evidence/prov."""
         closure_ids: set[str] = set()
         for candidate in result.candidates:
             closure_ids.add(candidate.record.id)
             closure_ids.update(candidate.record.evidence or [])
             closure_ids.update(candidate.record.prov or [])
+        return closure_ids
 
+    def _build_evidence_context_from_ids(self, rt, closure_ids: set[str]) -> str:
+        """Build a bounded text context from a set of record IDs."""
         if closure_ids:
             first_batch = rt.store.load_ir(ids=list(closure_ids))
             for record in first_batch.records:
@@ -154,8 +193,7 @@ class SeamLocomoAdapter:
         try:
             pack = rt.pack_ir(sorted(closure_ids), lens="general", budget=self.budget, mode="exact")
         except ValueError:
-            record_ids = [candidate.record.id for candidate in result.candidates]
-            pack = rt.pack_ir(record_ids, lens="general", budget=self.budget)
+            pack = rt.pack_ir(sorted(closure_ids), lens="general", budget=self.budget)
         pack_dict = pack.to_dict() if hasattr(pack, "to_dict") else {}
         return _trim_context(json.dumps(pack_dict, sort_keys=True, indent=2), self.budget)
 
