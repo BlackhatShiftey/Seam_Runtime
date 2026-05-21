@@ -11,7 +11,7 @@ from .mirl import MIRLRecord, RecordKind, iter_textual_fields
 from .models import EmbeddingModel, cosine
 
 
-INDEXABLE_KINDS = {RecordKind.CLM, RecordKind.STA, RecordKind.EVT, RecordKind.REL}
+INDEXABLE_KINDS = {RecordKind.CLM, RecordKind.STA, RecordKind.EVT, RecordKind.REL, RecordKind.RAW}
 
 
 class SQLiteVectorIndex:
@@ -152,6 +152,10 @@ class SQLiteVectorIndex:
 
     @staticmethod
     def render_record_text(record: MIRLRecord) -> str:
+        if record.kind == RecordKind.RAW:
+            content = record.attrs.get("content")
+            if isinstance(content, str) and content.strip():
+                return content
         parts = [record.kind.value]
         parts.extend(iter_textual_fields(record))
         return " ".join(part for part in parts if part)
