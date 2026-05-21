@@ -8,6 +8,9 @@ test_seam/
 .seam_chroma/
 exports/
 
+# Local benchmark run outputs at repo root (operator-driven smokes)
+/run_*.json
+
 # Conversation logs
 conversations/
 *.conversation
