@@ -1377,7 +1377,7 @@ claim c2:
         runtime = SeamRuntime(self.db_path)
         batch = runtime.compile_nl("We need a translator back into natural language for memory workflows.")
         runtime.persist_ir(batch)
-        adapter = ChromaSemanticAdapter(runtime.store, runtime.embedding_model, client=FakeChromaClient())
+        adapter = ChromaSemanticAdapter(runtime.store, runtime.embedding_model, client=FakeChromaClient(), sync_on_search=True)
         plan = build_plan("translator natural language", budget=3)
         hits = adapter.search(plan, limit=3)
         self.assertTrue(hits)

@@ -136,7 +136,7 @@ class ChromaSemanticAdapter:
     persist_directory: str = ".seam_chroma"
     collection_name: str = "seam_hybrid"
     client: object | None = None
-    sync_on_search: bool = True
+    sync_on_search: bool = False  # default flipped; callers that need sync call sync_persistent_indexes explicitly
 
     def _client(self):
         if self.client is not None:

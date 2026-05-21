@@ -1,0 +1,14 @@
+"""P3 Fix 6 — Chroma sync_on_search default is False."""
+from __future__ import annotations
+
+from experimental.retrieval_orchestrator.adapters import ChromaSemanticAdapter
+
+
+def test_default_sync_on_search_is_false() -> None:
+    adapter = ChromaSemanticAdapter(store=None, embedding_model=None)
+    assert adapter.sync_on_search is False
+
+
+def test_opt_in_sync_on_search_stores_true() -> None:
+    adapter = ChromaSemanticAdapter(store=None, embedding_model=None, sync_on_search=True)
+    assert adapter.sync_on_search is True
