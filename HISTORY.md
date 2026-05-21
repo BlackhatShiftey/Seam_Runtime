@@ -4622,3 +4622,21 @@ Repairs: `seam_runtime/cli.py` now accepts explicit external benchmark targets w
 
 Verification: `git diff --check` passed. Focused Track M audit scope `pytest tests/audit/test_pgvector_pk_composite.py tests/audit/test_mem0_harness_adapter_contract.py tests/audit/test_locomo_full_dataset_routing.py tests/audit/test_longmemeval_routing.py tests/audit/test_beam_routing.py tests/audit/test_track_m_publication_gate.py tests/audit/test_locomo_adapter_evidence_text.py -q` passed 40 tests and skipped 3 pgvector-env tests. Full active scope `.venv/bin/python -m pytest test_seam_all/ tools/history/test_history_tools.py tools/streams/ tests/ -q` passed 503 tests, skipped 6, and passed 3 subtests. `py_compile seam.py` and `compileall seam_runtime benchmarks tools scripts installers` passed. Benchmark smoke/dry-runs: `seam bench external --plan --format json` exited 0; LoCoMo quickstart stub exited 0 with context recall 0.9633333333333333 and stub-only judge score 1.0; `seam bench external locomo --dataset-path benchmarks/external/locomo/fixtures/quickstart.json --dry-run --format json` exited 0 with fixture hash `0a0b3e906a8824c496df1b76572c83492497bcf3eddea71551166865de785e30`; missing LongMemEval and BEAM paths now fail cleanly with dataset-specific errors instead of parser failures. Real LoCoMo, LongMemEval, BEAM, Mem0, and Zep runs remain deferred until operator-provided datasets, optional extras, and real judge credentials are present.
 ---END-ENTRY-#220---
+
+---BEGIN-ENTRY-#221---
+id: 221
+date: 2026-05-21T03:53:02Z
+agent: codex
+status: done
+topics: benchmark, audit, verify, command, docs, status, history
+commits: none
+refs: benchmarks/external/common/dataset.py,tests/audit/test_locomo_full_dataset_routing.py,PROJECT_STATUS.md
+supersedes: 220
+tokens: 356
+---
+Operator asked for help setting the missing Track M real-run inputs. Codex created an ignored local env scaffold at `/home/terrabyte/.config/seam/track_m.env` and downloaded the public LoCoMo release file from `snap-research/locomo` to `/home/terrabyte/seam_benchmarks/track_m/locomo/locomo10.json`; no secrets were written and the file is outside the repo.
+
+Setup uncovered a real compatibility bug: `benchmarks/external/common/dataset.py` only supported the repo quickstart fixture shape (`conversation.sessions[].dialogs[]`) and crashed on the official LoCoMo release shape (`conversation.session_1`, `session_1_date_time`, etc.). After adding the numbered-session parser, the loader then crashed on official adversarial rows that contain `adversarial_answer` but no gold `answer`. The LoCoMo answerable-QA runner now supports both session shapes and skips answerless rows instead of treating adversarial answers as gold. Added regressions in `tests/audit/test_locomo_full_dataset_routing.py` for official numbered sessions and answerless adversarial rows.
+
+Verification: focused LoCoMo routing/evidence tests passed 13. Official downloaded LoCoMo dry-run via `seam bench external locomo --dataset-path "$LOCOMO_DATASET_PATH" --dry-run --format json` passed with 1,542 answerable cases, valid=true, fixture hash `85401eeabfbcdb0f18fac328809ef9a828bbc84ae3aed74b9c32f8996d49e2c3`, and no validation issues. Full active suite with Docker `seam-pgvector` env-derived `PGVECTOR_TEST_DSN` and `SEAM_PGVECTOR_DSN` passed 511 tests, 0 skipped, 3 subtests. `git diff --check`, py_compile/compileall, and all four SEAM gates passed.
+---END-ENTRY-#221---

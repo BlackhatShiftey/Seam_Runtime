@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -31,11 +32,8 @@ def load_locomo_cases(path: str | Path) -> list[BenchmarkCase]:
         # --- flatten conversation into a single ordered tuple of turns ---
         conversation: list[ConversationTurn] = []
         conversation_data = sample["conversation"]
-        sessions: list[dict[str, Any]] = conversation_data["sessions"]
-
-        for session in sessions:
-            timestamp: str | None = session.get("date_time") or None
-            for dialog in session.get("dialogs", []):
+        for timestamp, dialogs in _iter_locomo_sessions(conversation_data):
+            for dialog in dialogs:
                 speaker = dialog["speaker"]
                 text = dialog["text"]
                 conversation.append(
@@ -47,6 +45,8 @@ def load_locomo_cases(path: str | Path) -> list[BenchmarkCase]:
         # --- one BenchmarkCase per QA pair ---
         qa_list: list[dict[str, Any]] = sample.get("qa", [])
         for qa_index, qa in enumerate(qa_list):
+            if "answer" not in qa:
+                continue
             case_id = f"{sample_id}::q{qa_index}"
             question = qa["question"]
             gold_answer = qa["answer"]
@@ -72,3 +72,24 @@ def load_locomo_cases(path: str | Path) -> list[BenchmarkCase]:
 def load_quickstart_cases() -> list[BenchmarkCase]:
     """Load the bundled quickstart fixture."""
     return load_locomo_cases(QUICKSTART_FIXTURE_PATH)
+
+
+def _iter_locomo_sessions(conversation_data: dict[str, Any]):
+    """Yield LoCoMo sessions from fixture and official release shapes."""
+    sessions = conversation_data.get("sessions")
+    if isinstance(sessions, list):
+        for session in sessions:
+            yield session.get("date_time") or None, session.get("dialogs", [])
+        return
+
+    numbered: list[tuple[int, str | None, list[dict[str, Any]]]] = []
+    for key, value in conversation_data.items():
+        match = re.fullmatch(r"session_(\d+)", key)
+        if not match or not isinstance(value, list):
+            continue
+        session_number = int(match.group(1))
+        timestamp = conversation_data.get(f"session_{session_number}_date_time") or None
+        numbered.append((session_number, timestamp, value))
+
+    for _, timestamp, dialogs in sorted(numbered, key=lambda item: item[0]):
+        yield timestamp, dialogs

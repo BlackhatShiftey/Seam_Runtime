@@ -90,6 +90,87 @@ class TestLoCoMoFullDatasetRouting:
         # Synthetic numeric categories accepted; no validation errors
         assert len(report["validation_issues"]) == 0
 
+    def test_official_locomo_session_numbered_format(self, tmp_path):
+        dataset_path = tmp_path / "locomo-official-shape.json"
+        dataset_path.write_text(json.dumps([
+            {
+                "sample_id": "sample-1",
+                "conversation": {
+                    "speaker_a": "Caroline",
+                    "speaker_b": "Melanie",
+                    "session_1_date_time": "1:56 pm on 8 May, 2023",
+                    "session_1": [
+                        {"speaker": "Caroline", "dia_id": "D1:1", "text": "I visited the support group on 7 May."},
+                        {"speaker": "Melanie", "dia_id": "D1:2", "text": "That sounds meaningful."},
+                    ],
+                    "session_2_date_time": "1:14 pm on 25 May, 2023",
+                    "session_2": [
+                        {"speaker": "Caroline", "dia_id": "D2:1", "text": "I started a new art class."},
+                    ],
+                },
+                "qa": [
+                    {
+                        "question": "When did Caroline visit the support group?",
+                        "answer": "7 May",
+                        "category": 2,
+                    }
+                ],
+            }
+        ]), encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "benchmarks.external.locomo.run",
+                "--dataset-path", str(dataset_path), "--dry-run",
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+
+        assert result.returncode == 0, result.stderr
+        report = json.loads(result.stdout)
+        assert report["mode"] == "dry-run"
+        assert report["case_count"] == 1
+        assert report["valid"] is True
+
+    def test_official_locomo_answerless_adversarial_rows_are_skipped(self, tmp_path):
+        dataset_path = tmp_path / "locomo-adversarial-shape.json"
+        dataset_path.write_text(json.dumps([
+            {
+                "sample_id": "sample-1",
+                "conversation": {
+                    "session_1_date_time": "1:56 pm on 8 May, 2023",
+                    "session_1": [
+                        {"speaker": "Caroline", "dia_id": "D1:1", "text": "I visited the support group on 7 May."},
+                    ],
+                },
+                "qa": [
+                    {
+                        "question": "When did Caroline visit the support group?",
+                        "answer": "7 May",
+                        "category": 2,
+                    },
+                    {
+                        "question": "What did Caroline realize after her charity race?",
+                        "adversarial_answer": "self-care is important",
+                        "category": 5,
+                    },
+                ],
+            }
+        ]), encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "benchmarks.external.locomo.run",
+                "--dataset-path", str(dataset_path), "--dry-run",
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+
+        assert result.returncode == 0, result.stderr
+        report = json.loads(result.stdout)
+        assert report["case_count"] == 1
+        assert report["valid"] is True
+
     def test_seam_cli_routes_locomo_dataset_dry_run(self):
         result = subprocess.run(
             [
