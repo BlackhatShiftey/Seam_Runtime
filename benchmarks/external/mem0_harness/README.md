@@ -32,3 +32,21 @@ Record the upstream commit used in any result claim:
 ```bash
 git -C ../memory-benchmarks rev-parse HEAD
 ```
+
+## Known comparator gaps
+
+mem0ai's internal client sends `max_tokens` to OpenAI completion endpoints.
+GPT-5 and o-series models reject `max_tokens` and require
+`max_completion_tokens`. To run the mem0 comparator today, pin the mem0
+client model to a chat-completion model that still accepts `max_tokens`:
+
+```bash
+export MEM0_LLM_MODEL=gpt-4o-mini
+```
+
+When `MEM0_LLM_MODEL` is unset or names a gpt-5/o-series model, the mem0
+comparator will fail; report the failure verbatim and skip the comparator
+column rather than fabricating a mem0 score.
+
+If mem0ai's later release accepts the modern parameter, remove this note in
+the same commit that bumps the pin.
