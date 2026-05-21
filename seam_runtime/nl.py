@@ -93,6 +93,124 @@ def compile_nl(raw_text: str, source_ref: str = "local://input", ns: str = "loca
     return IRBatch(records)
 
 
+def compile_conversation_turn(raw_text: str, source_ref: str = "local://input", ns: str = "local.default", scope: str = "thread") -> IRBatch:
+    raw_id = "raw:1"
+    span_id = "span:1"
+    prov_id = "prov:compile:1"
+    source_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()[:12]
+    turn_ent_id = f"ent:turn:{source_hash}"
+
+    records = [
+        MIRLRecord(id=raw_id, kind=RecordKind.RAW, ns=ns, scope=scope, status=Status.OBSERVED,
+                    attrs={"source_ref": source_ref, "content": raw_text, "media_type": "text/plain"}),
+        MIRLRecord(id=span_id, kind=RecordKind.SPAN, ns=ns, scope=scope, status=Status.OBSERVED,
+                    attrs={"raw_id": raw_id, "start": 0, "end": len(raw_text)}),
+        MIRLRecord(id=prov_id, kind=RecordKind.PROV, ns=ns, scope=scope, status=Status.OBSERVED,
+                    attrs={"entity": raw_id, "activity": "compile_conversation_turn", "agent": "system.nl"}),
+    ]
+
+    claim_index = 1
+    facts_extracted = False
+
+    def add_claim(predicate: str, obj: object, subject: str | None = None, confidence: float = 0.92) -> str:
+        nonlocal claim_index, facts_extracted
+        subj = subject or turn_ent_id
+        claim_id = f"clm:{claim_index}"
+        records.append(
+            MIRLRecord(
+                id=claim_id,
+                kind=RecordKind.CLM,
+                ns=ns,
+                scope=scope,
+                conf=confidence,
+                prov=[prov_id],
+                evidence=[span_id],
+                attrs={"subject": subj, "predicate": predicate, "object": obj},
+            )
+        )
+        claim_index += 1
+        facts_extracted = True
+        return claim_id
+
+    # -- extract speaker from "Name:" pattern --
+    speaker_match = re.match(r'^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*:', raw_text)
+    speaker = speaker_match.group(1) if speaker_match else None
+
+    speaker_ent_id: str | None = None
+    if speaker:
+        speaker_ent_id = f"ent:person:{speaker.lower().replace(' ', '_')}_{source_hash}"
+        records.append(
+            MIRLRecord(id=speaker_ent_id, kind=RecordKind.ENT, ns=ns, scope=scope,
+                        attrs={"entity_type": "person", "label": speaker})
+        )
+        add_claim("person", speaker, subject=speaker_ent_id)
+
+    # -- extract dates --
+    _DATE_PATTERNS = [
+        r'\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4}',
+        r'\d{1,2}/\d{1,2}/\d{4}',
+        r'\d{4}-\d{2}-\d{2}',
+    ]
+    dates_seen: set[str] = set()
+    for pattern in _DATE_PATTERNS:
+        for m in re.finditer(pattern, raw_text):
+            date_str = m.group(0)
+            if date_str not in dates_seen:
+                dates_seen.add(date_str)
+                subj = speaker_ent_id or turn_ent_id
+                add_claim("date", date_str, subject=subj, confidence=0.9)
+
+    # -- extract locations after "in", "at", "to the" --
+    _LOCATION_PATTERN = re.compile(
+        r'(?:in|at|to)\s+(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*'
+        r'(?:\s+(?:support group|center|office|building|room|hall|park|city|town|street|avenue|lane|road))?)',
+        re.IGNORECASE,
+    )
+    locations_seen: set[str] = set()
+    for m in _LOCATION_PATTERN.finditer(raw_text):
+        loc = m.group(1).strip()
+        if len(loc) > 2 and loc.lower() not in {"the", "a", "an", "i", "me", "my"}:
+            if loc not in locations_seen:
+                locations_seen.add(loc)
+                subj = speaker_ent_id or turn_ent_id
+                add_claim("location", loc, subject=subj, confidence=0.85)
+
+    # -- extract named entities: consecutive capitalized words (not at start of sentence) --
+    _CAPITALIZED_ENTITY = re.compile(r'(?:^|[.!?]\s+|\b(?:in|at|to|with|from|by|for|on)\s+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)')
+    entities_seen: set[str] = set()
+    for m in _CAPITALIZED_ENTITY.finditer(raw_text):
+        entity = m.group(1).strip()
+        if entity.lower() not in STOPWORDS and entity.lower() not in {"the", "a", "an", "i", "me", "my", "this", "that"}:
+            if entity not in entities_seen and entity != speaker:
+                entities_seen.add(entity)
+                subj = speaker_ent_id or turn_ent_id
+                add_claim("mentioned", entity, subject=subj, confidence=0.82)
+
+    # -- extract key action facts from the body text --
+    content_text = raw_text.split(':', 1)[1].strip() if ':' in raw_text else raw_text
+
+    _ACTION_PATTERNS = [
+        (r'(?:I\s+)?(?:went|go|travell?ed)\s+to\s+(.+?)(?:[,.!]|$)', 'went_to'),
+        (r'(?:I\s+)?(?:saw|visited|attended)\s+(.+?)(?:[,.!]|$)', 'attended'),
+        (r'(?:I\s+)?(?:met|spoke to|talked to|chatted with)\s+(.+?)(?:[,.!]|$)', 'met'),
+        (r'(?:I\s+)?(?:learned|discovered|found out)\s+(?:that\s+)?(.+?)(?:[,.!]|$)', 'learned'),
+        (r'(?:I\s+)?(?:feel|felt|am|was)\s+(.+?)(?:[,.!]|$)', 'felt'),
+    ]
+    for pattern, predicate in _ACTION_PATTERNS:
+        m = re.search(pattern, content_text, re.IGNORECASE)
+        if m:
+            obj = m.group(1).strip().rstrip('.').rstrip(',')
+            if obj:
+                subj = speaker_ent_id or turn_ent_id
+                add_claim(predicate, obj, subject=subj, confidence=0.85)
+
+    # -- fallback: if no facts were extracted, store the full text as a content claim --
+    if not facts_extracted:
+        add_claim("content", raw_text, subject=turn_ent_id, confidence=0.8)
+
+    return IRBatch(records)
+
+
 def suggest_symbols(batch: IRBatch, min_frequency: int = 2) -> list[MIRLRecord]:
     counter: Counter[str] = Counter()
     for record in batch.records:
