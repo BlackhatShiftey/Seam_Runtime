@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import traceback
@@ -411,6 +412,17 @@ def _resolve_registered_surface_path(runtime: SeamRuntime, surface_ref: str) -> 
         raise FileNotFoundError(
             f"Surface '{surface_ref}' is registered but its artifact file is missing or unreadable. "
             "Use the SEAM CLI 'seam surface repair <ref>' to restore the redundant copy from source."
+        )
+    resolved = artifact_path.resolve(strict=False)
+    allowed_root = Path(
+        os.environ.get("SEAM_SURFACE_ROOT", Path(runtime.store.path).parent)
+    ).resolve()
+    try:
+        resolved.relative_to(allowed_root)
+    except ValueError:
+        raise PermissionError(
+            f"Surface artifact path {resolved} is outside the allowed root {allowed_root}. "
+            "Set SEAM_SURFACE_ROOT to expand the allowed root if intentional."
         )
     return artifact_path
 
