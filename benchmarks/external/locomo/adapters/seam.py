@@ -328,12 +328,17 @@ def _openai_short_answer(model: str, prompt: str, max_tokens: int = 64) -> str:
     request: dict = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0,
     }
     if _uses_completion_token_budget(model):
-        request["max_completion_tokens"] = max_tokens
+        # gpt-5 / o-series reasoning models reject temperature=0 and burn
+        # hidden reasoning tokens against the completion budget. Mirror the
+        # judge's handling at judge.py:148-150: floor the budget so the
+        # actual answer text has room to emit, and minimize reasoning.
+        request["max_completion_tokens"] = max(max_tokens, 256)
+        request["reasoning_effort"] = "minimal"
     else:
         request["max_tokens"] = max_tokens
+        request["temperature"] = 0
     response = client.chat.completions.create(**request)
     return (response.choices[0].message.content or "").strip()
 

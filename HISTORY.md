@@ -4902,3 +4902,31 @@ Verification before this entry: .venv/bin/python -m pytest tests/audit/test_temp
 
 Next step: rebuild HISTORY_INDEX, refresh the history stream mirror and cross-index, write a fresh snapshot, run integrity/routing/continuity/streams gates, then commit this branch. Full paid LoCoMo measurement remains operator-gated; the next no-cost P4 candidate is a guarded reranker implementation with synthetic/unit tests only.
 ---END-ENTRY-#233---
+
+---BEGIN-ENTRY-#234---
+id: 234
+date: 2026-05-22T12:52:58Z
+agent: claude
+status: done
+topics: benchmark, bugfix, locomo, verify, history, status
+commits: none
+refs: benchmarks/external/locomo/adapters/seam.py,PROJECT_STATUS.md
+supersedes: 233
+tokens: 1159
+---
+Fixed a real bug in benchmarks/external/locomo/adapters/seam.py:_openai_short_answer that blocked every gpt-5/o-series reasoning model as the LoCoMo answerer. The function set temperature=0 unconditionally, which gpt-5/o-series models reject with HTTP 400 ("temperature does not support 0 with this model"), and used max_completion_tokens=max_tokens where the 64-token default was burned through entirely by hidden reasoning tokens, leaving the visible output truncated to a literal "?" string. The fix mirrors the existing handling at benchmarks/external/common/judge.py:148-150 verbatim: for gpt-5/o models, skip the temperature parameter, floor max_completion_tokens at 256, and set reasoning_effort=minimal. Non-reasoning models still get temperature=0 and the unchanged max_tokens budget.
+
+Track M P4 Step 0a baseline measurement landed on top of the fix. Two quickstart smokes ran via python -m benchmarks.external.locomo.run --quickstart --judge openai --answerer openai --judge-model gpt-5-nano --judge-batch, against the real OpenAI Batch API (first live successful execution of OpenAIJudge.score_batch from HISTORY#232; 10/10 verdicts, 0 batch errors per run). Step 0a primary used the default gpt-4o-mini answerer. Step 0a follow-up used --answerer-model gpt-5-mini after the bug fix.
+
+Results - 10-case quickstart, retrieval unchanged across runs (context_recall_mean = 0.9633333333333333):
+- gpt-4o-mini answerer: EM=0.5000, F1=0.6584, judge_score=0.7000, verdicts 7c/0p/3i. Three abstentions ("unknown") on cases where the gold tokens were in the retrieved context (recall 0.80 to 1.00). Bundle sealed BIL-2 at result hash 50a2d2b52c52ef8b2be51a151523080bdcebd66c6c1959d36a3ac900f3fb4c64, manifest hash 4734666c9c7595f6f44b3230579a981cf4c383bff1a595620ac0fc9977efd5aa, integrity hash ccf8bbc6d408e3a4e50206c5c642018dc988534eeece49567ae37c2eb2580deb (4/4 checks PASS).
+- gpt-5-mini answerer (post-fix): EM=0.7000, F1=0.9049, judge_score=0.9500, verdicts 9c/1p/0i. All three prior abstentions resolved correctly ("Mira Chen", "Ms. Rodriguez", and a tomatoes/compost/stakes answer). One case shifted correct->partial (added "cucumbers" to a vegetable list). Bundle sealed BIL-2 at result hash f89c848f373039715d039cd4ba323afb9579aa9520288f855f34672868c10da7, manifest hash 4734666c9c7595f6f44b3230579a981cf4c383bff1a595620ac0fc9977efd5aa (4/4 checks PASS).
+
+Decision: gpt-5-mini is the Track M P4 baseline-of-record answerer. The gpt-4o-mini number is kept in this entry strictly as the A/B comparison record - it is not the baseline. Step 0b (full 1,542-case LoCoMo) will use --answerer-model gpt-5-mini --judge-model gpt-5-nano --judge-batch.
+
+Also removed the stale root-level HANDOFF_BATCH_API.md (it was a one-shot pickup doc from the HISTORY#232 session and was executed by the codex agent before this entry; PROJECT_STATUS.md previously called it out as a separate-review leftover). The unrelated dirty local edits in tests/audit/test_bench_stub_seal_gate.py and tests/audit/test_benchmark_endpoint_safety.py are NOT staged in this commit - they pre-date this session and remain the responsibility of whoever introduced them.
+
+Verification before this entry: .venv/bin/python -m pytest test_seam_all/test_locomo_judge_batch.py tests/audit/test_abstain_threshold.py tests/audit/test_locomo_decomposer.py tests/audit/test_openai_judge_gpt5.py -q passed 24 tests offline; two paid quickstart smokes exited 0 with the scores recorded above; both quickstart bundles seal BIL-2 with 4/4 integrity checks; git diff --check passed before staging; no provider session links, API keys, or .env values were written into commits, snapshots, or this entry. Baseline verify chain was clean before this entry; rerun is pending after this entry, index rebuild, and snapshot.
+
+Next step: rebuild HISTORY_INDEX, refresh the history stream mirror and cross-index, write a fresh snapshot, run integrity/routing/continuity/streams gates, update PROJECT_STATUS pointer, then commit. Step 0b (full 1,542-case LoCoMo) stays operator-gated - estimated <$1 on gpt-5-nano judge + gpt-5-mini answerer, wall time ~2-3 hours. Phase B answerer batching remains deferred pending Step 0b cost data per HISTORY#232.
+---END-ENTRY-#234---
