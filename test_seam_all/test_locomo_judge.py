@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 
@@ -182,6 +183,21 @@ def test_retrieval_only_context_does_not_score_as_generated_answer() -> None:
     assert report["scores"]["context_recall_mean"] == 1.0
     assert report["scores"]["answer_em_mean"] == 0.0
     assert report["scores"]["answer_f1_mean"] == 0.0
+    assert "retrieved_context" not in report["cases"][0]
+
+
+def test_save_context_includes_retrieved_context_without_changing_integrity_hash() -> None:
+    cases = _minimal_cases(1)
+
+    default_report = run_benchmark(adapter=_MinimalAdapter(), cases=cases)
+    context_report = run_benchmark(
+        adapter=_MinimalAdapter(),
+        cases=cases,
+        save_context=True,
+    )
+
+    assert context_report["cases"][0]["retrieved_context"] == "Fact 0: the sky is blue"
+    assert context_report["integrity_hash"] == default_report["integrity_hash"]
 
 
 def test_generated_answer_scores_answer_metrics() -> None:
@@ -309,6 +325,7 @@ def test_cli_quickstart_with_stub_judge() -> None:
         [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart", "--judge", "stub"],
         capture_output=True,
         text=True,
+        env={**os.environ, "CUDA_VISIBLE_DEVICES": ""},
     )
     assert result.returncode == 0, f"stderr: {result.stderr}"
     data = json.loads(result.stdout)
@@ -416,6 +433,7 @@ def test_cli_quickstart_with_parallel_stub_judge() -> None:
         ],
         capture_output=True,
         text=True,
+        env={**os.environ, "CUDA_VISIBLE_DEVICES": ""},
     )
     assert result.returncode == 0, f"stderr: {result.stderr}"
     data = json.loads(result.stdout)

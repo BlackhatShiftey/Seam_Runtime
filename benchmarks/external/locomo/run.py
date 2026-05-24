@@ -230,6 +230,11 @@ def main() -> None:
         default="none",
         help="Re-rank top-K bi-encoder results with a cross-encoder (default: none)",
     )
+    parser.add_argument(
+        "--save-context",
+        action="store_true",
+        help="Include per-case retrieved_context in the JSON report for diagnostics",
+    )
     args = parser.parse_args()
 
     dataset_path = args.dataset_path or args.dataset
@@ -289,6 +294,7 @@ def main() -> None:
             judge_cross=judge_cross,
             judge_batch=args.judge_batch,
             workers=args.workers,
+            save_context=args.save_context,
         )
     else:
         adapter = build_adapter(
@@ -307,6 +313,7 @@ def main() -> None:
             judge=judge,
             judge_cross=judge_cross,
             judge_batch=args.judge_batch,
+            save_context=args.save_context,
         )
 
     # Output

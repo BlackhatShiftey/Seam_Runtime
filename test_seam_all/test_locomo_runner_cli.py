@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -10,12 +11,14 @@ import time
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _run_quickstart(*, output_path: str | None = None) -> subprocess.CompletedProcess:
+def _run_quickstart(*extra_args: str, output_path: str | None = None) -> subprocess.CompletedProcess:
     """Run `python -m benchmarks.external.locomo.run --quickstart`, optionally with --output."""
     cmd = [sys.executable, "-m", "benchmarks.external.locomo.run", "--quickstart"]
+    cmd.extend(extra_args)
     if output_path is not None:
         cmd.extend(["--output", output_path])
-    return subprocess.run(cmd, capture_output=True, text=True)
+    env = {**os.environ, "CUDA_VISIBLE_DEVICES": ""}
+    return subprocess.run(cmd, capture_output=True, text=True, env=env)
 
 
 def _parse_stdout_json(result: subprocess.CompletedProcess) -> dict:
@@ -109,6 +112,29 @@ def test_integrity_hash_stable_across_runs(tmp_path) -> None:
     assert data_a["integrity_hash"] == data_b["integrity_hash"], (
         f"integrity_hash mismatch:\n  run_a: {data_a['integrity_hash']}\n  run_b: {data_b['integrity_hash']}"
     )
+
+
+def test_save_context_cli_includes_retrieved_context_without_changing_integrity_hash(tmp_path) -> None:
+    out_default = str(tmp_path / "default.json")
+    out_context = str(tmp_path / "context.json")
+
+    res_default = _run_quickstart("--limit", "1", output_path=out_default)
+    assert res_default.returncode == 0, (
+        f"default run failed with returncode {res_default.returncode}\nstderr: {res_default.stderr}"
+    )
+    res_context = _run_quickstart("--limit", "1", "--save-context", output_path=out_context)
+    assert res_context.returncode == 0, (
+        f"context run failed with returncode {res_context.returncode}\nstderr: {res_context.stderr}"
+    )
+
+    with open(out_default) as f:
+        data_default = json.load(f)
+    with open(out_context) as f:
+        data_context = json.load(f)
+
+    assert "retrieved_context" not in data_default["cases"][0]
+    assert data_context["cases"][0]["retrieved_context"]
+    assert data_context["integrity_hash"] == data_default["integrity_hash"]
 
 
 def test_quickstart_completes_under_180_seconds() -> None:

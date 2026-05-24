@@ -4950,3 +4950,23 @@ Verification before this entry: .venv/bin/python -m pytest tests/audit/test_cros
 
 Next step: rebuild derived history/stream/cross-index state, write a snapshot, run integrity/routing/continuity/streams gates, commit, push to main, then proceed to Track M P4 Step 3 only after advisor/operator direction. Step 0b full baseline and Step 4 final measurement remain operator-gated paid runs.
 ---END-ENTRY-#235---
+
+---BEGIN-ENTRY-#236---
+id: 236
+date: 2026-05-24T06:20:32Z
+agent: codex
+status: done
+topics: benchmark, retrieval, verify, history, status
+commits: none
+refs: benchmarks/external/common/runner.py,benchmarks/external/locomo/adapters/seam.py,benchmarks/external/locomo/run.py,test_seam_all/test_locomo_judge.py,test_seam_all/test_locomo_runner_cli.py,tests/audit/test_locomo_adapter_evidence_text.py,PROJECT_STATUS.md
+supersedes: 235
+tokens: 509
+---
+Closed the DeepSeek LoCoMo replay handoff that disproved the pack_json fallback hypothesis. The replay evidence showed raw readable context for sampled cases, including high-recall unknown answers, so this slice treats the issue as answerer conservatism plus missing persisted diagnostics rather than a retrieval-to-context JSON fallback defect.
+
+Changed benchmarks/external/locomo/adapters/seam.py to make the answerer prompt less abstention-prone: it now asks for the best supported answer in noisy context and reserves unknown for cases where the context contains no answer candidate. Added a no-network prompt regression in tests/audit/test_locomo_adapter_evidence_text.py. Added opt-in context persistence with save_context plumbing across benchmarks/external/common/runner.py and benchmarks/external/locomo/run.py; the new --save-context flag writes per-case retrieved_context into result JSON while keeping retrieved_context excluded from the stable integrity hash. Added runner and CLI regressions in test_seam_all/test_locomo_judge.py and test_seam_all/test_locomo_runner_cli.py. The CLI subprocess helpers now force CUDA_VISIBLE_DEVICES= to avoid the known local crowded-GPU sentence-transformers OOM path during quickstart tests.
+
+Verification before this entry: .venv/bin/python -m pytest test_seam_all/test_locomo_judge.py -q -k "save_context or retrieval_only or answer_metrics" passed 3 tests; .venv/bin/python -m pytest tests/audit/test_locomo_adapter_evidence_text.py test_seam_all/test_locomo_runner_cli.py -q -k "answerer_prompt or save_context" passed 2 tests; .venv/bin/python -m pytest test_seam_all/test_locomo_judge_batch.py tests/audit/test_locomo_failure_audit.py -q passed 43 tests; .venv/bin/python -m py_compile benchmarks/external/common/runner.py benchmarks/external/locomo/run.py benchmarks/external/locomo/adapters/seam.py benchmarks/external/locomo/audit.py passed; git diff --check passed. A broader test_seam_all/test_locomo_judge.py plus related audit run surfaced pre-existing CLI subprocess instability outside the focused change path: GPU OOM before CPU forcing and a parallel quickstart sqlite vector_index race. No paid API calls and no full LoCoMo run were performed.
+
+Next step: run the next operator-gated paid LoCoMo measurement with --save-context so high-recall unknown cases can be diagnosed directly from the saved report instead of replaying context.
+---END-ENTRY-#236---

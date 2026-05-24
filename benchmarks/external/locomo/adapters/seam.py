@@ -161,7 +161,9 @@ class SeamLocomoAdapter:
     def _generate_answer(self, question: str, context: str) -> str:
         prompt = (
             "Answer the question using ONLY the context. "
-            "If the answer is not in the context, say 'unknown'. "
+            "Return the best supported answer found in the context, even when "
+            "the context also contains unrelated snippets. "
+            "Say 'unknown' only when the context contains no answer candidate. "
             "Reply with the shortest possible answer, no preamble.\n\n"
             f"Context:\n{context}\n\nQuestion: {question}\nAnswer:"
         )

@@ -33,6 +33,7 @@ def run_benchmark(
     dataset_source: str = "unknown",
     judge: object | None = None,
     judge_batch: bool = False,
+    save_context: bool = False,
     progress: Callable[[int, int], None] | None = None,
 ) -> dict:
     """Run adapter against cases and return a RunReport dict.
@@ -53,7 +54,7 @@ def run_benchmark(
 
     total = len(cases)
     for idx, case in enumerate(cases):
-        case_entry = _run_case(adapter, case, sync_judge)
+        case_entry = _run_case(adapter, case, sync_judge, save_context=save_context)
         case_results.append(case_entry)
 
         if progress:
@@ -81,6 +82,7 @@ def run_benchmark_parallel(
     judge_factory: Callable[[], object | None] | None = None,
     judge_batch: bool = False,
     workers: int = 4,
+    save_context: bool = False,
     progress: Callable[[int, int], None] | None = None,
 ) -> dict:
     """Run independent benchmark cases concurrently while preserving report order."""
@@ -91,6 +93,7 @@ def run_benchmark_parallel(
             dataset_source=dataset_source,
             judge=judge_factory() if judge_factory else None,
             judge_batch=judge_batch,
+            save_context=save_context,
             progress=progress,
         )
 
@@ -110,7 +113,7 @@ def run_benchmark_parallel(
     def _worker(index: int, case: BenchmarkCase) -> tuple[int, dict]:
         adapter = adapter_factory()
         worker_judge = None if batch_judge is not None else (judge_factory() if judge_factory else None)
-        return index, _run_case(adapter, case, worker_judge)
+        return index, _run_case(adapter, case, worker_judge, save_context=save_context)
 
     completed = 0
     with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -148,6 +151,7 @@ def run_benchmark_grouped(
     judge: object | None = None,
     judge_cross: object | None = None,
     judge_batch: bool = False,
+    save_context: bool = False,
     progress: Callable[[int, int], None] | None = None,
 ) -> dict:
     """Run cases grouped by shared conversation scope, ingesting each scope once."""
@@ -166,7 +170,7 @@ def run_benchmark_grouped(
             adapter.ingest_turn(scope, turn)
         for case in group:
             answer = adapter.answer(scope, case.question)
-            case_results.append(_score_case(case, answer, sync_judge))
+            case_results.append(_score_case(case, answer, sync_judge, save_context=save_context))
             completed += 1
             if progress:
                 progress(completed, total)
@@ -197,6 +201,7 @@ def run_benchmark_grouped_parallel(
     judge_cross: object | None = None,
     judge_batch: bool = False,
     workers: int = 4,
+    save_context: bool = False,
     progress: Callable[[int, int], None] | None = None,
 ) -> dict:
     """Run grouped scopes concurrently while preserving original case order."""
@@ -209,6 +214,7 @@ def run_benchmark_grouped_parallel(
             judge=judge_factory() if judge_factory else None,
             judge_cross=judge_cross,
             judge_batch=judge_batch,
+            save_context=save_context,
             progress=progress,
         )
 
@@ -232,7 +238,12 @@ def run_benchmark_grouped_parallel(
         for turn in group[0].conversation:
             adapter.ingest_turn(scope, turn)
         return [
-            _score_case(case, adapter.answer(scope, case.question), worker_judge)
+            _score_case(
+                case,
+                adapter.answer(scope, case.question),
+                worker_judge,
+                save_context=save_context,
+            )
             for case in group
         ]
 
@@ -325,17 +336,29 @@ def _group_cases(
     return groups
 
 
-def _run_case(adapter: MemorySystemAdapter, case: BenchmarkCase, judge: object | None) -> dict:
+def _run_case(
+    adapter: MemorySystemAdapter,
+    case: BenchmarkCase,
+    judge: object | None,
+    *,
+    save_context: bool = False,
+) -> dict:
     adapter.reset(case.case_id)
 
     for turn in case.conversation:
         adapter.ingest_turn(case.case_id, turn)
 
     answer: AdapterAnswer = adapter.answer(case.case_id, case.question)
-    return _score_case(case, answer, judge)
+    return _score_case(case, answer, judge, save_context=save_context)
 
 
-def _score_case(case: BenchmarkCase, answer: AdapterAnswer, judge: object | None) -> dict:
+def _score_case(
+    case: BenchmarkCase,
+    answer: AdapterAnswer,
+    judge: object | None,
+    *,
+    save_context: bool = False,
+) -> dict:
     cr = context_recall(answer.retrieved_context, case.gold_answer)
 
     pred = answer.generated_answer if answer.generated_answer is not None else ""
@@ -360,6 +383,8 @@ def _score_case(case: BenchmarkCase, answer: AdapterAnswer, judge: object | None
         "_judge_question": case.question,
         "_judge_gold": case.gold_answer,
     }
+    if save_context:
+        case_entry["retrieved_context"] = answer.retrieved_context
 
     if judge is not None:
         try:
@@ -474,6 +499,7 @@ def _build_report(
         "_judge_question",
         "_judge_gold",
         "judge_cross",
+        "retrieved_context",
     }
     stable_cases = [
         {k: v for k, v in c.items() if k not in integrity_exclude_keys}

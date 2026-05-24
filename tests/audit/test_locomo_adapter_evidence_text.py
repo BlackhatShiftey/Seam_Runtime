@@ -52,3 +52,28 @@ def test_locomo_adapter_empty_scope_returns_empty_context(tmp_path):
 
     assert answer.retrieved_context == ""
     assert answer.generated_answer is None
+
+
+def test_locomo_answerer_prompt_prefers_supported_answer_over_abstention(monkeypatch):
+    captured = {}
+
+    def fake_short_answer(model, prompt):
+        captured["model"] = model
+        captured["prompt"] = prompt
+        return "July 2023"
+
+    monkeypatch.setattr(
+        "benchmarks.external.locomo.adapters.seam._openai_short_answer",
+        fake_short_answer,
+    )
+    adapter = SeamLocomoAdapter(answerer="openai", answerer_model="gpt-5-mini")
+
+    answer = adapter._generate_answer(
+        "When did Caroline move?",
+        "[Caroline 2023-07-01] I moved in July 2023.",
+    )
+
+    assert answer == "July 2023"
+    assert captured["model"] == "gpt-5-mini"
+    assert "Return the best supported answer found in the context" in captured["prompt"]
+    assert "Say 'unknown' only when the context contains no answer candidate" in captured["prompt"]
