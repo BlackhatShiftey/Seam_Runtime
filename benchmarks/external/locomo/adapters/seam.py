@@ -143,12 +143,15 @@ class SeamLocomoAdapter:
 
         generated = None
         answer_latency_ms = None
+        answerer_diag: dict | None = None
         if self._answerer:
             if self._abstain_threshold > 0.0 and top_score < self._abstain_threshold:
                 generated = "unknown"
+                answerer_diag = {"abstained_by_threshold": True, "top_score": top_score}
             else:
                 t1 = _time.monotonic()
-                generated = self._generate_answer(question, retrieved_context)
+                answerer_diag = {}
+                generated = self._generate_answer(question, retrieved_context, diag_out=answerer_diag)
                 answer_latency_ms = (_time.monotonic() - t1) * 1000.0
 
         return AdapterAnswer(
@@ -156,9 +159,10 @@ class SeamLocomoAdapter:
             generated_answer=generated,
             retrieval_latency_ms=retrieval_latency_ms,
             answer_latency_ms=answer_latency_ms,
+            answerer_diagnostics=answerer_diag,
         )
 
-    def _generate_answer(self, question: str, context: str) -> str:
+    def _generate_answer(self, question: str, context: str, diag_out: dict | None = None) -> str:
         prompt = (
             "Answer the question using ONLY the context. "
             "Return the best supported answer found in the context, even when "
@@ -167,10 +171,11 @@ class SeamLocomoAdapter:
             "Reply with the shortest possible answer, no preamble.\n\n"
             f"Context:\n{context}\n\nQuestion: {question}\nAnswer:"
         )
+        extra = {"diag_out": diag_out} if diag_out is not None else {}
         if self._answerer == "openai":
-            return _openai_short_answer(self._answerer_model or "gpt-4o-mini", prompt)
+            return _openai_short_answer(self._answerer_model or "gpt-4o-mini", prompt, **extra)
         if self._answerer == "claude":
-            return _claude_short_answer(self._answerer_model or "claude-haiku-4-5-20251001", prompt)
+            return _claude_short_answer(self._answerer_model or "claude-haiku-4-5-20251001", prompt, **extra)
         raise ValueError(f"unknown answerer {self._answerer!r}")
 
     def _build_temporal_window(self, question: str):
@@ -343,7 +348,7 @@ def _uses_completion_token_budget(model: str) -> bool:
     return model_id.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
-def _openai_short_answer(model: str, prompt: str, max_tokens: int = 64) -> str:
+def _openai_short_answer(model: str, prompt: str, max_tokens: int = 64, diag_out: dict | None = None) -> str:
     try:
         from openai import OpenAI
     except ImportError as exc:
@@ -370,10 +375,24 @@ def _openai_short_answer(model: str, prompt: str, max_tokens: int = 64) -> str:
         request["max_tokens"] = max_tokens
         request["temperature"] = 0
     response = client.chat.completions.create(**request)
-    return (response.choices[0].message.content or "").strip()
+    raw = response.choices[0].message.content or ""
+    if diag_out is not None:
+        diag_out["provider"] = "openai"
+        diag_out["model"] = model
+        diag_out["finish_reason"] = getattr(response.choices[0], "finish_reason", None)
+        diag_out["content_len"] = len(raw)
+        diag_out["content_preview"] = raw[:120]
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            details = getattr(usage, "completion_tokens_details", None)
+            diag_out["completion_tokens"] = getattr(usage, "completion_tokens", None)
+            diag_out["reasoning_tokens"] = getattr(details, "reasoning_tokens", None) if details is not None else None
+        diag_out["max_completion_tokens"] = request.get("max_completion_tokens")
+        diag_out["reasoning_effort"] = request.get("reasoning_effort")
+    return raw.strip()
 
 
-def _claude_short_answer(model: str, prompt: str, max_tokens: int = 64) -> str:
+def _claude_short_answer(model: str, prompt: str, max_tokens: int = 64, diag_out: dict | None = None) -> str:
     try:
         from anthropic import Anthropic
     except ImportError as exc:
@@ -390,4 +409,15 @@ def _claude_short_answer(model: str, prompt: str, max_tokens: int = 64) -> str:
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
-    return response.content[0].text.strip()
+    raw = response.content[0].text if response.content else ""
+    if diag_out is not None:
+        diag_out["provider"] = "anthropic"
+        diag_out["model"] = model
+        diag_out["finish_reason"] = getattr(response, "stop_reason", None)
+        diag_out["content_len"] = len(raw)
+        diag_out["content_preview"] = raw[:120]
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            diag_out["output_tokens"] = getattr(usage, "output_tokens", None)
+        diag_out["max_tokens"] = max_tokens
+    return raw.strip()

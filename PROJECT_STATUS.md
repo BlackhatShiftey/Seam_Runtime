@@ -1,6 +1,6 @@
 # SEAM Project Status
 
-Last updated: 2026-05-24 (HISTORY#236 - LoCoMo answerer diagnostics)
+Last updated: 2026-05-24 (HISTORY#237 - LoCoMo answerer finish_reason diagnostics)
 
 ## Current State
 
@@ -30,7 +30,7 @@ SEAM is operating as a local machine-first memory runtime with:
 ## Current Resume Point
 
 - `main` is the source-of-truth branch. After pulling, verify local `HEAD` equals `origin/main` before starting new work.
-- Latest continuity handoff is `HISTORY#236` - DeepSeek's pack_json fallback hypothesis was treated as disproven and the LoCoMo answerer/diagnostic path was updated. `benchmarks/external/locomo/adapters/seam.py` now uses a less-abstention-prone answerer prompt that asks for the best supported answer in noisy context and reserves `unknown` for no candidate answer. `benchmarks/external/locomo/run.py` exposes `--save-context`, threaded through `benchmarks/external/common/runner.py`, so future result JSON can opt into per-case `retrieved_context` without changing integrity hashes. `HISTORY#234` remains the Step 0a quickstart baseline of record with `gpt-5-mini` answerer at recall=0.9633, EM=0.7000, F1=0.9049, judge_score=0.9500. Step 0b (full 1,542-case LoCoMo with `--answerer-model gpt-5-mini --judge-model gpt-5-nano --judge-batch`) and Step 4 final measurement remain operator-gated paid runs. Phase B answerer batching from HISTORY#232 is still deferred pending Step 0b cost data.
+- Latest continuity handoff is `HISTORY#237` - extended the LoCoMo answerer diagnostics added in HISTORY#236 to capture per-call provider response metadata. `benchmarks/external/common/types.py` adds `AdapterAnswer.answerer_diagnostics`; `benchmarks/external/locomo/adapters/seam.py` threads an optional `diag_out` dict through `_openai_short_answer` and `_claude_short_answer` capturing provider, model, finish_reason, content_len, content_preview, token usage, and request budget knobs; `benchmarks/external/common/runner.py` emits `case_entry["answerer_diagnostics"]` when `--save-context` is set. `HISTORY#234` remains the Step 0a quickstart baseline of record. Step 0b full LoCoMo and Step 4 final measurement remain operator-gated paid runs.
 - A fresh Linux clone should run `sh ./installers/install_seam_linux.sh --dev`, then verify local `HEAD` equals `origin/main` before starting new work.
 - GitHub PR state as of 2026-05-18: PRs #22, #18, #23, #25 (SOP 0), #26, #27 (SOP 1), #28 (SOP 2), #29 (SOPs 3+4), and #30 (production readiness remediation) merged. Track I (SOPs 0-4) is complete on `main`. PR #19 is still draft, conflicting, and must be treated as a partial extraction source because its branch contains private-session-link material in commit metadata. PR #24 (Track I 5-SOP handoff series) was draft and is superseded.
 - **Track I COMPLETE milestone.** Next track is the operator's choice per ROADMAP.md: Track J (Prompt Codec), Track K (Trust/Security/Auditability + BIL bundles), Track L (Agent/Skills Compiler), or Track H Phase 2-4 (improvement streams, retrieval integration, generalized library streams). Do not resume from already-merged branches or stale squash-merged PR refs. Do not propose or start Tracks J/K/L without operator direction.

@@ -385,6 +385,8 @@ def _score_case(
     }
     if save_context:
         case_entry["retrieved_context"] = answer.retrieved_context
+        if answer.answerer_diagnostics is not None:
+            case_entry["answerer_diagnostics"] = answer.answerer_diagnostics
 
     if judge is not None:
         try:

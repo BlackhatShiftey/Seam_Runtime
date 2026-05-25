@@ -2,14 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 291
+total_events: 292
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-04-25T16:22:00Z | history:076:51d52ebc | session-event | done | readme, ledger, history, protocol, verify, snapshot | archive/README.md,archive/code/README.md,docs/CODE_LAYOUT.md,REPO_LEDGER.md,.... |
 | 2026-04-25T16:23:56Z | history:077:b7ed0ec9 | session-event | done | protocol, search, readme, ledger, verify, history, snapshot | AGENTS.md,.rgignore,docs/CODE_LAYOUT.md |
 | 2026-04-26T21:40:15Z | history:078:28700b01 | session-event | done | protocol, verify, pgvector, readme, history, snapshot | AGENTS.md,CLAUDE.md,docker-compose.yaml,.gitignore,.env.example,docs/SOP_MODE... |
 | 2026-04-26T21:42:43Z | history:079:b473b62c | session-event | done | protocol, ledger, history, snapshot, multi-agent, verify | AGENTS.md,CLAUDE.md,REPO_LEDGER.md,HISTORY.md,HISTORY_INDEX.md |
@@ -209,10 +208,11 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-05-22T12:52:58Z | history:234:c7001cf4 | session-event | done | benchmark, bugfix, locomo, verify, history, status | benchmarks/external/locomo/adapters/seam.py,PROJECT_STATUS.md |
 | 2026-05-23T03:58:36Z | history:235:66be1596 | session-event | done | benchmark, retrieval, verify, history, status | benchmarks/external/locomo/rerank.py,benchmarks/external/locomo/run.py,benchm... |
 | 2026-05-24T06:20:32Z | history:236:cd41a03c | session-event | done | benchmark, retrieval, verify, history, status | benchmarks/external/common/runner.py,benchmarks/external/locomo/adapters/seam... |
+| 2026-05-24T16:42:58Z | history:237:d1e9036b | session-event | done | benchmark, retrieval, verify, history | benchmarks/external/common/types.py,benchmarks/external/common/runner.py,benc... |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0091.cross.md | 2026-04-15T00:00:00Z..2026-04-25T16:14:02Z | 91 | (multi) | (multi) |
+| 0001-0092.cross.md | 2026-04-15T00:00:00Z..2026-04-25T16:22:00Z | 92 | (multi) | (multi) |

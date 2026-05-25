@@ -26,6 +26,7 @@ class AdapterAnswer:
     generated_answer: str | None = None  # only if the adapter generates an answer
     retrieval_latency_ms: float = 0.0
     answer_latency_ms: float = 0.0
+    answerer_diagnostics: dict | None = None  # provider/finish_reason/content_len when answerer ran
 
 
 class MemorySystemAdapter(Protocol):

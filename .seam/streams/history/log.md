@@ -4970,3 +4970,27 @@ Verification before this entry: .venv/bin/python -m pytest test_seam_all/test_lo
 
 Next step: run the next operator-gated paid LoCoMo measurement with --save-context so high-recall unknown cases can be diagnosed directly from the saved report instead of replaying context.
 ---END-ENTRY-#236---
+
+---BEGIN-ENTRY-#237---
+id: 237
+date: 2026-05-24T16:42:58Z
+agent: claude
+status: done
+topics: benchmark, retrieval, verify, history
+commits: none
+refs: benchmarks/external/common/types.py,benchmarks/external/common/runner.py,benchmarks/external/locomo/adapters/seam.py
+supersedes: 236
+tokens: 740
+---
+Extended the LoCoMo answerer diagnostics added in HISTORY#236 to capture per-call provider response metadata so the next paid run can distinguish budget-exhaust from policy-abstain without a second paid run.
+
+Scope: benchmarks/external/common/types.py adds AdapterAnswer.answerer_diagnostics: dict | None = None so adapters can attach optional per-call metadata without changing existing call sites. benchmarks/external/locomo/adapters/seam.py adds an optional diag_out: dict | None = None out-parameter to _openai_short_answer and _claude_short_answer that captures provider, model, finish_reason, content_len, content_preview (120 chars), token usage (completion_tokens / reasoning_tokens for OpenAI, output_tokens for Anthropic), and the request budget knobs (max_completion_tokens, reasoning_effort, max_tokens). _generate_answer threads the out-dict only when callers pass one, so the three existing tests that mock _openai_short_answer with a two-argument signature keep working. The adapter.answer() method instantiates the dict, captures diagnostics around the live call, and also marks abstained_by_threshold cases with the top_score. benchmarks/external/common/runner.py emits case_entry["answerer_diagnostics"] when --save-context is set so the data lands in the result JSON alongside the existing retrieved_context, with no change to the stable integrity hash.
+
+Rationale: replay diagnostics in HISTORY#236 showed retrieval producing readable text, with high-recall cases still returning "unknown" from gpt-5-mini under reasoning_effort=minimal and max_completion_tokens=max(max_tokens, 256). Without finish_reason, content_len, and reasoning_tokens persisted per case, the next analysis cycle cannot tell whether unknown answers are budget exhaustion (finish_reason=length, content_len=0) or policy abstention (finish_reason=stop, content_preview="unknown"). Both failure modes require different fixes; conflating them risks the wrong intervention.
+
+In-flight context: PID 3945374 was launched at 09:15 with --save-context on the codepath as of commit a4436e4 (HISTORY#236). That paid full LoCoMo run was already in flight when this slice landed and will complete on the older code without these diagnostics. It will still ship retrieved_context per case (useful triage), just not finish_reason. No process restart was attempted; killing a running paid run to apply new instrumentation would waste the already-burned tokens.
+
+Verification before this entry: .venv/bin/python -m pytest tests/audit/test_locomo_adapter_evidence_text.py tests/audit/test_abstain_threshold.py tests/audit/test_locomo_decomposer.py -q passed 9 tests; .venv/bin/python -m pytest tests/audit/ -k "locomo or runner or save_context or adapter" -q passed 66 tests with 3 skips and zero failures; .venv/bin/python -c "import ast; [ast.parse(open(p).read()) for p in ('benchmarks/external/locomo/adapters/seam.py','benchmarks/external/common/runner.py','benchmarks/external/common/types.py')]" passed. No paid API calls and no full LoCoMo run were performed for this slice. No provider session links, API keys, or local .env values were written into commits, snapshots, or this entry.
+
+Next step: rebuild HISTORY_INDEX, write a snapshot, run verify_integrity + verify_routing + verify_continuity. Operator may consider scheduling the post-PID-3945374 paid follow-up that adds the new finish_reason diagnostics to the result JSON; that is gated and not auto-launched.
+---END-ENTRY-#237---
