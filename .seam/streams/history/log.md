@@ -4994,3 +4994,106 @@ Verification before this entry: .venv/bin/python -m pytest tests/audit/test_loco
 
 Next step: rebuild HISTORY_INDEX, write a snapshot, run verify_integrity + verify_routing + verify_continuity. Operator may consider scheduling the post-PID-3945374 paid follow-up that adds the new finish_reason diagnostics to the result JSON; that is gated and not auto-launched.
 ---END-ENTRY-#237---
+
+---BEGIN-ENTRY-#238---
+id: 238
+date: 2026-05-24T21:01:24Z
+agent: codex
+status: done
+topics: retrieval, verify, bundle, history, status
+commits: none
+refs: /tmp/seam-track-m/step0b_locomo_gpt5mini_gpt5nano_save_context.json,/tmp/seam-track-m/step0b_locomo_gpt5mini_gpt5nano_save_context.bil2.json,PROJECT_STATUS.md
+supersedes: 237
+tokens: 900
+---
+Completed the operator-approved paid full LoCoMo Step 0b run that was launched from the HISTORY#236 codepath before HISTORY#237 finish_reason diagnostics landed.
+
+Run command: `CUDA_VISIBLE_DEVICES= .venv/bin/python -m benchmarks.external.locomo.run --dataset-path /home/terrabyte/seam_benchmarks/track_m/locomo/locomo10.json --adapter seam --answerer openai --answerer-model gpt-5-mini --judge openai --judge-model gpt-5-nano --judge-batch --save-context --output /tmp/seam-track-m/step0b_locomo_gpt5mini_gpt5nano_save_context.json`. Dry-run fixture facts before launch: case_count=1542, categories={2:321,3:96,1:282,4:841,5:2}, fixture_hash=405308a9159b88dd0675b798f59a3af16cdcc7061c31a6fcccc1638fe7f86d36.
+
+Result: elapsed_seconds=24296.361679792404, integrity_hash=3142a02883f298d5feed6b8d8c214f4500f68682df7fd29b6cd561ddac090f8b, context_recall_mean=0.28859200931270695, answer_em_mean=0.013618677042801557, answer_f1_mean=0.03774696302484643, judge_score_mean=0.19455252918287938, judge_count=1542, correct_count=46, partial_count=508, incorrect_count=988. Local post-run summary counted 1542 cases with retrieved_context and 1245 `_prediction == "unknown"`. The result file contains saved retrieved contexts and must not be pasted into chat or committed casually because it is large diagnostic evidence.
+
+BIL-2 sealing: `.venv/bin/python -m seam bench seal /tmp/seam-track-m/step0b_locomo_gpt5mini_gpt5nano_save_context.json --level BIL-2 --output /tmp/seam-track-m/step0b_locomo_gpt5mini_gpt5nano_save_context.bil2.json` passed. `.venv/bin/python -m seam bench verify /tmp/seam-track-m/step0b_locomo_gpt5mini_gpt5nano_save_context.bil2.json` passed 4/4 checks with result hash 17f4afa8904cfe2d50fb10cc4433ccf651e9530414a5a357e0b9377840803d0c and input manifest hash 7a2dd87132b21a64e1f7f30e42e802fc6edd7c826cb88fb05d0eb27a26539870.
+
+Operational note: the long wall time was not a local hang. The final quiet period was OpenAI Batch polling; `OpenAI().batches.retrieve('batch_6a13627bec9c8190ae3e2362d7433a16')` showed 1540/1542 judge requests complete with zero failures before the last two completed and the runner wrote the report. Earlier Hugging Face 429s were metadata HEAD retries for `BAAI/bge-small-en-v1.5`, not OpenAI credential failures.
+
+OpenAI key handling: an API key named `Seam Codex` was created in the user's Personal org / Default project and stored only as `OPENAI_API_KEY` in ignored local file `.env.local`; the plaintext key was not printed, committed, copied into history, or added to snapshots.
+
+Next step: review the saved contexts and unknown cases from the BIL-2 result without printing full contexts. Because this run predates HISTORY#237, it cannot distinguish answerer finish_reason budget exhaustion from policy abstention; use HISTORY#237 instrumentation for any future paid diagnostic rerun. Step 4 final measurement remains operator-gated.
+---END-ENTRY-#238---
+
+---BEGIN-ENTRY-#239---
+id: 239
+date: 2026-05-24T21:10:00Z
+agent: codex
+status: done
+topics: verify, history, snapshot, status
+commits: none
+refs: HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md,.seam/streams/history/log.md,.seam/streams/history/index.md,.seam/cross_index.md,.seam/snapshots/20260524-210304-634169-codex.json
+supersedes: 238
+tokens: 520
+---
+Fixed the repo closeout issues that appeared after recording the full LoCoMo Step 0b result.
+
+Root cause: the first closeout command used `python`, but this shell does not expose a system `python`; the project venv path `.venv/bin/python` is required. The second attempt passed `history` as a positional argument to `tools.streams.rebuild_index`, but that CLI expects `--stream history`. The snapshot attempt omitted required `--agent` and `--entries` arguments.
+
+Repair performed: rebuilt `HISTORY_INDEX.md` with `.venv/bin/python -m tools.history.rebuild_index`; rebuilt the history stream mirror with `.venv/bin/python -m tools.streams.rebuild_index --stream history`; rebuilt `.seam/cross_index.md` with `.venv/bin/python -m tools.streams.rebuild_cross_index`; wrote snapshot `.seam/snapshots/20260524-210304-634169-codex.json` with `.venv/bin/python -m tools.history.write_snapshot --agent codex --entries 237,238`; updated `PROJECT_STATUS.md` to point at this closeout repair while preserving HISTORY#238 as the Step 0b result of record.
+
+Verification before this entry: `.venv/bin/python -m tools.history.verify_integrity` reported `Integrity OK`; `.venv/bin/python -m tools.history.verify_routing` reported `Routing OK`; `.venv/bin/python -m tools.history.verify_continuity` reported `Continuity OK`; `.venv/bin/python -m tools.streams.verify_streams` reported `streams OK`; `git diff --check` produced no output. The BIL-2 Step 0b result verification from HISTORY#238 remains valid at 4/4 checks passed.
+
+Next step: no local process is still running for Step 0b. Review the saved contexts from `/tmp/seam-track-m/step0b_locomo_gpt5mini_gpt5nano_save_context.json` without printing full contexts or secrets; use HISTORY#237 finish_reason instrumentation before any future paid diagnostic rerun.
+---END-ENTRY-#239---
+
+---BEGIN-ENTRY-#240---
+id: 240
+date: 2026-05-24T21:59:02Z
+agent: claude
+status: done
+topics: benchmark, retrieval, search, rank, verify, history, status
+commits: none
+refs: benchmarks/external/locomo/adapters/seam.py,benchmarks/external/common/types.py,benchmarks/external/common/runner.py,tests/audit/test_locomo_adapter_evidence_text.py,PROJECT_STATUS.md
+supersedes: 239
+tokens: 720
+---
+Landed a no-paid-API LoCoMo retrieval slice that moved 100-case context_recall_mean from 0.358600 (HISTORY#238 first-100 of `step0b_locomo_gpt5mini_gpt5nano_save_context.json`) to 0.494742 against the same `/home/terrabyte/seam_benchmarks/track_m/locomo/locomo10.json --limit 100 --adapter seam --answerer none --judge none` slice. Four independent fixes in `benchmarks/external/locomo/adapters/seam.py`:
+
+1. Separated retrieval top-K from context budget. New `search_top_k: int = 20` constructor argument is now passed to `rt.search_ir(..., budget=self._search_top_k)` in `answer()`. The previous code passed the context budget (default 2000) directly to `search_ir`, which inflated candidate sets and drowned the scorer.
+2. Preserved ranking order through evidence assembly. `closures` is now a list of ordered ID lists (was `list[set[str]]`), merging deduplicates while keeping rank order; and `_build_evidence_context_from_ids()` no longer calls `sorted(closure_ids)` before loading IR, so top-ranked candidates land first in the returned context. The previous `sorted()` made evidence order arbitrary.
+3. Per-scope SeamRuntime cache. New `self._runtime_by_scope` dict and `_runtime(scope_id)` helper reuse the runtime opened during ingest for subsequent `answer()` calls within the same scope. `reset(scope_id)` evicts and closes the cached runtime. The previous code re-opened the runtime on every `ingest_turn`/`answer` call.
+4. Module-level default embedding model cache. `_DEFAULT_SENTENCE_TRANSFORMER_MODEL` caches the `SentenceTransformerModel("BAAI/bge-small-en-v1.5")` instance once per process; `_open_runtime()` reuses it for `provider in {"hash","local","deterministic"}`. The previous code instantiated a fresh sentence-transformer per scope, redundantly loading weights.
+
+Carried prior-slice diagnostic edits in this same close-out: `benchmarks/external/common/types.py` adds `AdapterAnswer.answerer_diagnostics: dict | None`, and `benchmarks/external/common/runner.py` propagates it into `case_entry["answerer_diagnostics"]` when `--save-context` is set. These remain dormant on no-paid-answerer runs.
+
+Tried-and-reverted in the same slice: a follow-up `_format_turn` change to `Speaker: [timestamp] text` (so `seam_runtime/nl.py compile_conversation_turn`'s `^Name:` regex would match and extract speaker/date claims) regressed the same 100-case slice to 0.460942 and inflated runtime 64s -> 90s, because added ENT/CLM records compete with RAW records at the fixed `search_top_k=20` budget that the token-overlap scorer reads. The change has been reverted; `_format_turn` still emits the canonical `[Speaker timestamp] text` form covered by `tests/audit/test_locomo_failure_audit.py::test_context_format_turn_brackets_not_json`.
+
+Tests added in `tests/audit/test_locomo_adapter_evidence_text.py`: `test_locomo_adapter_uses_separate_search_top_k`, `test_locomo_adapter_reuses_runtime_per_scope`, `test_open_runtime_reuses_default_embedding_model`, `test_locomo_context_preserves_ranked_raw_order`. Each fails on the pre-fix adapter behavior I observed (search_top_k=2000, runtime opened 3x, default embedding model created twice, evidence order reversed by `sorted`).
+
+Verification before this entry: `.venv/bin/python -m pytest tests/audit/test_locomo_adapter_evidence_text.py -q -k "open_runtime_reuses or reuses_runtime or search_top_k or ranked_raw_order"` passed 4 tests; `.venv/bin/python -m pytest tests/audit/test_locomo_adapter_evidence_text.py tests/audit/test_cross_encoder_rerank.py test_seam_all/test_locomo_seam_adapter.py tests/audit/test_locomo_turn_discriminator.py tests/audit/test_locomo_failure_audit.py -q` passed 51 tests. No-paid LoCoMo smokes: 10-case `/tmp/seam-track-m/current_fix2_limit10_no_answerer.json` context_recall_mean=0.420000 in 41.74s; 100-case `/tmp/seam-track-m/current_fix2_limit100_no_answerer.json` context_recall_mean=0.494742 in 63.97s (per_category: cat1=0.374 n=32, cat2=0.634 n=37, cat3=0.242 n=13, cat4=0.605 n=18). HISTORY#238 first-100 baseline on the paid Step 0b bundle was 0.358600 by my own audit of `cases[:100]`. The reverted speaker-format 100-case run is preserved at `/tmp/seam-track-m/current_fix3_limit100_speaker.json` for cost-free regression evidence. No paid answerer/judge calls were made in this slice per operator cost guidance.
+
+Next step: do failure-mode analysis on the 100-case JSON before any further format/extraction change - sort cases by ascending `scores.context_recall`, dump `gold`, `retrieved_context[:500]`, and category for the bottom 10, classify failures as wrong-turn-retrieved, right-turn-but-gold-not-in-text, or right-turn-but-budget-elided. Decide the next score lever from that data, not from prior assumptions. Track M Step 4 final paid measurement remains operator-gated; HISTORY#237 finish_reason instrumentation and HISTORY#240 answerer_diagnostics plumbing are both ready for the next paid diagnostic rerun.
+---END-ENTRY-#240---
+
+---BEGIN-ENTRY-#241---
+id: 241
+date: 2026-05-24T23:39:52Z
+agent: claude
+status: done
+topics: benchmark, command, verify, history, status
+commits: none
+refs: benchmarks/external/locomo/adapters/seam.py,benchmarks/external/locomo/run.py,tests/audit/test_locomo_adapter_evidence_text.py,PROJECT_STATUS.md
+supersedes: 240
+tokens: 510
+---
+Added a persistent-ingest-cache for the LoCoMo benchmark inner loop so retrieval/answerer code changes can be re-tested in seconds instead of re-paying ingest cost every run.
+
+`SeamLocomoAdapter` now accepts `keep_db: bool = False`. When `keep_db=True` and the scope's SQLite file already has records under namespace `locomo:{scope_id}`, `reset()` keeps the DB on disk, marks the scope in a new `self._cached_scopes` set, and clears just the in-memory temporal anchor. `ingest_turn()` then becomes a no-op on cached scopes - it still updates `self._scope_anchor_by_id` from `turn.timestamp` (so relative-date temporal questions work on cached scopes) but skips `rt.ingest_conversation_turn`. The default `keep_db=False` path is unchanged: `reset()` still closes the cached runtime, deletes the SQLite file plus WAL/SHM sidecars, and clears the anchor. A new helper `_scope_has_records()` opens the cached runtime and calls `rt.store.load_ir(ns=...)` to verify the scope is actually populated before honoring the cache.
+
+`benchmarks/external/locomo/run.py` exposes two new flags: `--keep-db` (action="store_true") and `--db-path` (string, default `None`). Both flow through `build_adapter` into the `SeamLocomoAdapter` constructor, in both the single-process `run_benchmark_grouped` path and the multi-worker `run_benchmark_grouped_parallel` path. `--db-path` was added so an iteration slice can use an isolated directory (e.g. `/tmp/seam-track-m/iter_db`) instead of sharing `test_seam/locomo/` with prior experiments that may have different ingest formats.
+
+Three new audit tests in `tests/audit/test_locomo_adapter_evidence_text.py`: `test_locomo_adapter_keep_db_skips_reingest_on_second_reset` asserts the record count is unchanged after a second `reset()` + `ingest_turn()` cycle and that retrieval still returns the cached content; `test_locomo_adapter_keep_db_updates_anchor_on_cached_scope` asserts the anchor still updates from incoming turn timestamps when ingest is skipped; `test_locomo_adapter_keep_db_default_off_still_deletes` asserts the default path still deletes the DB on reset and never sets `_cached_scopes`. The anchor test uses `timestamp="2026-03-15"` because the production `seam_runtime.temporal.parse_iso` only accepts a narrow set of formats - the existing ISO-8601-with-Z strings in other tests return `None` from `parse_iso` (a separate pre-existing issue documented in HISTORY#240 audit notes).
+
+Verification before this entry: `.venv/bin/python -m pytest tests/audit/test_locomo_adapter_evidence_text.py tests/audit/test_cross_encoder_rerank.py test_seam_all/test_locomo_seam_adapter.py tests/audit/test_locomo_turn_discriminator.py tests/audit/test_locomo_failure_audit.py -q` passed 54 tests. Empirical timing on the standard 100-case no-paid slice (`/home/terrabyte/seam_benchmarks/track_m/locomo/locomo10.json --limit 100 --adapter seam --answerer none --judge none --keep-db --db-path /tmp/seam-track-m/iter_db`): cold 70.22s recall=0.494742, warm 31.78s recall=0.494742, identical scores, 2.2x speedup. 10-case warm against the populated DB completed in 8.95s (recall=0.420000) - this is the sub-10-second micro-suite the operator needed for the iterate-fast-on-retrieval loop. Cold and warm 100-case both reproduce the HISTORY#240 baseline of 0.494742, confirming the cache preserves correctness.
+
+Durable benchmark archive: copied `/tmp/seam-track-m/{step0b_*,current_fix2_*,current_fix3_*}` plus an `AUDIT_NOTES.md` summarizing the failure-mode findings (5.06% of 1542 cases had gold-in-context, 80.7% unknown predictions, retrieval is query-independent per conversation on the pre-HISTORY#240 paid bundle, parse_temporal_reference fires on 0/1542 questions, cat-3 should be judged by judge_score not context_recall) to `~/seam_benchmarks/track_m/locomo/results/2026-05-24_retrieval_slice/`. HISTORY entries continue to reference the `/tmp/seam-track-m/` paths to preserve the in-entry provenance, with the durable copies as a reboot-safe mirror.
+
+Next step: do failure-mode analysis from `AUDIT_NOTES.md` on the warm DB instead of re-running cold. Candidate score levers in priority order: (1) investigate why retrieval is query-independent per conversation - the 0.494742 plateau likely reflects ranking quality at search_top_k=20 since the right turn is being missed; (2) broaden `detect_temporal_tokens` patterns so `parse_temporal_reference` actually fires; (3) add answerer-side instrumentation under `--keep-db --answerer openai --judge stub --limit 20` to characterize the 325 "unknown despite high recall" cases without paying for a 1542-case judge run.
+---END-ENTRY-#241---

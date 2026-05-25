@@ -28,17 +28,19 @@ from benchmarks.external.common.runner import (
 )
 
 
-def build_adapter(name: str, answerer: str | None = None, answerer_model: str | None = None, decomposer: str | None = None, decomposer_model: str | None = None, decomposer_max_subq: int = 3, abstain_threshold: float = 0.0, rerank: str | None = None):
+def build_adapter(name: str, answerer: str | None = None, answerer_model: str | None = None, decomposer: str | None = None, decomposer_model: str | None = None, decomposer_max_subq: int = 3, abstain_threshold: float = 0.0, rerank: str | None = None, keep_db: bool = False, db_path: str | None = None):
     """Lazy-import factory so SEAM-only runs don't require Mem0/Zep installed."""
     if name == "seam":
         from benchmarks.external.locomo.adapters.seam import SeamLocomoAdapter
 
         return SeamLocomoAdapter(
+            db_path=db_path,
             answerer=answerer, answerer_model=answerer_model,
             decomposer=decomposer, decomposer_model=decomposer_model,
             decomposer_max_subq=decomposer_max_subq,
             abstain_threshold=abstain_threshold,
             rerank=rerank,
+            keep_db=keep_db,
         )
     if name == "mem0":
         from benchmarks.external.locomo.adapters.mem0 import Mem0LocomoAdapter
@@ -235,6 +237,17 @@ def main() -> None:
         action="store_true",
         help="Include per-case retrieved_context in the JSON report for diagnostics",
     )
+    parser.add_argument(
+        "--keep-db",
+        action="store_true",
+        help="(seam adapter) Reuse the per-scope SQLite databases between runs instead of deleting on reset. After the first ingest, subsequent runs skip re-ingest and just exercise retrieval/scoring. Use this for tight inner-loop iteration on retrieval/answerer changes.",
+    )
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default=None,
+        help="(seam adapter) Directory for per-scope SQLite databases. Default: test_seam/locomo. Use with --keep-db to isolate a benchmark slice from other DBs.",
+    )
     args = parser.parse_args()
 
     dataset_path = args.dataset_path or args.dataset
@@ -282,6 +295,8 @@ def main() -> None:
                 decomposer_max_subq=args.decomposer_max_subq,
                 abstain_threshold=args.abstain_threshold,
                 rerank=rerank,
+                keep_db=args.keep_db,
+                db_path=args.db_path,
             ),
             adapter_name=args.adapter,
             cases=cases,
@@ -303,6 +318,8 @@ def main() -> None:
             decomposer_max_subq=args.decomposer_max_subq,
             abstain_threshold=args.abstain_threshold,
             rerank=rerank,
+            keep_db=args.keep_db,
+            db_path=args.db_path,
         )
         judge = build_judge(args.judge, model=args.judge_model)
         report = run_benchmark_grouped(

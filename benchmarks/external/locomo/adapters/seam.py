@@ -9,6 +9,9 @@ from pathlib import Path
 from benchmarks.external.common.types import AdapterAnswer, ConversationTurn
 
 
+_DEFAULT_SENTENCE_TRANSFORMER_MODEL = None
+
+
 class SeamLocomoAdapter:
     """SEAM memory system adapter for LoCoMo benchmarks.
 
@@ -34,8 +37,10 @@ class SeamLocomoAdapter:
         decomposer_max_subq: int = 3,
         abstain_threshold: float = 0.0,
         rerank: str | None = None,
+        search_top_k: int = 20,
         rerank_top_k: int = 20,
         rerank_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2",
+        keep_db: bool = False,
     ) -> None:
         # TODO: default db_path should be tmp_path, not a gitignored project dir
         self._db_root = Path(db_path) if db_path is not None else Path("test_seam/locomo")
@@ -48,34 +53,56 @@ class SeamLocomoAdapter:
         self._decomposer_max_subq = decomposer_max_subq
         self._abstain_threshold = abstain_threshold
         self._rerank = rerank if rerank != "none" else None
+        self._search_top_k = search_top_k
         self._rerank_top_k = rerank_top_k
         self._rerank_model = rerank_model
+        self._keep_db = keep_db
         self._scope_anchor_by_id = {}
+        self._runtime_by_scope = {}
+        self._cached_scopes: set[str] = set()
 
     # ------------------------------------------------------------------
     # Protocol methods
     # ------------------------------------------------------------------
 
     def reset(self, scope_id: str) -> None:
-        """Drop the per-scope database file (and any WAL artefacts)."""
+        """Drop the per-scope database file (and any WAL artefacts).
+
+        When ``keep_db`` is set and the scope's DB already holds ingested
+        records, skip the delete and mark the scope as cached so subsequent
+        ``ingest_turn`` calls become no-ops (anchor still updates).
+        """
+        self._cached_scopes.discard(scope_id)
         db = self._db_path(scope_id)
+        if self._keep_db and db.exists() and self._scope_has_records(scope_id):
+            self._scope_anchor_by_id.pop(scope_id, None)
+            self._cached_scopes.add(scope_id)
+            return
+        runtime = self._runtime_by_scope.pop(scope_id, None)
+        if runtime is not None:
+            close = getattr(getattr(runtime, "store", None), "close", None)
+            if callable(close):
+                close()
         _remove_db_files(db)
         self._scope_anchor_by_id.pop(scope_id, None)
 
     def ingest_turn(self, scope_id: str, turn: ConversationTurn) -> None:
         """Compile a conversation turn to MIRL and persist it in the
-        scope's database."""
+        scope's database. Skipped when the scope is already cached on disk."""
         from seam_runtime.runtime import SeamRuntime  # lazy
         from seam_runtime.temporal import parse_iso
 
-        text = _format_turn(turn)
+        # anchor always updates so relative-date questions work on cached scopes
         turn_dt = parse_iso(turn.timestamp)
         if turn_dt is not None:
             current_anchor = self._scope_anchor_by_id.get(scope_id)
             if current_anchor is None or turn_dt < current_anchor:
                 self._scope_anchor_by_id[scope_id] = turn_dt
+        if scope_id in self._cached_scopes:
+            return
+        text = _format_turn(turn)
         turn_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
-        rt = _open_runtime(self._db_path(scope_id))
+        rt = self._runtime(scope_id)
         rt.ingest_conversation_turn(
             text=text,
             source_ref=f"locomo:{scope_id}:turn:{turn_hash}",
@@ -83,6 +110,15 @@ class SeamLocomoAdapter:
             scope="thread",
             persist=True,
         )
+
+    def _scope_has_records(self, scope_id: str) -> bool:
+        """Return True if the scope's DB already contains MIRL records."""
+        try:
+            rt = self._runtime(scope_id)
+            batch = rt.store.load_ir(ns=f"locomo:{scope_id}")
+            return len(batch.records) > 0
+        except Exception:
+            return False
 
     def answer(self, scope_id: str, question: str) -> AdapterAnswer:
         """Search the scope's memory and return source evidence text.
@@ -94,7 +130,7 @@ class SeamLocomoAdapter:
         """
         from seam_runtime.runtime import SeamRuntime  # lazy
 
-        rt = _open_runtime(self._db_path(scope_id))
+        rt = self._runtime(scope_id)
 
         questions = [question]
         if self._decomposer:
@@ -105,7 +141,7 @@ class SeamLocomoAdapter:
         temporal_window = self._build_temporal_window(question)
         temporal_reference = self._build_temporal_reference(scope_id, question)
 
-        closures: list[set[str]] = []
+        closures: list[list[str]] = []
         retrieval_latency_ms = 0.0
         top_score = 0.0
         for q in questions:
@@ -113,7 +149,7 @@ class SeamLocomoAdapter:
             result = rt.search_ir(
                 q,
                 scope="thread",
-                budget=self.budget,
+                budget=self._search_top_k,
                 include_raw=True,
                 temporal_window=temporal_window,
                 temporal_reference=temporal_reference,
@@ -125,7 +161,13 @@ class SeamLocomoAdapter:
                 closures.append(self._collect_closure_ids(result))
                 top_score = max(top_score, result.candidates[0].score)
 
-        merged = set().union(*closures) if closures else set()
+        merged: list[str] = []
+        seen_merged: set[str] = set()
+        for closure in closures:
+            for record_id in closure:
+                if record_id not in seen_merged:
+                    seen_merged.add(record_id)
+                    merged.append(record_id)
 
         if not merged:
             return AdapterAnswer(
@@ -221,13 +263,22 @@ class SeamLocomoAdapter:
             return []
         return [line.strip() for line in text.splitlines() if line.strip()][: self._decomposer_max_subq]
 
-    def _collect_closure_ids(self, result) -> set[str]:
+    def _collect_closure_ids(self, result) -> list[str]:
         """Collect record IDs from search result candidates and their evidence/prov."""
-        closure_ids: set[str] = set()
+        closure_ids: list[str] = []
+        seen: set[str] = set()
+
+        def add(record_id: str) -> None:
+            if record_id not in seen:
+                seen.add(record_id)
+                closure_ids.append(record_id)
+
         for candidate in result.candidates:
-            closure_ids.add(candidate.record.id)
-            closure_ids.update(candidate.record.evidence or [])
-            closure_ids.update(candidate.record.prov or [])
+            add(candidate.record.id)
+            for evidence_id in candidate.record.evidence or []:
+                add(evidence_id)
+            for prov_id in candidate.record.prov or []:
+                add(prov_id)
         return closure_ids
 
     def _rerank_candidates(self, query: str, result):
@@ -250,20 +301,31 @@ class SeamLocomoAdapter:
         result.candidates[:] = top_k + list(rest)
         return result
 
-    def _build_evidence_context_from_ids(self, rt, closure_ids: set[str]) -> str:
+    def _build_evidence_context_from_ids(self, rt, closure_ids: list[str]) -> str:
         """Build a bounded text context from a set of record IDs."""
         if closure_ids:
             first_batch = rt.store.load_ir(ids=list(closure_ids))
+            expanded_ids: list[str] = []
+            seen_expanded: set[str] = set()
+
+            def add(record_id: str) -> None:
+                if record_id not in seen_expanded:
+                    seen_expanded.add(record_id)
+                    expanded_ids.append(record_id)
+
             for record in first_batch.records:
+                add(record.id)
                 if record.kind.value == "SPAN":
                     raw_id = record.attrs.get("raw_id")
                     if isinstance(raw_id, str) and raw_id:
-                        closure_ids.add(raw_id)
+                        add(raw_id)
+
+            closure_ids = expanded_ids
 
         if not closure_ids:
             return ""
 
-        batch = rt.store.load_ir(ids=sorted(closure_ids))
+        batch = rt.store.load_ir(ids=list(closure_ids))
         text_snippets: list[str] = []
         seen: set[str] = set()
         for record in batch.records:
@@ -278,9 +340,9 @@ class SeamLocomoAdapter:
             return _trim_context("\n".join(text_snippets), self.budget)
 
         try:
-            pack = rt.pack_ir(sorted(closure_ids), lens="general", budget=self.budget, mode="exact")
+            pack = rt.pack_ir(list(closure_ids), lens="general", budget=self.budget, mode="exact")
         except ValueError:
-            pack = rt.pack_ir(sorted(closure_ids), lens="general", budget=self.budget)
+            pack = rt.pack_ir(list(closure_ids), lens="general", budget=self.budget)
         pack_dict = pack.to_dict() if hasattr(pack, "to_dict") else {}
         return _trim_context(json.dumps(pack_dict, sort_keys=True, indent=2), self.budget)
 
@@ -291,6 +353,13 @@ class SeamLocomoAdapter:
     def _db_path(self, scope_id: str) -> Path:
         safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in scope_id)
         return self._db_root / f"{safe}.db"
+
+    def _runtime(self, scope_id: str):
+        runtime = self._runtime_by_scope.get(scope_id)
+        if runtime is None:
+            runtime = _open_runtime(self._db_path(scope_id))
+            self._runtime_by_scope[scope_id] = runtime
+        return runtime
 
 
 # ------------------------------------------------------------------
@@ -312,8 +381,11 @@ def _open_runtime(db_path: Path):
 
     settings = embedding_settings_from_env()
     if settings.provider in {"hash", "local", "deterministic"}:
+        global _DEFAULT_SENTENCE_TRANSFORMER_MODEL
         try:
-            model = SentenceTransformerModel(model_name="BAAI/bge-small-en-v1.5")
+            if _DEFAULT_SENTENCE_TRANSFORMER_MODEL is None:
+                _DEFAULT_SENTENCE_TRANSFORMER_MODEL = SentenceTransformerModel(model_name="BAAI/bge-small-en-v1.5")
+            model = _DEFAULT_SENTENCE_TRANSFORMER_MODEL
         except Exception as exc:
             raise RuntimeError(
                 "LoCoMo benchmark requires a real embedding model. "
