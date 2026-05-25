@@ -20,6 +20,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Check diff hygiene
+        if: matrix.os == 'ubuntu-latest'
+        run: git diff --check
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -101,3 +105,80 @@ jobs:
           PGPASSWORD: seam_ci_password
           SEAM_PGVECTOR_DSN: postgresql://seam_ci@localhost:55432/seam_ci
         run: python -m pytest tests/audit/test_pgvector_real_adapter.py -q
+
+  repo-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check diff hygiene
+        run: git diff --check
+
+      - name: Secret/session URL scan
+        shell: bash
+        run: |
+          if rg --pcre2 -l "(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|claude\\.ai/(chat|share)/|chatgpt\\.com/(share|c)/)" . \
+              --glob '!test_seam/**' \
+              --glob '!build/**' \
+              --glob '!.venv/**' \
+              --glob '!docs/archive/**' \
+              --glob '!archive/**' > /tmp/seam_secret_scan_matches; then
+            echo "Secret-shaped value or private session URL found in $(wc -l < /tmp/seam_secret_scan_matches) file(s)."
+            exit 1
+          fi
+
+  chroma-real-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: python -m pip install -e ".[server]"
+
+      - name: Run real Chroma smoke
+        run: python -m tools.ci.chroma_real_smoke
+
+  locomo-quickstart-bil2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-bge-small-en-v1.5-${{ runner.os }}
+
+      - name: Install package
+        run: python -m pip install -e ".[server,sbert]"
+
+      - name: Run LoCoMo quickstart smoke
+        run: python -m seam bench external --quickstart locomo --adapter seam --judge stub --output locomo.quickstart.json
+
+      - name: Seal LoCoMo quickstart as BIL-2
+        run: python -m seam bench seal locomo.quickstart.json --level BIL-2 --allow-stub-seal --output locomo.quickstart.bil2.json
+
+      - name: Verify LoCoMo quickstart BIL-2 bundle
+        run: python -m seam bench verify locomo.quickstart.bil2.json --format json > locomo.quickstart.verify.json
+
+      - name: Upload LoCoMo quickstart artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: locomo-quickstart-bil2
+          path: |
+            locomo.quickstart.json
+            locomo.quickstart.bil2.json
+            locomo.quickstart.verify.json

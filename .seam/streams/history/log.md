@@ -5171,3 +5171,29 @@ Verification before this entry: .venv/bin/python -m pytest tests/audit/test_retr
 
 Next step: slice 2 - opt-in writer hook in SeamLocomoAdapter.answer() that emits a retrieval_event per case when a --record-retrieval-events flag is set on benchmarks/external/locomo/run.py; default off so existing tests stay stable. Slice 3 - tools/h2/backfill_from_bil2.py that reads a BIL-2 LoCoMo result bundle and writes retrieval_event rows with stale_source flagged based on the bundle's git_sha relative to HISTORY#240 / HISTORY#242 commit SHAs. Slice 4 - dev/holdout split helper before any scoring-weight tuning. No autonomous ranking change yet; all policy promotion still goes through seam improvement review per HISTORY#243.
 ---END-ENTRY-#244---
+
+---BEGIN-ENTRY-#245---
+id: 245
+date: 2026-05-25T12:22:20Z
+agent: codex
+status: done
+topics: benchmark, bundle, verify, security, protocol
+commits: none
+refs: .github/workflows/ci.yml,.github/pull_request_template.md,tools/ci/chroma_real_smoke.py,tests/audit/test_github_pr_gates.py,PROJECT_STATUS.md,REPO_LEDGER.md
+supersedes: 244
+tokens: 992
+---
+Hardened GitHub PR management with no-paid benchmark and repository hygiene gates.
+
+Changed `.github/workflows/ci.yml`: added an Ubuntu `repo-hygiene` job that runs `git diff --check` and a non-printing secret/session URL scan for API-key-shaped strings plus private Claude/ChatGPT session URLs. Added `chroma-real-smoke`, which installs the package and runs `python -m tools.ci.chroma_real_smoke` against actual `chromadb` with a temporary store. Added `locomo-quickstart-bil2`, which installs the `sbert` extra, runs `python -m seam bench external --quickstart locomo --adapter seam --judge stub --output locomo.quickstart.json`, seals the result with `python -m seam bench seal locomo.quickstart.json --level BIL-2 --allow-stub-seal --output locomo.quickstart.bil2.json`, verifies with `python -m seam bench verify locomo.quickstart.bil2.json --format json`, and uploads the result/bundle/verify JSON artifacts. Existing Windows/Linux unit/history/stream gates and pgvector integration stay in place.
+
+Added `.github/pull_request_template.md` so reviewers see the repo-management checklist on every PR: local verification, SEAM history/stream gates when state changed, BIL-2 quickstart artifact when benchmark/external-memory code changed, no paid API calls without explicit operator approval, and no secrets/session URLs. Added `tests/audit/test_github_pr_gates.py` so the workflow and PR template requirements are tested in-repo instead of relying only on review memory.
+
+Added `tools/ci/chroma_real_smoke.py`, a CI-only helper that creates a temporary SeamRuntime with `HashEmbeddingModel`, persists a small batch, syncs `ChromaSemanticAdapter` into a temporary persistent Chroma collection, queries through real Chroma, and exits non-zero unless records were indexed and hits come back through the `chroma` leg. It uses valid MIRL scope `thread` and writes no repo-state vector artifacts.
+
+Updated `PROJECT_STATUS.md` to point the current handoff at this GitHub PR-gate change while preserving HISTORY#244 as the latest H2 retrieval_event substrate slice. Updated `REPO_LEDGER.md` because this is now stable repo policy: PR CI may run no-paid quickstart/stub/BIL-2 and real Chroma smokes, but paid answerer, judge, decomposer, and full LoCoMo runs remain operator-gated.
+
+Verification before this entry: `tests/audit/test_github_pr_gates.py` failed before the workflow/template change for the expected missing job/template assertions, then `.venv/bin/python -m pytest tests/audit/test_github_pr_gates.py -q` passed 2 tests. `.venv/bin/python -m tools.ci.chroma_real_smoke` passed with `indexed=5` and Chroma hits `raw:1`, `clm:2`, `clm:1`. No-paid BIL-2 chain passed locally: `.venv/bin/python -m seam bench external --quickstart locomo --adapter seam --judge stub --output /tmp/seam-ci-locomo.quickstart.json`; `.venv/bin/python -m seam bench seal /tmp/seam-ci-locomo.quickstart.json --level BIL-2 --allow-stub-seal --output /tmp/seam-ci-locomo.quickstart.bil2.json`; `.venv/bin/python -m seam bench verify /tmp/seam-ci-locomo.quickstart.bil2.json --format json > /tmp/seam-ci-locomo.quickstart.verify.json`. The seal step reported PASS with result hash `e4fd3d6a4b1c58fef074cbe80a4bc30412e05e5cbb4b25803928f58aa85eb0ab` and input manifest hash `d30b99bd44fa95f5aeb1fe219029ce3a93d60d0f454444a38acc55f0fa27e31d`. Workflow YAML parsed cleanly via PyYAML. `.venv/bin/python -m pytest tests/audit/test_github_pr_gates.py tests/audit/test_chroma_sync_default.py test_seam_all/test_benchmark_integrity.py -q` passed 17 tests. `git diff --check` passed. The non-printing local secret/session URL scan found no matches. No paid API calls were made.
+
+Next step: after this entry, rebuild derived history/stream/cross-index state, write a snapshot, and run integrity/routing/continuity/streams gates. Branch protection on GitHub should require the new `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2` checks before merge.
+---END-ENTRY-#245---

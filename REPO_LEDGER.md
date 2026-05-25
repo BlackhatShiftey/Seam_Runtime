@@ -1,6 +1,6 @@
 # SEAM Repo Ledger
 
-Last updated: 2026-05-21
+Last updated: 2026-05-25
 
 This ledger is the stable engineering memory for repo-level decisions only.
 Detailed session history, milestones, and plan transitions now live in `HISTORY.md`
@@ -71,6 +71,13 @@ and `HISTORY_INDEX.md`.
   bundle verification before `validate_publication_readiness` can return
   publication-ready. Stub judge output is smoke-only even when it can be sealed
   with an explicit test override.
+- GitHub PRs must keep no-paid benchmark integrity visible: CI runs a LoCoMo
+  quickstart smoke with the stub judge, seals it as BIL-2 with the explicit
+  stub override, verifies the bundle, and uploads the result/bundle/verify
+  artifacts. CI also runs a real Chroma smoke through `chromadb`, `git diff
+  --check`, and a non-printing secret/session URL scan. Paid answerer, judge,
+  decomposer, or full LoCoMo runs remain operator-gated and must not be added
+  to default PR CI.
 - Benchmark evidence proves SEAM value but never expands license rights; hosted,
   SaaS, commercial, embedded, redistribution, customer-deployment, or
   closed-source use still requires a separate written commercial license.
