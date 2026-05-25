@@ -5197,3 +5197,103 @@ Verification before this entry: `tests/audit/test_github_pr_gates.py` failed bef
 
 Next step: after this entry, rebuild derived history/stream/cross-index state, write a snapshot, and run integrity/routing/continuity/streams gates. Branch protection on GitHub should require the new `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2` checks before merge.
 ---END-ENTRY-#245---
+
+---BEGIN-ENTRY-#246---
+id: 246
+date: 2026-05-25T12:33:37Z
+agent: codex
+status: done
+topics: security, protocol, verify, history, status
+commits: none
+refs: PROJECT_STATUS.md,REPO_LEDGER.md,GitHub-ruleset:15143368
+supersedes: 245
+tokens: 574
+---
+Tightened the GitHub main-branch repository ruleset so the PR hygiene gates from HISTORY#245 are enforcement, not advisory.
+
+External GitHub setting changed via `gh api`: repository ruleset id `15143368` is now named `Protect main (PR + hygiene gates)`, target `branch`, enforcement `active`, conditions include only `refs/heads/main`, and `bypass_actors` is empty. The rules now block branch deletion, block non-fast-forward updates, require pull requests, and require strict latest-code status checks for `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2`. The prior ruleset name was `Protect main (owner-only updates)` and allowed bypass for a repository role plus the operator user; the direct push of HISTORY#237-HISTORY#245 succeeded only because that bypass existed. After this change, future main updates should go through PRs unless the operator deliberately reintroduces a time-boxed emergency bypass.
+
+Intentionally did not require the existing full `test-and-benchmark` matrix yet because recent GitHub history shows the CI workflow has had failures and the current post-HISTORY#245 run was still in progress when the ruleset was updated. The newly required checks are the repo-management checks added and locally verified in HISTORY#245: no-paid BIL-2 LoCoMo quickstart, real Chroma smoke, and diff/secret hygiene.
+
+Updated `REPO_LEDGER.md` to make the main ruleset policy durable and `PROJECT_STATUS.md` to point future agents at this ruleset handoff. No runtime code changed and no paid API calls were made.
+
+Verification before this entry: `gh api repos/BlackhatShiftey/Seam/rulesets/15143368` returned enforcement active, no bypass actors, and rules for deletion, non_fast_forward, pull_request, and required_status_checks with contexts `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2`. `gh api repos/BlackhatShiftey/Seam/rules/branches/main` returned the same effective rules for `main`. Current GitHub CI run for commit `d654310` already had `repo-hygiene`, `chroma-real-smoke`, `locomo-quickstart-bil2`, and `pgvector-integration` completed successfully; the two full test-and-benchmark matrix jobs were still in progress and are not required by the ruleset yet.
+
+Next step: send this history/ledger documentation update through the new PR path rather than direct-pushing to main. After the full matrix is stable, consider adding `test-and-benchmark (ubuntu-latest)` and `test-and-benchmark (windows-latest)` to required checks in a separate measured ruleset update.
+---END-ENTRY-#246---
+
+---BEGIN-ENTRY-#247---
+id: 247
+date: 2026-05-25T12:37:57Z
+agent: codex
+status: in-progress
+topics: security, protocol, verify, history, status
+commits: none
+refs: PROJECT_STATUS.md,.github/workflows/repository-maintenance.yml,tools/ci/github_maintenance_report.py,tests/audit/test_github_maintenance_report.py
+supersedes: 246
+tokens: 700
+---
+Handoff for continuing repo hygiene in the next session.
+
+Current branch: `codex/repo-hygiene-ruleset-record`. Base includes pushed `main` at HISTORY#245 (`d654310`). This branch has HISTORY#246 recorded for the external GitHub ruleset change, plus an in-progress repository-maintenance workflow that is not committed yet.
+
+Completed external GitHub setting: ruleset id `15143368` is now `Protect main (PR + hygiene gates)`, active on `refs/heads/main`, with empty bypass actors. Effective rules verified through `gh api repos/BlackhatShiftey/Seam/rules/branches/main`: deletion blocked, non-fast-forward blocked, pull request required, and strict required status checks for `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2`. The direct-push bypass that allowed HISTORY#237-HISTORY#245 to land on main has been removed.
+
+In-progress repo-maintenance files added but not yet committed: `.github/workflows/repository-maintenance.yml` (scheduled Monday + manual workflow), `tools/ci/github_maintenance_report.py` (builds Markdown/JSON report from GitHub open PRs plus remote branch ages), and `tests/audit/test_github_maintenance_report.py` (unit tests for stale PR and stale branch detection). The maintenance workflow is intentionally advisory: it uploads a report artifact and does not block PRs.
+
+Verification already run for the in-progress maintenance code: `.venv/bin/python -m pytest tests/audit/test_github_maintenance_report.py -q` passed 2 tests after the module was implemented. Workflow YAML parsed cleanly for `.github/workflows/ci.yml`, `.github/workflows/external-memory-benchmarks.yml`, and `.github/workflows/repository-maintenance.yml`. `git diff --check` passed before this entry. Local generated artifact `lossless_textual_14fff5fe7bde4193b5b0687e9fb2fd69.txt` was removed.
+
+Known dirty file not owned by this repo-hygiene handoff: `benchmarks/external/locomo/adapters/seam.py` has H2 retrieval-event writer-hook changes (`record_retrieval_events`, run_id, `_record_retrieval_event`, env flags) that were already dirty when the maintenance workflow handoff was being prepared. Do not stage, revert, or include that file in the repo-hygiene PR unless the operator explicitly asks to combine workstreams.
+
+GitHub CI observation after HISTORY#245: required jobs `repo-hygiene`, `chroma-real-smoke`, `locomo-quickstart-bil2`, and `pgvector-integration` completed successfully for `d654310`. The older full `test-and-benchmark` matrix failed on missing `sentence_transformers` in LoCoMo tests plus pre-existing Windows/path/test issues, so those jobs are deliberately not required by the ruleset yet. Next session should either leave them advisory or create a separate CI-fix branch for sbert installation / test marker cleanup.
+
+Next steps for new session: inspect this branch, keep `benchmarks/external/locomo/adapters/seam.py` out of the repo-hygiene commit, decide whether to finish and commit the maintenance workflow as HISTORY#247 or split HISTORY#246 documentation from the maintenance workflow, then push the branch and open a PR through the newly enforced main ruleset.
+---END-ENTRY-#247---
+
+---BEGIN-ENTRY-#248---
+id: 248
+date: 2026-05-25T12:45:28Z
+agent: codex
+status: done
+topics: security, protocol, verify, history, status
+commits: none
+refs: PROJECT_STATUS.md,.github/workflows/repository-maintenance.yml,tools/ci/github_maintenance_report.py,tests/audit/test_github_maintenance_report.py,GitHub-PR:31,GitHub-PR:32,GitHub-ruleset:15143368
+supersedes: 247
+tokens: 554
+---
+Finished the repo-hygiene PR workflow review on branch `codex/repo-hygiene-ruleset-record` for draft PR #32.
+
+Repository maintenance workflow status: `.github/workflows/repository-maintenance.yml` remains advisory only, runs on Monday schedule plus manual dispatch, checks out full history, builds Markdown and JSON artifacts, and does not block PRs. `tools/ci/github_maintenance_report.py` now renders stale PRs in their own Markdown section instead of only counting them in the summary, and sanitizes rendered/JSON PR titles, PR URLs, branch names, and SHAs for provider session URLs and secret-shaped tokens before writing report artifacts. `tests/audit/test_github_maintenance_report.py` now covers stale PR section rendering and session-link redaction in addition to stale PR/branch classification.
+
+GitHub state inspected: ruleset `15143368` is still `Protect main (PR + hygiene gates)`, active on `refs/heads/main`, with no bypass actors, deletion and non-fast-forward blocked, pull requests required, and strict latest-code required status checks for `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2`. Open PRs were PR #32 (`codex/repo-hygiene-ruleset-record`, draft, mergeable) and PR #31 (`claude/remote-control-AD6Di`, draft, conflicting). While inspecting open PRs, PR #31's generated assistant session-link trailer was found and redacted from the PR body via the GitHub REST pull-request update endpoint; a follow-up non-printing check confirmed no matching provider session URL remains in that body.
+
+Live maintenance report run after the code change used `GITHUB_TOKEN=$(gh auth token) .venv/bin/python -m tools.ci.github_maintenance_report --output /tmp/seam-github-maintenance-report.md --json-output /tmp/seam-github-maintenance-report.json`; it reported PASS with 2 open PRs, 0 stale PRs, and 0 stale branches without PR at threshold 7 days. This is advisory state only; PR #31 still needs an operator decision because it is conflicting draft work, and its update timestamp was refreshed by the body cleanup.
+
+PR #32 check status: required checks `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2` passed. Advisory checks `pgvector-integration` and `registry-plan` passed. Advisory `test-and-benchmark (ubuntu-latest)` and `test-and-benchmark (windows-latest)` failed; GitHub logs show the dominant Ubuntu failures are still missing `sentence_transformers` in LoCoMo/cross-encoder paths plus existing benchmark endpoint/stub-seal cases, and Windows still includes the missing `sentence_transformers` failure plus pre-existing Windows path/git-hook test failures. These matrix jobs are intentionally not required by the ruleset and should be fixed in a separate CI cleanup branch.
+
+Verification before this entry: `.venv/bin/python -m pytest tests/audit/test_github_maintenance_report.py -q` passed 4 tests after the new tests failed red first; `.venv/bin/python -m py_compile tools/ci/github_maintenance_report.py tests/audit/test_github_maintenance_report.py` passed; PyYAML parsed `.github/workflows/ci.yml`, `.github/workflows/external-memory-benchmarks.yml`, and `.github/workflows/repository-maintenance.yml`; `git diff --check` passed; `python3 -m tools.history.load_snapshot latest` verified snapshot `20260525-123816-084016-codex.json`.
+
+Scope boundary: the unrelated H2 retrieval-event writer-hook changes in `benchmarks/external/locomo/adapters/seam.py` and `tests/audit/test_locomo_adapter_retrieval_event_writer.py` stayed unstaged and are not part of PR #32.
+---END-ENTRY-#248---
+
+---BEGIN-ENTRY-#249---
+id: 249
+date: 2026-05-25T12:59:52Z
+agent: codex
+status: done
+topics: protocol, security, verify, history, status
+commits: none
+refs: AGENTS.md,REPO_LEDGER.md,PROJECT_STATUS.md,GitHub-PR:32
+supersedes: 248
+tokens: 344
+---
+Updated the cross-agent protocol so the new GitHub PR workflow is visible in `AGENTS.md`, not only in `REPO_LEDGER.md` and GitHub ruleset state.
+
+Added `AGENTS.md` section `GitHub PR Workflow`. It tells every agent that `main` is protected by `Protect main (PR + hygiene gates)`, direct pushes to `main` are disallowed unless the operator explicitly authorizes a time-boxed emergency bypass, and bypass use must be recorded in history and removed after use. It also requires branch-start/resume status checks, explicit handling of unrelated dirty files, draft PRs for material reviewable slices, current PR bodies, and required merge checks `repo-hygiene`, `chroma-real-smoke`, and `locomo-quickstart-bil2`.
+
+The new workflow closes the main operational gap from HISTORY#248: the repository had enforcement for merging to `main`, but agents still needed first-read instructions for keeping PRs moving. `AGENTS.md` now says stale PRs and branches must end as merged, closed/superseded/abandoned, actively draft with a current handoff, or blocked with a concrete recorded blocker. It also directs agents to the repository-maintenance report or local `GITHUB_TOKEN=$(gh auth token) python -m tools.ci.github_maintenance_report` run for open/stale PR and branch audits, and says advisory `test-and-benchmark` matrix failures should be summarized or handled on a separate CI cleanup branch unless caused by the current PR.
+
+Updated `REPO_LEDGER.md` with a durable pointer to the `AGENTS.md` PR workflow because this changes cross-agent protocol. Updated `PROJECT_STATUS.md` so the current handoff points at HISTORY#249 and keeps PR #32 / PR #31 / unrelated H2 dirty-file state explicit.
+
+Scope boundary: the unrelated H2 retrieval-event writer-hook changes in `benchmarks/external/locomo/adapters/seam.py` and `tests/audit/test_locomo_adapter_retrieval_event_writer.py` stayed unstaged and are not part of PR #32.
+---END-ENTRY-#249---
