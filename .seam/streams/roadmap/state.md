@@ -3,13 +3,19 @@
 Source: ROADMAP.md (authored-canonical).
 Regenerate: `python -m tools.streams.roadmap_parser --emit-state`.
 
+## now (3)
+
+- `roadmap:track:F:backlog:experience-stream-empty` — since 2026-05-25 via history:243 — topics: experience, protocol
+- `roadmap:track:F:backlog:scoring-weights` — since 2026-05-25 via history:243 — topics: retrieval, benchmark
+- `roadmap:track:H2` — since 2026-05-25 via history:243 — topics: protocol, history, plan
+
 ## in-progress (3)
 
 - `roadmap:track:A-CLI` — since 2026-05-07 via history:137 — topics: command, chat, dashboard
 - `roadmap:track:A-Web` — since 2026-05-10 via history:163 — topics: dashboard, webui, command
 - `roadmap:track:E1` — since 2026-04-30 via history:121 — topics: pgvector, vector, docker
 
-## planned (33)
+## planned (31)
 
 - `roadmap:track:A2` — since 2026-04-18 via none — topics: benchmark, dashboard, animation
 - `roadmap:track:A3` — since 2026-04-18 via none — topics: benchmark, dashboard, graph
@@ -26,12 +32,10 @@ Regenerate: `python -m tools.streams.roadmap_parser --emit-state`.
 - `roadmap:track:E2` — since 2026-04-18 via none — topics: persist, vector
 - `roadmap:track:F:asserttrue-scrub` — since 2026-05-18 via history:PENDING — topics: tests, quality
 - `roadmap:track:F:backlog:backoff-jitter` — since 2026-05-18 via history:PENDING — topics: models, retry
-- `roadmap:track:F:backlog:experience-stream-empty` — since 2026-05-18 via history:PENDING — topics: experience, protocol
 - `roadmap:track:F:backlog:git-hooks-macos-sha256` — since 2026-05-18 via history:PENDING — topics: git-hooks, macos
 - `roadmap:track:F:backlog:installer-symlink` — since 2026-05-18 via history:PENDING — topics: installer, linux
 - `roadmap:track:F:backlog:json-comparison-fragility` — since 2026-05-18 via history:PENDING — topics: pack, json
 - `roadmap:track:F:backlog:ps1-double-backslash` — since 2026-05-18 via history:PENDING — topics: scripts, windows
-- `roadmap:track:F:backlog:scoring-weights` — since 2026-05-18 via history:PENDING — topics: retrieval, benchmark
 - `roadmap:track:F:backlog:security-md` — since 2026-05-18 via history:PENDING — topics: docs, security
 - `roadmap:track:F:backlog:superseded-phase-tree` — since 2026-05-18 via history:PENDING — topics: roadmap, docs
 - `roadmap:track:F:backlog:test-claude-judge-flaky` — since 2026-05-18 via history:PENDING — topics: tests, judge
@@ -45,9 +49,8 @@ Regenerate: `python -m tools.streams.roadmap_parser --emit-state`.
 - `roadmap:track:K18` — since 2026-05-18 via history:196 — topics: retrieval, rank, audit
 - `roadmap:track:L` — since 2026-05-15 via history:180 — topics: agent, compiler, skills
 
-## later (3)
+## later (2)
 
-- `roadmap:track:H2` — since 2026-05-15 via history:165 — topics: protocol, history, plan
 - `roadmap:track:H3` — since 2026-05-15 via history:165 — topics: protocol, retrieval, search
 - `roadmap:track:H4` — since 2026-05-15 via history:165 — topics: protocol, retrieval, search, vector
 

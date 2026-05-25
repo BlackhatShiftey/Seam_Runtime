@@ -11,7 +11,7 @@ priority: 0
 phase: 1
 -->
 
-**Status:** Planned major workstream. Phase 1 locked, ready to implement. Phase 2 deferred.
+**Status:** Planned major workstream. Phase 1 locked. Phase 2 retrieval-feedback subset moved to now by HISTORY#243 because Track M produced enough outcome data to start.
 **Extends:** `AGENTS.md`, `docs/DATA_ROUTING.md`, `tools/history/`.
 **Related:** `docs/roadmap/SKILL_FACTORY.md` (the improvement-loop overlap is intentional; Phase 2 here feeds Skill Factory observations).
 
@@ -19,7 +19,7 @@ phase: 1
 
 ## 1. Origin
 
-This document captures a multi-session design dialogue (closed at `HISTORY#165`, 2026-05-15) that audited SEAM's current history/index/routing protocol and concluded the single-stream `HISTORY.md` + `HISTORY_INDEX.md` pattern is the scaling ceiling for the system. The design preserved here is the agreed evolution path. Phase 1 will be implemented next; Phase 2 is deferred until ~4 weeks of Phase 1 operational data is available to inform what improvement signals are actually worth capturing.
+This document captures a multi-session design dialogue (closed at `HISTORY#165`, 2026-05-15) that audited SEAM's current history/index/routing protocol and concluded the single-stream `HISTORY.md` + `HISTORY_INDEX.md` pattern is the scaling ceiling for the system. The design preserved here is the agreed evolution path. Phase 1 will be implemented next. Phase 2 was originally deferred until ~4 weeks of Phase 1 operational data accumulated; HISTORY#243 narrows and starts the retrieval-feedback subset now because Track M already produced query/context/gold/outcome bundles and warm no-paid iteration data.
 
 **Goal for future-me:** read this doc end-to-end and resume implementation cold without re-deriving the design.
 
@@ -309,9 +309,9 @@ Decide at implementation kickoff, not in this doc:
 
 ---
 
-## 12. Phase 2 — Improvement Streams (DEFERRED)
+## 12. Phase 2 — Improvement Streams (START TRACK M SUBSET NOW)
 
-**Trigger to start Phase 2:** ~4 weeks of Phase 1 operational data accumulated, OR the operator decides earlier signals are clear enough.
+**Trigger status:** Satisfied for the Track M retrieval-feedback subset by operator decision in HISTORY#243. The broader improvement-stream design remains guarded, but the immediate work can start from existing LoCoMo artifacts and current no-paid retrieval slices.
 
 **Design (preserved here in full so resume is cold):**
 
@@ -345,16 +345,35 @@ This is **the** safety mechanism. Without it, the improvement stream would self-
 
 The Skill Factory (`docs/roadmap/SKILL_FACTORY.md`) describes a similar observe → propose → verify → promote loop for skills. The improvement stream is the **data substrate** the Skill Factory observes from. Skill Factory observations become `retrieval-signal` and `repeated-hit` events; Skill Factory proposals become `propose-rule` events. The two workstreams converge in Phase 2.
 
-### 12.5 What to wait for before designing the data collection
+### 12.5 Immediate Track M retrieval-feedback slice
 
-The signals that turn out to be valuable depend on real Phase 1 usage. Likely candidates:
+Implement a narrow retrieval-event substrate before any autonomous learning or
+weight tuning:
+
+- persist query, scope, candidate ids, ranks, scores/reasons, context hash,
+  gold answer, derived gold-hit ids, context_recall, judge score, answer,
+  run id, timestamp, and stale-source flags;
+- backfill existing LoCoMo bundles for diagnostic history, explicitly marking
+  pre-HISTORY#240 and pre-HISTORY#242 records as stale;
+- generate fresh no-paid labels from the current code path and split into
+  dev/holdout before tuning scoring weights or training rerankers;
+- write structured experience events for Track M attempts (`lever_tried`,
+  baseline, result, conclusion);
+- surface rule/ranking-policy proposals via `seam improvement review`.
+
+Do not treat `unknown` with high context recall as negative retrieval feedback
+without further classification; it may be an answerer failure.
+
+### 12.6 Longer-horizon signals
+
+Signals beyond Track M still depend on real usage. Likely candidates:
 
 - Topic-route effectiveness (which routes return records that get cited vs ignored)
 - Roadmap velocity (now → done time per track)
 - Experience hit rate (which constraints fire most, which never fire after promotion)
 - Context-pack token efficiency (token-budget vs entries-used ratio)
 
-These need 2-4 weeks of data before patterns become obvious. Don't pre-build event kinds for signals we can't yet measure.
+These broader signals still need 2-4 weeks of data before patterns become obvious. Don't pre-build event kinds for signals we can't yet measure.
 
 ---
 

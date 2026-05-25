@@ -1,6 +1,6 @@
 # SEAM Project Status
 
-Last updated: 2026-05-25 (HISTORY#242 - SQLite ID-order retrieval repair)
+Last updated: 2026-05-25 (HISTORY#243 - retrieval feedback roadmap pivot)
 
 ## Current State
 
@@ -30,7 +30,7 @@ SEAM is operating as a local machine-first memory runtime with:
 ## Current Resume Point
 
 - `main` is the source-of-truth branch. After pulling, verify local `HEAD` equals `origin/main` before starting new work.
-- Latest continuity handoff is `HISTORY#242` - SQLite ID-order preservation for ranked LoCoMo evidence. `SQLiteStore.load_ir(ids=...)` now returns records in the caller's requested ID order before applying Python-side `offset`/`limit`, fixing the real-store gap that `HISTORY#240`'s fake-store rank-order test missed. New `tests/audit/test_sqlite_load_order.py` covers both direct store order and `SeamLocomoAdapter._build_evidence_context_from_ids()` against a real SQLite store. No-paid 100-case warm-DB sweep after the fix measured context_recall_mean: k=20 0.528308, k=50 0.522154, k=100 0.520725, k=200 0.516336, so the default `search_top_k=20` remains the best measured setting and was not changed. `HISTORY#241` remains the persistent-ingest-cache handoff with `--keep-db` and `--db-path`. Step 4 final paid measurement remains operator-gated.
+- Latest continuity handoff is `HISTORY#243` - roadmap pivot to start the retrieval-feedback loop now. `ROADMAP.md` now marks H2 improvement streams, `F:backlog:scoring-weights`, and `F:backlog:experience-stream-empty` as current work because Track M has enough existing evidence to seed the loop: BIL-2 LoCoMo result bundles, warm `--keep-db` iteration, and current no-paid slices after HISTORY#240-HISTORY#242. `docs/roadmap/CONTEXT_STREAMS.md` now narrows Phase 2 to an immediate Track M retrieval-event substrate while leaving broader improvement-stream signals guarded. K14 and K18 remain Track K items, but roadmap notes now require evidence before pulling K14 forward and reserve negative stake for clearly irrelevant/stale/contradicted/wrong evidence, not merely answerer `unknown` cases. `HISTORY#242` remains the SQLite ID-order repair: no-paid 100-case warm-DB sweep measured k=20 context_recall_mean=0.528308 after the fix, and the default `search_top_k=20` was not changed. Step 4 final paid measurement remains operator-gated.
 - A fresh Linux clone should run `sh ./installers/install_seam_linux.sh --dev`, then verify local `HEAD` equals `origin/main` before starting new work.
 - GitHub PR state as of 2026-05-18: PRs #22, #18, #23, #25 (SOP 0), #26, #27 (SOP 1), #28 (SOP 2), #29 (SOPs 3+4), and #30 (production readiness remediation) merged. Track I (SOPs 0-4) is complete on `main`. PR #19 is still draft, conflicting, and must be treated as a partial extraction source because its branch contains private-session-link material in commit metadata. PR #24 (Track I 5-SOP handoff series) was draft and is superseded.
 - **Track I COMPLETE milestone.** Next track is the operator's choice per ROADMAP.md: Track J (Prompt Codec), Track K (Trust/Security/Auditability + BIL bundles), Track L (Agent/Skills Compiler), or Track H Phase 2-4 (improvement streams, retrieval integration, generalized library streams). Do not resume from already-merged branches or stale squash-merged PR refs. Do not propose or start Tracks J/K/L without operator direction.
@@ -78,7 +78,7 @@ SEAM is operating as a local machine-first memory runtime with:
 - Continue feature delivery without reintroducing duplicated continuity text
 - Run real-adapter validation through guarded scripts to enforce resource ceilings and automatic service cleanup
 - Legacy roadmap entries `HISTORY#028`-`HISTORY#047` remain append-only planning cards. `HISTORY#036` (holdout suites), `HISTORY#037` (benchmark diff tooling), and `HISTORY#046` (REST API surface) are implemented and superseded by `HISTORY#152`, `HISTORY#153`, and `HISTORY#154`; use `ROADMAP.md` Recommended Course for current priority.
-- Track H Context Streams Protocol is planned (Phase 1 = H1 now; Phase 2 = H2 deferred ~4 weeks until H1 operational data accumulates). Full design captured in `docs/roadmap/CONTEXT_STREAMS.md`; ready to implement when the operator picks it up. The design generalizes the single-stream history protocol into a multi-stream substrate (history + roadmap + experience + library + improvement) joined by an append-only `cross_index.md`, with the same append-only / supersedes / verify discipline applied uniformly to each stream.
+- Track H Context Streams Protocol is planned (Phase 1 = H1 substrate; Phase 2 = H2 retrieval-feedback subset now). Full design captured in `docs/roadmap/CONTEXT_STREAMS.md`; HISTORY#243 starts the Track M subset immediately: retrieval-event capture, stale bundle backfill, current no-paid labels, dev/holdout split, and structured experience lessons. Broader stream retrieval integration (H3) and generalized library streams (H4) remain later.
 
 ## Operational Baseline
 

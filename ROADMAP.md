@@ -899,13 +899,13 @@ phase: 2
 
 <!-- seam:item
 id: roadmap:track:F:backlog:scoring-weights
-status: planned
-status-since: 2026-05-18
-status-by: history:PENDING
+status: now
+status-since: 2026-05-25
+status-by: history:243
 supersedes: none
 topics: retrieval, benchmark
-priority: 3
-phase: 2
+priority: 0
+phase: 1
 -->
 
 <!-- seam:item
@@ -943,13 +943,13 @@ phase: 2
 
 <!-- seam:item
 id: roadmap:track:F:backlog:experience-stream-empty
-status: planned
-status-since: 2026-05-18
-status-by: history:PENDING
+status: now
+status-since: 2026-05-25
+status-by: history:243
 supersedes: none
 topics: experience, protocol
-priority: 3
-phase: 2
+priority: 0
+phase: 1
 -->
 
 <!-- seam:item
@@ -1245,12 +1245,12 @@ deterministically from stream logs.
 
 <!-- seam:item
 id: roadmap:track:H2
-status: later
-status-since: 2026-05-15
-status-by: history:165
+status: now
+status-since: 2026-05-25
+status-by: history:243
 supersedes: none
 topics: protocol, history, plan
-priority: 1
+priority: 0
 phase: 2
 -->
 
@@ -1259,9 +1259,27 @@ outcome-delta, repeated-hit, protocol-drift, and propose-rule events. Add a
 trust gradient for experience (L1 hypothesis → L2 pattern → L3 codified) and
 an auto-propose / manual-approve guardrail for protocol edits.
 
-**Status:** Deferred. Trigger to begin: ~4 weeks of Phase 1 operational data,
-OR explicit operator decision based on earlier signal clarity. Full design
-preserved in `docs/roadmap/CONTEXT_STREAMS.md` §12.
+**Status:** Start now for the Track M retrieval-feedback subset. The earlier
+"wait for ~4 weeks of H1 operational data" trigger is superseded by existing
+Track M evidence: BIL-2 LoCoMo result bundles with query/context/gold/judge
+outcomes, the warm `--keep-db` iteration path, and current no-paid retrieval
+slices after HISTORY#240-HISTORY#242. First implementation slice:
+
+1. add an append-only retrieval-event substrate (`query`, scope, candidate ids,
+   ranks, scores/reasons, context hash, gold answer, derived gold-hit ids,
+   context_recall, judge score, answer, run id, timestamp);
+2. backfill from existing result bundles, explicitly marking pre-HISTORY#240
+   or pre-HISTORY#242 bundles as stale diagnostic data;
+3. generate fresh no-paid labels from the current code path and split them into
+   dev/holdout before tuning;
+4. write structured experience events for Track M attempts (`lever_tried`,
+   baseline, result, conclusion) so failed score levers are not rediscovered;
+5. expose proposals through `seam improvement review` before any protocol or
+   ranking-policy promotion.
+
+Scoring-weight tuning (`roadmap:track:F:backlog:scoring-weights`) is now
+blocked on this substrate rather than on new paid runs. Do not tune weights on
+the full 1542-case official set and then claim improvement on the same set.
 
 **Gate:** SEAM never writes to `AGENTS.md`, `REPO_LEDGER.md`, or
 `PROJECT_STATUS.md` autonomously. All protocol edits flow through
@@ -1436,6 +1454,11 @@ phase: 1
 
 **K14 — Second Inspector / store-aware contradiction report.** Add a validation layer above structural MIRL verification that compares a new batch against existing SQLite records before persistence. First scope: direct `STA target + field` conflicts and simple `CLM subject + predicate` conflicts. Output a machine-readable report with `collision`, `existing_record_id`, `new_record_id`, `severity`, `reason`, and provenance/evidence refs. Default behavior should report/mark contested records; hard blocking belongs behind an explicit strict flag.
 
+Track M note: do not assume contradiction is the reason for LoCoMo cat-3 or
+answerer abstention failures. Pull this ahead of the broader Track K sequence
+only if the H2 retrieval-event audit shows conflicting retrieved facts are a
+material failure mode.
+
 <!-- seam:item
 id: roadmap:track:K15
 status: planned
@@ -1488,6 +1511,12 @@ phase: 4
 
 **K18 — Stake-weighted memory signals.** Add a retrieval/ranking signal that records operational merit from successful task completions, but never treats merit as truth. Weight must be penalized by unresolved collisions, missing provenance, stale evidence, and failed stress tests. It is a ranking feature consumed after K14/K15, not an integrity substitute.
 
+Track M note: the immediate H2 work may implement a narrow feedback-weighted
+ranking experiment from retrieval events, but negative stake must be reserved
+for clearly irrelevant, stale, contradicted, or judge-confirmed wrong evidence.
+Do not penalize records merely because an answerer returned `unknown` despite
+high recall; that may be an answerer failure, not a retrieval failure.
+
 ---
 
 ## Recommended Course — Priority Order
@@ -1509,7 +1538,10 @@ Done - functional visual memory + foundational polish
 - C2: Benchmark diff tooling (implemented; supersedes HISTORY#037)
 - E3: REST API surface (implemented; supersedes HISTORY#046)
 
-Now - browser dashboard / REST API GUI + context streams substrate
+Now - retrieval feedback loop + browser dashboard / REST API GUI + context streams substrate
+- H2: Track M retrieval-feedback substrate (retrieval_event data, stale-bundle backfill, current no-paid labels, improvement review guardrail)
+- F:backlog:scoring-weights: tune retrieval weights only after H2 provides dev/holdout labels
+- F:backlog:experience-stream-empty: start structured Track M lesson events for lever/result/conclusion handoffs
 - A-Web: wire experimental/webui to real REST endpoints
 - A-Web: split the single-file prototype into maintainable app shell modules
 - A-Web: add browser smoke tests for real health/stats/search/context data
@@ -1531,7 +1563,6 @@ Next plug-and-play target - external memory benchmark credibility
 - I4: First three required comparators (Mem0, Zep/Graphiti, Letta/MemGPT)
 
 Later - benchmark credibility, scale, and adaptive context loop
-- H2: Improvement streams (deferred ~4 weeks of H1 operational data; see CONTEXT_STREAMS.md §12)
 - H3: Retrieval integration with stream filters (after H1 substrate stable)
 - H4: Generalized library streams + seam_protocol templating (after H1-H3)
 - C5: Cross-machine reproducibility

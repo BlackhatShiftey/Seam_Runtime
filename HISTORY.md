@@ -5121,3 +5121,27 @@ No-paid LoCoMo measurement after the fix used the official local dataset path `/
 
 Next step: keep `search_top_k=20` as the default unless a later measured run beats it. If more sweep ergonomics are needed, add a separate `--search-top-k` CLI flag with parser/build_adapter tests before running more no-paid sweeps. The broader remaining score levers are still temporal parsing for official LoCoMo timestamp/question wording and paid answerer diagnostics under explicit operator approval.
 ---END-ENTRY-#242---
+
+---BEGIN-ENTRY-#243---
+id: 243
+date: 2026-05-25T08:02:25Z
+agent: codex
+status: done
+topics: roadmap, plan, retrieval, rank, history, status
+commits: none
+refs: ROADMAP.md,docs/roadmap/CONTEXT_STREAMS.md,PROJECT_STATUS.md
+supersedes: 242
+tokens: 514
+---
+Updated the roadmap to start SEAM's retrieval-feedback loop now instead of leaving it deferred under the old H2 timing assumption.
+
+Rationale: the prior H2 deferral said the improvement stream should wait for weeks of H1 operational data, but Track M has already produced enough retrieval-outcome evidence to justify a narrow immediate slice: BIL-2 LoCoMo result bundles with query/context/gold/judge fields, warm `--keep-db` iteration for no-paid retrieval loops, and current no-paid slices after HISTORY#240-HISTORY#242. The codebase still lacks an implemented runtime feedback loop, so the roadmap now treats that as current infrastructure work rather than a later idea.
+
+Changes in `ROADMAP.md`: `roadmap:track:H2` moved from `later` to `now` with status-by `history:243`, scoped specifically to the Track M retrieval-feedback subset. `roadmap:track:F:backlog:scoring-weights` and `roadmap:track:F:backlog:experience-stream-empty` also moved to `now`, because scoring-weight tuning should wait on H2 dev/holdout labels and structured experience events should start capturing Track M lever/result/conclusion lessons immediately. The Recommended Course now lists H2, scoring weights, and experience-stream initialization in the Now section. H3/H4 remain later.
+
+Guardrails added: K14 and K18 remain Track K items rather than wholesale Track K reordering. K14 should only be pulled forward if H2 retrieval-event audits show contradictory retrieved facts are a material failure mode. The immediate H2 work may run a narrow feedback-weighted ranking experiment, but negative stake must be reserved for clearly irrelevant, stale, contradicted, or judge-confirmed wrong evidence. It must not penalize records merely because an answerer returned `unknown` despite high recall, since that may be an answerer failure.
+
+`docs/roadmap/CONTEXT_STREAMS.md` now marks Phase 2 as starting the Track M retrieval-feedback subset now. It specifies the first retrieval-event substrate fields, stale-source flags for pre-HISTORY#240/#242 bundles, fresh no-paid label generation from the current code path, dev/holdout split before tuning, structured experience events, and `seam improvement review` approval before protocol or ranking-policy promotion. `PROJECT_STATUS.md` now points future agents at this roadmap pivot while preserving HISTORY#242 as the latest code repair.
+
+No runtime code changed in this entry. No paid answerer, judge, or decomposer calls were made.
+---END-ENTRY-#243---

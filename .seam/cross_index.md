@@ -2,14 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 297
+total_events: 298
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-04-26T22:08:58Z | history:082:bce55500 | session-event | done | protocol, verify, history, snapshot | AGENTS.md,CLAUDE.md,.gitignore,HISTORY.md,HISTORY_INDEX.md |
 | 2026-04-26T22:11:05Z | history:083:afd1bfd5 | session-event | done | protocol, verify, pgvector, windows, history, snapshot | scripts/windows/launch_dashboard.ps1,docs/errors.md,installers/README.md,HIST... |
 | 2026-04-26T22:14:35Z | history:084:8cf87393 | session-event | done | pgvector, verify, docker, windows, history, snapshot | scripts/run_real_adapters_guarded.ps1,HISTORY.md,HISTORY_INDEX.md |
 | 2026-04-26T22:15:02Z | history:085:7f2d86f0 | session-event | done | protocol, history, verify, docker, snapshot | AGENTS.md,HISTORY.md,HISTORY_INDEX.md |
@@ -209,10 +208,11 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-05-24T21:59:02Z | history:240:395c3322 | session-event | done | benchmark, retrieval, search, rank, verify, history, status | benchmarks/external/locomo/adapters/seam.py,benchmarks/external/common/types.... |
 | 2026-05-24T23:39:52Z | history:241:ff3c9fc6 | session-event | done | benchmark, command, verify, history, status | benchmarks/external/locomo/adapters/seam.py,benchmarks/external/locomo/run.py... |
 | 2026-05-25T02:50:25Z | history:242:e6d10168 | session-event | done | benchmark, retrieval, search, rank, verify, history, status | seam_runtime/storage.py,tests/audit/test_sqlite_load_order.py,PROJECT_STATUS.md |
+| 2026-05-25T08:02:25Z | history:243:ba34a614 | session-event | done | roadmap, plan, retrieval, rank, history, status | ROADMAP.md,docs/roadmap/CONTEXT_STREAMS.md,PROJECT_STATUS.md |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0097.cross.md | 2026-04-15T00:00:00Z..2026-04-26T22:07:15Z | 97 | (multi) | (multi) |
+| 0001-0098.cross.md | 2026-04-15T00:00:00Z..2026-04-26T22:08:58Z | 98 | (multi) | (multi) |
