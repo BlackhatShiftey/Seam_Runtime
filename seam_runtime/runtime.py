@@ -119,14 +119,18 @@ class SeamRuntime:
             raise RuntimeError("Vector indexing failed; rolled back SQLite record write") from exc
         return persist_report
 
-    def search_ir(self, query: str, lens: str = "general", scope: str | None = None, budget: int = 5, include_raw: bool = False, temporal_window = None, temporal_reference = None) -> SearchResult:
+    def search_ir(self, query: str, lens: str = "general", scope: str | None = None, budget: int = 5, include_raw: bool = False, temporal_window = None, temporal_reference = None, ns: str | None = None) -> SearchResult:
         from .bm25 import BM25Index
         from .mirl import iter_textual_fields
         from .retrieval import retrieval_flags_from_env
 
         flags = retrieval_flags_from_env()
-        batch = self.store.load_ir(scope=scope)
-        vector_scores = self.vector_adapter.search(query, limit=max(budget * 3, 10))
+        # Substream isolation: when ``ns`` is given, confine BOTH the candidate
+        # load and the vector top-K to that namespace so a shared store/vector
+        # pool cannot leak another namespace's records. ns=None reproduces the
+        # prior global behavior exactly.
+        batch = self.store.load_ir(ns=ns, scope=scope)
+        vector_scores = self.vector_adapter.search(query, limit=max(budget * 3, 10), namespace=ns)
         namespace = batch.records[0].ns if batch.records else None
         bm25 = None
         if include_raw or flags.bm25_all_kinds:

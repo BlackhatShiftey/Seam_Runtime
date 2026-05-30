@@ -34,6 +34,13 @@ class RetrievalFlags:
     # fixed weighted sum. ``rrf_k`` is a principled constant, not a tuned knob.
     fusion: str = "weighted"  # "weighted" | "rrf"
     rrf_k: int = 60
+    # Substream isolation: confine the vector search to the query's namespace
+    # so a shared vector pool cannot return another namespace's records. The
+    # essential leak-seal is the ns-filtered candidate load in search_ir; this
+    # flag additionally scopes the vector top-K (defense-in-depth + avoids
+    # cross-ns crowding). ~0 measured LoCoMo recall impact; the value is
+    # multi-tenant isolation. End-state ON for any multi-namespace store.
+    scoped_vectors: bool = False
 
 
 def retrieval_flags_from_env(env: Mapping[str, str] | None = None) -> RetrievalFlags:
@@ -46,6 +53,7 @@ def retrieval_flags_from_env(env: Mapping[str, str] | None = None) -> RetrievalF
         semantic_zero_no_vector=_on("SEAM_RETRIEVAL_SEMANTIC_ZERO"),
         bm25_all_kinds=_on("SEAM_RETRIEVAL_BM25_ALL"),
         fusion="rrf" if _on("SEAM_RETRIEVAL_RRF") else "weighted",
+        scoped_vectors=_on("SEAM_RETRIEVAL_SCOPED_VECTORS"),
     )
 
 
