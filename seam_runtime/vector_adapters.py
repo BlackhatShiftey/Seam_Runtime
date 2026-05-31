@@ -15,7 +15,7 @@ class VectorAdapter(Protocol):
     def index_records(self, records: list[MIRLRecord]) -> None:
         ...
 
-    def search(self, query: str, limit: int = 10) -> dict[str, float]:
+    def search(self, query: str, limit: int = 10, namespace: str | None = None) -> dict[str, float]:
         ...
 
 
@@ -32,8 +32,8 @@ class SQLiteVectorAdapter:
     def index_records(self, records: list[MIRLRecord]) -> None:
         self.index.index_records(records)
 
-    def search(self, query: str, limit: int = 10) -> dict[str, float]:
-        return self.index.search(query, limit=limit)
+    def search(self, query: str, limit: int = 10, namespace: str | None = None) -> dict[str, float]:
+        return self.index.search(query, limit=limit, namespace=namespace)
 
     def stale_records(self, records: list[MIRLRecord]) -> list[dict[str, object]]:
         return self.index.stale_records(records)
@@ -69,6 +69,7 @@ class PgVectorAdapter:
                         dimension integer not null,
                         source_text text not null,
                         source_hash text not null default '',
+                        namespace text not null default '',
                         embedding vector not null,
                         updated_at text not null,
                         primary key (record_id, model_name)
@@ -85,7 +86,18 @@ class PgVectorAdapter:
                 )
                 if cursor.fetchone() is None:
                     cursor.execute(f"alter table {self.table_name} add column source_hash text not null default ''")
+                cursor.execute(
+                    """
+                    select column_name
+                    from information_schema.columns
+                    where table_name = %s and column_name = 'namespace'
+                    """,
+                    (self.table_name,),
+                )
+                if cursor.fetchone() is None:
+                    cursor.execute(f"alter table {self.table_name} add column namespace text not null default ''")
                 cursor.execute(f"create index if not exists {self.table_name}_model_name_idx on {self.table_name} (model_name)")
+                cursor.execute(f"create index if not exists {self.table_name}_namespace_idx on {self.table_name} (namespace, model_name)")
                 self._migrate_composite_pk(cursor)
             connection.commit()
 
@@ -130,35 +142,41 @@ class PgVectorAdapter:
                     vector = self.model.embed(source_text)
                     cursor.execute(
                         f"""
-                        insert into {self.table_name} (record_id, model_name, dimension, source_text, source_hash, embedding, updated_at)
-                        values (%s, %s, %s, %s, %s, %s::vector, %s)
+                        insert into {self.table_name} (record_id, model_name, dimension, source_text, source_hash, namespace, embedding, updated_at)
+                        values (%s, %s, %s, %s, %s, %s, %s::vector, %s)
                         on conflict (record_id, model_name) do update
                         set model_name = excluded.model_name,
                             dimension = excluded.dimension,
                             source_text = excluded.source_text,
                             source_hash = excluded.source_hash,
+                            namespace = excluded.namespace,
                             embedding = excluded.embedding,
                             updated_at = excluded.updated_at
                         """,
-                        (record.id, self.model.name, len(vector), source_text, source_hash, _vector_literal(vector), record.updated_at),
+                        (record.id, self.model.name, len(vector), source_text, source_hash, record.ns or "", _vector_literal(vector), record.updated_at),
                     )
             connection.commit()
 
-    def search(self, query: str, limit: int = 10) -> dict[str, float]:
+    def search(self, query: str, limit: int = 10, namespace: str | None = None) -> dict[str, float]:
         _validate_table_name(self.table_name)
         self.ensure_schema()
         query_vector = self.model.embed(query)
+        ns_clause = "and namespace = %s " if namespace is not None else ""
+        params: list[object] = [_vector_literal(query_vector), self.model.name, len(query_vector)]
+        if namespace is not None:
+            params.append(namespace)
+        params.extend([_vector_literal(query_vector), limit])
         with self._connect() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
                     f"""
                     select record_id, 1 - (embedding <=> %s::vector) as score
                     from {self.table_name}
-                    where model_name = %s and dimension = %s
+                    where model_name = %s and dimension = %s {ns_clause}
                     order by embedding <=> %s::vector
                     limit %s
                     """,
-                    (_vector_literal(query_vector), self.model.name, len(query_vector), _vector_literal(query_vector), limit),
+                    params,
                 )
                 rows = cursor.fetchall()
         return {record_id: float(score) for record_id, score in rows if score is not None and float(score) > 0}

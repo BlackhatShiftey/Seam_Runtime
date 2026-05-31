@@ -1,5 +1,12 @@
 # LoCoMo / Retrieval / Memory Audit — 2026-05-28
 
+> **⚠ SUPERSEDED IN PART — read `HISTORY#273` (2026-05-30, PR #45) before using this doc as a work plan.** The audit #3 levers below were implemented behind default-OFF flags and measured end-to-end on the real pgvector backend (deterministic harness, full 10-conv n=1542):
+> - **P0-1 / R1 (`SEAM_RETRIEVAL_SEMANTIC_ZERO`, semantic→0 when a live vector backend omits a record from the top-K):** real but small — +0.0046 global; cat1 multi-hop **+0.026** and cat3 open-domain **+0.018**, at a cat4 single-hop **−0.004** cost. Robust cat1/cat3 lift, nets ~0 globally → **landed OFF, not flipped.**
+> - **P0-2 "RRF (k≈60)" alternative (`SEAM_RETRIEVAL_RRF`) and BM25-all-kinds (`SEAM_RETRIEVAL_BM25_ALL`):** both **REGRESS** (−0.007 / −0.006 on conv-26). Do **not** implement as recommended.
+> - **Cross-encoder reranker default-on:** only noise-level gain over R1 while regressing cat2/cat3/cat4. Do **not** enable by default.
+> - **Baseline + per-category figures in this doc are stale/mislabeled** (also flagged in HISTORY#272). Current locked baseline is `context_recall_mean = 0.528308`; conv-26 k=20 breakdown is cat1=.359 / cat2=.650 / cat3=.250 / cat4=.778.
+> - **Scope-unfiltered vector search — measured ~0 recall impact (hypothesis falsified):** pgvector uses one shared `seam_vector_index` with a global top-K search, vs the SQLite backend's per-scope db-file isolation. This was *hypothesized* as the cause of R1's conv-26 (+0.0227) → full-10-conv (+0.0046) shrinkage, but a SQLite-vs-pgvector full-10-conv oracle (0.6237 isolated vs 0.6267 crowded) shows per-scope isolation does **not** improve recall — out-of-scope records are already dropped at the fusion stage, so the crowding is benign. Namespace/substream partitioning of the vector store remains worthwhile as a multi-tenant **isolation + scalability** property, but it is **NOT a LoCoMo recall lever**.
+
 Combined audit: SEAM retrieval scoring + memory pipeline + code-quality pass over HISTORY#268. Findings ordered by expected impact on LoCoMo `context_recall_mean`.
 
 Baseline at audit time: **0.528** at `search_top_k=20`, 100-case no-paid slice (HISTORY#242). Per-category breakdown: cat1=0.374 (single-hop), cat2=0.634 (temporal), cat3=0.242 (multi-hop), cat4=0.605 (open-domain).

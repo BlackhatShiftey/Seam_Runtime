@@ -3683,9 +3683,9 @@ class _FakePgCursor:
         self._sql_log.append(sql.strip())
         sql_lower = sql.strip().lower()
         if sql_lower.startswith("insert") and params:
-            record_id, model_name, dimension, source_text, source_hash, vec_literal, updated_at = params
+            record_id, model_name, dimension, source_text, source_hash, namespace, vec_literal, updated_at = params
             vec = [float(x) for x in vec_literal.strip("[]").split(",")]
-            self._store[record_id] = {"model": model_name, "dim": dimension, "vec": vec, "source_hash": source_hash}
+            self._store[record_id] = {"model": model_name, "dim": dimension, "vec": vec, "source_hash": source_hash, "namespace": namespace}
         elif sql_lower.startswith("select") and params:
             if "information_schema.columns" in sql_lower:
                 self._rows = [("source_hash",)]

@@ -157,6 +157,13 @@ class SeamLocomoAdapter:
         temporal_window = self._build_temporal_window(question)
         temporal_reference = self._build_temporal_reference(scope_id, question)
 
+        # Substream isolation A/B toggle: when SEAM_RETRIEVAL_SCOPED_VECTORS is
+        # set, confine retrieval to this conversation's namespace (matches the
+        # ingest ns) so the shared pgvector pool returns only this scope's
+        # vectors. Off -> prior global behavior (ns=None).
+        from seam_runtime.retrieval import retrieval_flags_from_env  # lazy
+        search_ns = f"locomo:{scope_id}" if retrieval_flags_from_env().scoped_vectors else None
+
         closures: list[list[str]] = []
         retrieval_latency_ms = 0.0
         top_score = 0.0
@@ -173,6 +180,7 @@ class SeamLocomoAdapter:
                 include_raw=True,
                 temporal_window=temporal_window,
                 temporal_reference=temporal_reference,
+                ns=search_ns,
             )
             retrieval_latency_ms += (_time.monotonic() - t0) * 1000.0
             if q == question:

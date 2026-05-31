@@ -39,6 +39,7 @@ class SQLiteVectorIndex:
                     dimension integer not null,
                     source_text text not null,
                     source_hash text not null default '',
+                    namespace text not null default '',
                     vector_json text not null,
                     updated_at text not null,
                     primary key (record_id, model_name)
@@ -48,6 +49,8 @@ class SQLiteVectorIndex:
             columns = {row["name"] for row in connection.execute("pragma table_info(vector_index)").fetchall()}
             if "source_hash" not in columns:
                 connection.execute("alter table vector_index add column source_hash text not null default ''")
+            if "namespace" not in columns:
+                connection.execute("alter table vector_index add column namespace text not null default ''")
             connection.commit()
 
     def index_records(self, records: Iterable[MIRLRecord]) -> None:
@@ -71,28 +74,26 @@ class SQLiteVectorIndex:
                 vector = self.model.embed(source_text)
                 connection.execute(
                     """
-                    insert or replace into vector_index (record_id, model_name, dimension, source_text, source_hash, vector_json, updated_at)
-                    values (?, ?, ?, ?, ?, ?, ?)
+                    insert or replace into vector_index (record_id, model_name, dimension, source_text, source_hash, namespace, vector_json, updated_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (record.id, self.model.name, len(vector), source_text, source_hash, json.dumps(vector), record.updated_at),
+                    (record.id, self.model.name, len(vector), source_text, source_hash, record.ns or "", json.dumps(vector), record.updated_at),
                 )
             connection.commit()
 
-    def search(self, query: str, limit: int = 10) -> dict[str, float]:
+    def search(self, query: str, limit: int = 10, namespace: str | None = None) -> dict[str, float]:
         self.ensure_schema()
         if limit <= 0:
             return {}
         query_vector = self.model.embed(query)
         top: list[tuple[float, str]] = []
+        sql = "select record_id, vector_json from vector_index where model_name = ? and dimension = ?"
+        params: list[object] = [self.model.name, len(query_vector)]
+        if namespace is not None:
+            sql += " and namespace = ?"
+            params.append(namespace)
         with closing(self._connect()) as connection:
-            rows = connection.execute(
-                """
-                select record_id, vector_json
-                from vector_index
-                where model_name = ? and dimension = ?
-                """,
-                (self.model.name, len(query_vector)),
-            )
+            rows = connection.execute(sql, params)
             for row in rows:
                 score = cosine(query_vector, json.loads(row["vector_json"]))
                 if score <= 0:

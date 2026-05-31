@@ -2,15 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 328
+total_events: 330
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-04-29T23:46:56Z | history:108:a4b035eb | session-event | done | dashboard, tui, textual, verify, history, snapshot | seam_runtime/dashboard.py,test_seam.py,HISTORY.md,HISTORY_INDEX.md,.seam/snap... |
-| 2026-04-30T00:00:00Z | roadmap:022:fe05ae4a | status-change | bootstrap | pgvector, vector, docker | ROADMAP.md:780 |
 | 2026-04-30T06:10:55Z | history:109:136d7f19 | session-event | done | dashboard, tui, verify, status, history, snapshot | PROJECT_STATUS.md,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots,seam_runtime/da... |
 | 2026-04-30T09:03:51Z | history:110:d332652b | session-event | done | compress, mirl, codec, benchmark, command, roadmap, ledge... | seam_runtime/holographic.py,seam_runtime/cli.py,seam_runtime/benchmarks.py,se... |
 | 2026-04-30T09:06:05Z | history:111:dd8d9f04 | session-event | done | command, compress, verify, history, snapshot | seam_runtime/cli.py,HISTORY.md,HISTORY_INDEX.md,.seam/snapshots |
@@ -209,10 +207,12 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-05-29T15:52:57Z | history:271:c925b3b4 | session-event | done | benchmark, locomo, recovery, infra, verify, audit | benchmarks/external/locomo/data/locomo10.json,benchmarks/external/locomo/data... |
 | 2026-05-29T20:10:02Z | history:272:8826bb65 | session-event | done | security, dashboard, audit, bugfix, verify | seam_runtime/dashboard.py,tests/audit/test_shell_security.py,docs/audits/2026... |
 | 2026-05-30T07:57:40Z | history:273:95ed7b6f | session-event | done | retrieval, benchmark, locomo, audit, experiment, verify | seam_runtime/retrieval.py,seam_runtime/runtime.py,tests/audit/test_retrieval_... |
+| 2026-05-30T13:48:08Z | history:274:6c12c07b | session-event | done | retrieval, memory, isolation, security, benchmark, locomo... | seam_runtime/retrieval.py,seam_runtime/vector.py,seam_runtime/vector_adapters... |
+| 2026-05-31T13:12:09Z | history:275:1ab79a91 | session-event | done | retrieval, memory, isolation, bugfix, verify, benchmark | test_seam_all/test_seam.py |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0128.cross.md | 2026-04-15T00:00:00Z..2026-04-29T23:44:01Z | 128 | (multi) | (multi) |
+| 0001-0130.cross.md | 2026-04-15T00:00:00Z..2026-04-30T00:00:00Z | 130 | (multi) | (multi) |
