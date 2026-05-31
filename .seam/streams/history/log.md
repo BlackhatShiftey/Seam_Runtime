@@ -5910,3 +5910,19 @@ Verification: no paid API calls (no-paid string-match scoring only). pgvector vi
 
 Next step: per operator direction the next work is single-hop (cat4) recall — run the --save-context diagnostic to split ranking-miss vs packing-displacement, then implement+measure the targeted lever (the +0.065 prize) — and then closing the self-improvement loop (stored retrieval policy + apply path + analyzer) so wins like it become self-applying. Remaining audit items F5/B5/B6 and the beam/longmemeval durable-archive port stay open; the full paid judged LoCoMo run remains operator-gated.
 ---END-ENTRY-#274---
+
+---BEGIN-ENTRY-#275---
+id: 275
+date: 2026-05-31T13:12:09Z
+agent: claude
+status: done
+topics: retrieval, memory, isolation, bugfix, verify, benchmark
+commits: pending
+refs: test_seam_all/test_seam.py
+supersedes: 274
+tokens: 316
+---
+CI regression fix for HISTORY#274 (substream isolation): the mocked PgVectorAdapter cursor in test_seam_all/test_seam.py unpacked the INSERT params into 7 values (record_id, model_name, dimension, source_text, source_hash, vec_literal, updated_at); HISTORY#274 added a namespace column so the INSERT now passes 8 params, breaking 5 PgVectorAdapterTests on ubuntu CI with 'ValueError: too many values to unpack (expected 7)'. Fix: unpack 8 values including namespace and store it on the fake row. The mocked SELECT/search path is unchanged (these tests pass namespace=None, so search still binds 5 params; the namespace search filter is covered by the SQLite + real-pgvector tests in tests/audit/test_substream_isolation.py). No production code changed.
+
+Root-cause lesson for future agents: the test suite has TWO roots -- tests/ AND test_seam_all/test_seam.py -- and CI runs both. The #274 SQLite-path validation ran only tests/ and missed the mocked pgvector adapter tests in test_seam_all/test_seam.py. Always run BOTH (env -u SEAM_PGVECTOR_DSN .venv/bin/python -m pytest tests/ test_seam_all/test_seam.py) before pushing a change to vector_adapters.py / vector.py / runtime.py schema or SQL. Verified: test_seam_all/test_seam.py PgVectorAdapter tests 10/10 pass and the full file passes on the SQLite path. No paid calls; no secrets written.
+---END-ENTRY-#275---
