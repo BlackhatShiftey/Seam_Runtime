@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 291
-total_tokens: ~100909
-latest_id: 291
+total_entries: 295
+total_tokens: ~104521
+latest_id: 295
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,10 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 295 | 2026-06-09 | done | cb32e58d7b3a680f | ci,test,bugfix,chroma,+ | 294 |
+| 294 | 2026-06-09 | done | 9c04649a2e2b4667 | test,ci,protocol,skip,+ | 293 |
+| 293 | 2026-06-09 | done | ce0859616aec7a53 | cli,self-improvement,h2,loop,+ | 292 |
+| 292 | 2026-06-09 | done | 6a03a252d192a5f9 | retrieval,self-improvement,h2,loop,+ | 291 |
 | 291 | 2026-06-08 | done | 4d9663260c5fbcd0 | retrieval,self-improvement,h2,loop,+ | 290 |
 | 290 | 2026-06-08 | done | 3f3c48706334eb29 | retrieval,self-improvement,h2,loop,+ | 289 |
 | 289 | 2026-06-08 | done | bbf7ccaa5b3c4a3e | retrieval,self-improvement,h2,loop,+ | 288 |
@@ -310,15 +314,15 @@ compact: true
 - atomicity: count=1 latest=#182
 - audit: count=73 latest=#290, #288, #280, #279, #278
 - beam: count=1 latest=#223
-- benchmark: count=95 latest=#290, #289, #282, #281, #279
+- benchmark: count=96 latest=#292, #290, #289, #282, #281
 - branch: count=1 latest=#280
-- bugfix: count=13 latest=#287, #286, #283, #282, #281
+- bugfix: count=14 latest=#295, #287, #286, #283, #282
 - bundle: count=5 latest=#262, #245, #238, #015, #008
 - chat: count=15 latest=#286, #137, #074, #073, #072
-- chroma: count=2 latest=#017, #001
-- ci: count=6 latest=#283, #282, #281, #267, #211
+- chroma: count=4 latest=#295, #293, #017, #001
+- ci: count=9 latest=#295, #294, #293, #283, #282
 - classification: count=11 latest=#177, #176, #171, #170, #169
-- cli: count=2 latest=#287, #285
+- cli: count=3 latest=#293, #287, #285
 - codec: count=13 latest=#132, #131, #130, #129, #128
 - command: count=67 latest=#251, #241, #232, #221, #220
 - compile: count=13 latest=#154, #047, #046, #043, #042
@@ -326,20 +330,22 @@ compact: true
 - concepts: count=1 latest=#180
 - continuity: count=2 latest=#193, #192
 - dashboard: count=69 latest=#288, #286, #285, #272, #225
+- dependencies: count=2 latest=#295, #293
 - diff: count=4 latest=#153, #093, #092, #037
 - docker: count=3 latest=#149, #085, #084
 - docs: count=28 latest=#279, #278, #277, #269, #268
 - doctor: count=9 latest=#287, #170, #169, #140, #139
+- enforcement: count=1 latest=#294
 - experiment: count=1 latest=#273
 - extras: count=1 latest=#022
 - fixture: count=6 latest=#265, #187, #145, #092, #039
 - gold-standard: count=1 latest=#038
 - graph: count=2 latest=#099, #030
-- h2: count=3 latest=#291, #290, #289
+- h2: count=5 latest=#293, #292, #291, #290, #289
 - handoff: count=10 latest=#229, #228, #224, #190, #186
 - harden: count=1 latest=#182
 - hardening: count=1 latest=#268
-- history: count=214 latest=#291, #290, #289, #288, #287
+- history: count=218 latest=#295, #294, #293, #292, #291
 - holdout: count=4 latest=#152, #093, #092, #036
 - holographic: count=1 latest=#288
 - infra: count=1 latest=#271
@@ -350,9 +356,9 @@ compact: true
 - lexical: count=1 latest=#004
 - linux: count=6 latest=#177, #173, #136, #135, #021
 - locking: count=2 latest=#283, #182
-- locomo: count=12 latest=#290, #282, #281, #279, #278
+- locomo: count=13 latest=#292, #290, #282, #281, #279
 - longmemeval: count=1 latest=#223
-- loop: count=3 latest=#291, #290, #289
+- loop: count=5 latest=#293, #292, #291, #290, #289
 - lossless: count=1 latest=#288
 - lx1: count=6 latest=#206, #197, #088, #018, #011
 - mcp: count=15 latest=#222, #218, #213, #212, #211
@@ -364,13 +370,13 @@ compact: true
 - nl: count=1 latest=#223
 - operator: count=1 latest=#179
 - pack: count=2 latest=#218, #183
-- packaging: count=2 latest=#287, #284
+- packaging: count=3 latest=#293, #287, #284
 - persist: count=25 latest=#251, #244, #218, #213, #212
-- pgvector: count=24 latest=#280, #220, #219, #212, #211
+- pgvector: count=26 latest=#295, #294, #280, #220, #219
 - plan: count=14 latest=#243, #214, #180, #176, #171
 - planner: count=1 latest=#288
 - proposer: count=1 latest=#291
-- protocol: count=90 latest=#280, #268, #267, #266, #265
+- protocol: count=91 latest=#294, #280, #268, #267, #266
 - pyproject: count=5 latest=#267, #094, #051, #049, #022
 - rank: count=6 latest=#243, #242, #240, #017, #005
 - ratchet: count=1 latest=#291
@@ -379,17 +385,19 @@ compact: true
 - recovery: count=1 latest=#271
 - refactor: count=1 latest=#284
 - registry: count=1 latest=#178
-- retrieval: count=47 latest=#291, #290, #289, #288, #284
+- retrieval: count=48 latest=#292, #291, #290, #289, #288
 - retry: count=1 latest=#182
 - roadmap: count=50 latest=#284, #276, #243, #196, #193
 - roundtrip: count=2 latest=#007, #006
 - salvage: count=1 latest=#179
 - sbert: count=3 latest=#023, #022, #011
+- scorer: count=1 latest=#292
 - search: count=16 latest=#276, #242, #240, #181, #154
 - security: count=37 latest=#288, #274, #272, #270, #269
-- self-improvement: count=3 latest=#291, #290, #289
+- self-improvement: count=5 latest=#293, #292, #291, #290, #289
 - server: count=3 latest=#288, #286, #285
 - session: count=3 latest=#027, #025, #019
+- skip: count=1 latest=#294
 - snapshot: count=110 latest=#239, #229, #227, #226, #225
 - ssrf: count=1 latest=#288
 - status: count=125 latest=#285, #284, #283, #282, #281
@@ -397,13 +405,13 @@ compact: true
 - streams: count=9 latest=#287, #276, #216, #210, #209
 - structure: count=2 latest=#285, #284
 - surface: count=5 latest=#276, #225, #218, #208, #145
-- test: count=10 latest=#291, #290, #289, #288, #287
+- test: count=14 latest=#295, #294, #293, #292, #291
 - tests: count=3 latest=#192, #191, #182
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tokenizer: count=1 latest=#216
 - tui: count=25 latest=#137, #121, #120, #119, #118
 - vector: count=25 latest=#228, #223, #220, #218, #199
-- verify: count=222 latest=#291, #290, #289, #288, #287
+- verify: count=226 latest=#295, #294, #293, #292, #291
 - webui: count=3 latest=#286, #285, #267
 - windows: count=21 latest=#283, #282, #261, #260, #259
 - wsl2: count=1 latest=#021
@@ -411,6 +419,6 @@ compact: true
 ## status rollup
 
 - roots: 66
-- done: 269
+- done: 273
 - in-progress: 2
 - planned: 20

@@ -6346,3 +6346,133 @@ Verification: python -m pytest tests/ = 565 passed, 4 skipped, 0 failed. No regr
 
 Unresolved next step: wire the free-LoCoMo scorer so the always-on loop has a signal with real headroom; until then the loop ships as a correct, free, no-regression watchdog over the self-probe signal.
 ---END-ENTRY-#291---
+
+---BEGIN-ENTRY-#292---
+id: 292
+date: 2026-06-09T00:30:25Z
+agent: claude
+status: done
+topics: retrieval, self-improvement, h2, loop, benchmark, locomo, scorer, test, verify, history
+commits: none
+refs: benchmarks/external/locomo/recall_scorer.py,seam_runtime/self_improve.py,tests/audit/test_locomo_recall_scorer.py,HISTORY.md,HISTORY_INDEX.md
+supersedes: 291
+tokens: 1050
+---
+H2 self-improvement loop: the FREE-LoCoMo scorer — the headroom signal that makes the loop actually improve (not just watch for regressions). Wired to it, the proposer + ratchet from #291 finds and keeps real, free, no-paid retrieval gains. Builds on #289 (apply), #290 (foundation + the self-probe no-headroom finding), #291 (proposer + ratchet).
+
+WHAT WAS BUILT:
+
+1. FREE-LoCoMo SCORER (benchmarks/external/locomo/recall_scorer.py) — implements the seam_runtime.self_improve.Scorer protocol on the REAL LoCoMo adapter, so the proposer optimizes the actual benchmark metric (benchmarks/external/common/scoring.py context_recall), not a proxy. FREE: answerer=None, no judge, no API. Fidelity: it drives the adapter's full answer() path (retrieval + evidence closure + char-budget trim) exactly as runner.run_benchmark_grouped does, and scores context_recall(retrieved_context, gold_answer). To evaluate a candidate lever set it overrides the adapter runtime's cached _retrieval_flags for the scoring pass (restored in finally), so search_ir retrieves under the candidate flags without env mutation or re-ingest. The conversation is ingested ONCE at construction (reset + ingest_turn per scope, scope = case_id.split("::")[0]); score() only re-runs retrieval, so a full lever sweep is cheap. `build_locomo_recall_scorers(dataset_path, max_scopes, question_limit, ...)` returns one scorer per conversation. Anti-gaming: context_recall rises with char budget / search_top_k, but those are FIXED on the adapter for the scorer's lifetime; the proposer's levers only re-rank within that fixed budget, so it cannot game the score by enlarging the context.
+
+2. ScoreReport.per_case relaxed dict[str, bool] -> dict[str, float] (binary self-probe hit OR fractional LoCoMo recall).
+
+VALIDATION (real corpus, NO PAID — conv-26, 25 questions, local SQLite vector backend): the actual proposer (evaluate_candidates + select_best_improvement) run over the LoCoMo scorer:
+- baseline locomo_recall = 0.4624 (per-cat cat2=.639 / cat3=.206 / cat1=.327 — believable; matches the known LoCoMo shape, confirms fidelity vs the 0.528 full-100 baseline).
+- semantic_zero_no_vector=True: +0.040 -> IMPROVEMENT (no regression).
+- w_semantic+0.1: +0.040 -> IMPROVEMENT (no regression).
+- fusion=rrf: +0.056 overall BUT a category regresses -> correctly REJECTED by the no-regression gate.
+- bm25_all_kinds=True: -0.019 -> rejected. Most weight perturbations: 0.000.
+- select_best_improvement -> {"semantic_zero_no_vector": True}.
+
+So the loop AUTO-DISCOVERED #273's R1 lever (semantic_zero) as a free +0.040 gain with no category regression, and the gate correctly rejected the mixed-effect levers. This is the "make it actually improve" deliverable, end-to-end, fully free. CAVEAT: single conversation / SQLite backend; #273 measured semantic_zero as category-MIXED at full-set/pgvector scale (cat1 +0.026 / cat4 -0.004, +0.0046 global), so a proposal validated on one conversation may not generalize. Production use should score across max_scopes>1 (a multi-conversation DEV gate, never holdout) for robustness, with operator-gated PAID judged validation reserved for big claims. The single-conv result proves the machinery finds and keeps free improvements; it is not itself a publishable LoCoMo gain.
+
+Tests: benchmarks/external/locomo/recall_scorer.py covered by tests/audit/test_locomo_recall_scorer.py (3, CI-safe: a tiny synthetic conversation through the real adapter, no external dataset, no paid; pins the scorer contract + flag-override restoration). The dataset-driven headroom is validated manually (above) since the LoCoMo dataset is a local path, not in the repo.
+
+Verification: python -m pytest tests/ = 568 passed, 4 skipped, 0 failed. No regression to #289/#290/#291.
+
+Unresolved next step: a thin operator CLI (`improvement cycle`) wiring build_locomo_recall_scorers + run_improvement_cycle (propose-only default, --auto-approve opt-in); a multi-conversation dev-split gate (max_scopes>1) so accepted proposals generalize; an operator-gated PAID judged Scorer (same protocol, never auto-run) for the validation tier. The free always-on loop is now functional: it tries every cycle, proposes only net-positive non-regressing changes, applies+auto-reverts under the #289 ratchet.
+---END-ENTRY-#292---
+
+---BEGIN-ENTRY-#293---
+id: 293
+date: 2026-06-09T01:01:07Z
+agent: claude
+status: done
+topics: cli, self-improvement, h2, loop, packaging, chroma, dependencies, ci, test, verify, history
+commits: none
+refs: seam_runtime/cli.py,pyproject.toml,.github/workflows/ci.yml,tests/audit/test_improve_cli.py,tests/audit/test_chroma_optional.py,tests/audit/test_chroma_sync_default.py,HISTORY.md,HISTORY_INDEX.md
+supersedes: 292
+tokens: 1032
+---
+Two operator-driven changes this session: (1) wire the self-improvement loop into the main `seam` CLI; (2) make chromadb an OPTIONAL dependency (not a forced core install). Continues the H2 loop work (#289-#292) on branch feat/free-locomo-scorer.
+
+1. `seam improve cycle` CLI (seam_runtime/cli.py) — runs one self-improvement cycle from the main CLI: evaluate the retrieval-flag levers against free scorers, propose the best non-regressing gain, and (--auto-approve) apply via #289 with revert-on-regression. Default scorer is the free SELF-PROBE over the user's own corpus (args.db; no external dataset); `--locomo-dataset PATH` adds the free LoCoMo context_recall scorer (#292) as an opt-in headroom signal. Other flags: --probe-sample/--probe-budget, --locomo-scopes/--locomo-questions, --auto-approve. The orchestration (run_improvement_cycle) + apply live under tools/ (not shipped in the wheel), so it is lazy-imported via `_import_run_improvement_cycle()` which adds the source-checkout root to sys.path when tools/ exists and returns None (clear "needs a source checkout" message) otherwise — mirrors doctor.py's #287 fallback; consistent with seam_runtime/improvement.py already coupling to tools.h2. `--db` is accepted both before AND after the subcommand (subparser --db with argparse.SUPPRESS default so it overrides the global only when given). Verified end-to-end: `seam --db <seeded> improve cycle --probe-sample 6` returns a report (self_probe baseline 0.75, proposed null on a tiny corpus = the honest watchdog). Tests: tests/audit/test_improve_cli.py (2: propose-only self-probe path + --db-after-subcommand).
+
+2. chromadb made OPTIONAL. Investigated a DeepSeek note that chroma is "a dependency": confirmed the real issue — `chromadb>=1.0,<2.0` sat in pyproject CORE `dependencies`, forcing a heavy install on everyone, even though SEAM defaults to the SQLite vector adapter (and supports pgvector) and the Chroma backend is opt-in. The naive fix (guarding tests) would have been WRONG; the correct fix is packaging + confirming graceful degradation:
+   - pyproject.toml: moved chromadb out of core `dependencies` into a new `chroma` optional extra, and added it to `all-extras` (full install still includes it).
+   - All chroma imports were ALREADY lazy: `ChromaSemanticAdapter` is a dataclass; the only `import chromadb` is inside `_client()` (seam_runtime/retrieval_orchestrator/adapters.py:170), guarded with a clear `RuntimeError("chromadb is not installed. Install it to use --semantic-backend chroma.")`. No top-level chromadb import anywhere in seam_runtime/, tools/, or benchmarks/ (verified by grep).
+   - test_chroma_sync_default needs NO skip-guard: it only reads the `sync_on_search` dataclass default and never touches `_client()`, so it runs on a core-only install. (An importorskip guard was added then reverted after verifying construction does not import chromadb — over-guarding would have skipped a runnable test and cut core-only coverage.)
+   - .github/workflows/ci.yml: the required `chroma-real-smoke` job now installs `.[server,chroma]` (it exercises the real Chroma path, so it needs the extra). The main test-and-benchmark job (`.[server,sbert,rerank]`, no chroma) stays green because no test exercises `_client()`.
+   - Regression guard: tests/audit/test_chroma_optional.py (2) asserts chromadb is NOT in core dependencies and IS in the `chroma` + `all-extras` extras.
+   Verified by simulating chromadb-absent (`sys.modules['chromadb']=None`): core `search_ir` works (SQLite backend), the chroma-sync test logic passes, and `_client()` raises the clear RuntimeError; pyproject classification asserted programmatically.
+
+Gravity: a real packaging bug (forces a large optional dependency on every install) but LOW runtime risk (all imports already lazy + guarded). Now correctly addressed.
+
+Verification: full `python -m pytest tests/` = 572 passed, 4 skipped, 0 failed (prior 568 + 4 new). No regression to the H2 loop tests (#289-#292), retrieval_flags, or h2_improvement_review.
+
+Unresolved next step: still open from #292 - a multi-conversation dev gate (`--locomo-scopes>1`) for generalizable proposals and an operator-gated PAID judged Scorer (never auto-run). The `seam improve cycle` CLI now makes the free loop runnable.
+---END-ENTRY-#293---
+
+---BEGIN-ENTRY-#294---
+id: 294
+date: 2026-06-09T13:53:04Z
+agent: claude
+status: done
+topics: test, ci, protocol, skip, pgvector, enforcement, verify, history
+commits: none
+refs: tests/conftest.py,tests/audit/test_pgvector_pk_composite.py,tests/audit/test_substream_isolation.py,tests/audit/test_github_pr_gates.py,.github/workflows/ci.yml,AGENTS.md,HISTORY.md,HISTORY_INDEX.md
+supersedes: 293
+tokens: 997
+---
+Close the "tests can silently skip" hole with enforcement, and fix a concrete instance of it. The "never skip tests" rule was behavioral only - nothing failed a run that skipped - and there was a real hole: test_pgvector_pk_composite (3 tests) and test_substream_isolation's pgvector test gate on PGVECTOR_TEST_DSN, which CI set NOWHERE (the pgvector-integration job set the DIFFERENT var SEAM_PGVECTOR_DSN and ran only test_pgvector_real_adapter.py). So those 4 tests had been silently skipping in every CI run.
+
+Fix (enforcement + the instance):
+
+1. STRICT NO-SKIP HOOK (tests/conftest.py) - default ON; opt out for ad-hoc local runs with SEAM_STRICT_NO_SKIP=0. `pytest_runtest_logreport` collects skips (excluding xfail/wasxfail); `pytest_sessionfinish` sets exitstatus=1 and prints the offenders if any skip's reason is not in a curated allowlist. Allowlist = genuinely-unavoidable reasons only: wrong OS (Linux-only / Windows-flaky / win32), a deliberately-absent optional extra ("fastapi server extra is not installed"), "bash is required", and "cannot determine merge-base" (shallow checkout). A service-gated skip (e.g. "PGVECTOR_TEST_DSN not set") is NOT allowlisted -> it fails the session.
+
+2. MARK service tests @pytest.mark.external (the existing registered marker) - test_pgvector_pk_composite (module-level, alongside its skipif) and test_substream_isolation's pgvector test. Non-service jobs DESELECT them with -m "not external" (so they are not collected, not skipped); the service job RUNS them.
+
+3. CI (.github/workflows/ci.yml): the main test-and-benchmark job now runs `... tests/ -m "not external"` (external deselected, never silently skipped); the pgvector-integration job now runs `tests/ -m external` with PGVECTOR_TEST_DSN set (host=localhost port=55432 dbname=seam_ci user=seam_ci password=seam_ci_password) alongside the existing SEAM_PGVECTOR_DSN, so EVERY external test runs against the live pgvector service. Strict no-skip is default-on, so if an external test skips in that job (service down / DSN typo - the exact bug here) the job FAILS instead of silently skipping.
+
+4. REGRESSION GUARDS (tests/audit/test_github_pr_gates.py +2): assert the CI main job uses `-m "not external"`, the pgvector job runs `pytest tests/ -m external` and sets PGVECTOR_TEST_DSN, and the conftest strict hook (SEAM_STRICT_NO_SKIP + pytest_sessionfinish) is present.
+
+5. PROTOCOL (AGENTS.md Session End rule 6): "No silent skips" - documents the strict policy, the @external convention, the canonical zero-skip local command (start pgvector via ~/.local/bin/docker-up + export PGVECTOR_TEST_DSN), and that a new skip is resolved by running the service, not ignoring it (or allowlisted WITH justification if truly unavoidable).
+
+Validation (local, Linux, pgvector container up):
+- strict hook fails correctly: `pytest tests/audit/test_pgvector_pk_composite.py` with no DSN -> REAL exit 1 + the unexplained-skip report (was a silent "3 skipped, exit 0").
+- opt-out: SEAM_STRICT_NO_SKIP=0 -> skips allowed, exit 0.
+- main-job equivalent: `pytest test_seam_all/ tools/history/test_history_tools.py tools/streams/ tests/ -m "not external"` -> 986 passed, 7 deselected, 0 SKIPPED, exit 0.
+- pgvector-job path: `pytest tests/ -m external` with PGVECTOR_TEST_DSN -> 7 passed, 0 skipped, exit 0 (the 4 previously-silent tests now run).
+- full `pytest tests/` with PGVECTOR_TEST_DSN -> 578 passed, 0 skipped, exit 0.
+
+Net: a skip can no longer pass silently - CI fails on any unexplained skip, the 4 long-silently-skipped pgvector tests now actually run in CI, and the policy is enforced by tooling, not just documented.
+
+Verification: see the validation runs above; new guard tests pass. No production code changed (test infra + CI + protocol only).
+
+Unresolved next step: still open from #292 - multi-conversation dev gate for the self-improvement proposer and an operator-gated PAID judged Scorer. This entry is test-infra hardening on the same branch (feat/free-locomo-scorer).
+---END-ENTRY-#294---
+
+---BEGIN-ENTRY-#295---
+id: 295
+date: 2026-06-09T14:09:49Z
+agent: claude
+status: done
+topics: ci, test, bugfix, chroma, dependencies, pgvector, verify, history
+commits: none
+refs: .github/workflows/ci.yml,tests/audit/test_github_pr_gates.py,HISTORY.md,HISTORY_INDEX.md
+supersedes: 294
+tokens: 533
+---
+CI regression fix caught by PR #58's own CI: making chromadb an optional extra (#293) silently removed httpx. starlette.testclient (used by the server test suite via fastapi TestClient) requires httpx, which had been arriving TRANSITIVELY through chromadb. With chromadb out of core deps, a fresh CI install of .[server,sbert,rerank] no longer had httpx, so 10 server-test modules failed at COLLECTION ("No module named 'httpx'") in both test-and-benchmark legs; the pgvector job failed the same way because its `pytest tests/ -m external` over-collected those same modules. Local runs passed only because the dev venv still has chromadb (hence httpx) physically installed - exactly the fresh-install gap CI exists to catch.
+
+Fix (.github/workflows/ci.yml):
+- main test-and-benchmark job: `Install test dependencies` now installs `pytest httpx` (httpx declared explicitly, the same way pytest is, instead of relying on a transitive chromadb dep).
+- pgvector-integration job: run the real-pgvector test FILES explicitly (test_pgvector_real_adapter.py + test_pgvector_pk_composite.py + test_substream_isolation.py) instead of `pytest tests/ -m external`. `-m external` still imports ALL of tests/ during collection, pulling server/sbert test modules whose deps that lean job does not install; targeting the files collects only what it can import while still running every real-pgvector test against the live service (with PGVECTOR_TEST_DSN + SEAM_PGVECTOR_DSN set).
+- tests/audit/test_github_pr_gates.py: updated the no-skip guard to assert the pgvector job sets PGVECTOR_TEST_DSN and runs the two newly-wired files (was asserting the now-removed `pytest tests/ -m external`).
+
+Validated locally: guard tests 4 passed; the pgvector 3-file command with the live container DSN = 11 passed. The main-job httpx absence cannot be reproduced locally (dev venv still has chromadb), so it is verified on CI re-run.
+
+Verification: pending PR #58 CI re-run (test-and-benchmark ubuntu+windows, pgvector-integration must go green; required checks repo-hygiene/chroma-real-smoke/locomo-quickstart-bil2 already passed).
+
+Unresolved next step: confirm #58 CI is green, then merge; the chromadb-optional change must keep httpx explicitly provisioned for any context that collects the server tests.
+---END-ENTRY-#295---
