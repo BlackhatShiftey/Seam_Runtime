@@ -7529,3 +7529,36 @@ VERIFIED: 14/14 mem0 adapter tests pass; rung-C driver composition (run_benchmar
 
 CONTEXT: this unblocks rung C = SEAM(broad)-vs-mem0 head-to-head on HALF of LoCoMo-10 (first 5 convos / 764 Q, ~$4, operator-approved), currently running (scratchpad/rung_c_paid.py; mem0 extraction + answerer + judge all gpt-4o-mini; SEAM at the validated broad profile top_k=300/budget=60000). NEXT: report the head-to-head number; if SEAM>=mem0, productize the capable-answerer broad profile into core RetrievalFlags + consider the full LoCoMo-10 (~1540 Q) run. Branch bench/mem0-adapter-2x-fix + PR.
 ---END-ENTRY-#335---
+
+---BEGIN-ENTRY-#336---
+id: 336
+date: 2026-06-27T00:00:00Z
+agent: Codex
+status: done
+topics: docs, security, roadmap, protocol, status
+commits: none
+refs: LICENSE,NOTICE,README.md,COMMERCIAL_LICENSE.md,CONTRIBUTING.md,pyproject.toml,docs/PROTECTION_MODEL.md,REPO_LEDGER.md,ROADMAP.md,PROJECT_STATUS.md
+supersedes: 335
+tokens: 690
+---
+PUBLIC CORE LICENSE SPLIT for the new `BlackhatShiftey/Seam_Runtime` repository.
+
+Operator decision: set SEAM Runtime up as a public core while keeping hosted, private, enterprise, customer-specific, and unreleased modules separate for monetization.
+
+CHANGE:
+- Replaced the custom SEAM Source-Available License with Apache License 2.0 in `LICENSE`.
+- Updated `NOTICE` to describe the Apache-2.0 public core and reserve SEAM trademark/branding rights.
+- Rewrote `COMMERCIAL_LICENSE.md` into a commercial-boundary document: Apache-2.0 applies to the public core, while hosted services, enterprise connectors, private benchmark holdouts, managed deployments, customer integrations, commercial support/warranty/indemnity, private modules, and unreleased methods may remain outside the public core under separate terms.
+- Updated `README.md`, `CONTRIBUTING.md`, `docs/PROTECTION_MODEL.md`, and `REPO_LEDGER.md` so they no longer claim that this public core is proprietary/source-available or non-commercial only.
+- Updated `pyproject.toml` license metadata from proprietary/private to Apache-2.0 and removed the private-upload classifier.
+- Updated Roadmap Track N's distribution/license gate to reflect the Apache-2.0 public core target and the new `BlackhatShiftey/Seam_Runtime` repo.
+- Added `PROJECT_STATUS.md` current-update note.
+
+SCOPE CONTROL:
+- Existing local mem0 benchmark-resilience changes were intentionally NOT included in this license split and remain local for a separate follow-up.
+- No runtime behavior, benchmark behavior, API behavior, dashboard behavior, or history tooling behavior was intentionally changed; this is policy/metadata/documentation only.
+
+NEXT:
+- Push this scoped policy commit to the public `BlackhatShiftey/Seam_Runtime` repo.
+- Resume the mem0 benchmark work separately after the public-core licensing boundary is published.
+---END-ENTRY-#336---

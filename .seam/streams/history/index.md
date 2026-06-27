@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 335
-total_tokens: ~135914
-latest_id: 335
+total_entries: 336
+total_tokens: ~136604
+latest_id: 336
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,7 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 336 | 2026-06-27 | done | 7c9e11a4e67a41ec | docs,security,roadmap,protocol,+ | 335 |
 | 335 | 2026-06-26 | done | 7b74fc232147ec0c | benchmark,locomo,mem0,adapter,+ | 334 |
 | 334 | 2026-06-26 | done | 4a5351728e16bd1e | benchmark,locomo,mem0,judge,+ | 333 |
 | 333 | 2026-06-26 | done | 98c0f0f0f2104883 | benchmark,locomo,mem0,answerer,+ | 332 |
@@ -409,7 +410,7 @@ compact: true
 - diff: count=4 latest=#153, #093, #092, #037
 - dns-rebinding: count=1 latest=#300
 - docker: count=3 latest=#149, #085, #084
-- docs: count=34 latest=#331, #329, #326, #322, #318
+- docs: count=35 latest=#336, #331, #329, #326, #322
 - doctor: count=10 latest=#324, #287, #170, #169, #140
 - dsl: count=1 latest=#298
 - enforcement: count=1 latest=#294
@@ -489,7 +490,7 @@ compact: true
 - profile: count=3 latest=#334, #332, #328
 - promotion: count=1 latest=#305
 - proposer: count=1 latest=#291
-- protocol: count=95 latest=#324, #322, #310, #304, #294
+- protocol: count=96 latest=#336, #324, #322, #310, #304
 - prov: count=1 latest=#316
 - pyproject: count=5 latest=#267, #094, #051, #049, #022
 - qr: count=1 latest=#307
@@ -511,7 +512,7 @@ compact: true
 - retrieval: count=63 latest=#334, #332, #328, #325, #323
 - retrievalflags: count=1 latest=#328
 - retry: count=1 latest=#182
-- roadmap: count=53 latest=#333, #319, #318, #284, #276
+- roadmap: count=54 latest=#336, #333, #319, #318, #284
 - roundtrip: count=2 latest=#007, #006
 - rule: count=1 latest=#304
 - salvage: count=1 latest=#179
@@ -519,7 +520,7 @@ compact: true
 - scope: count=1 latest=#318
 - scorer: count=2 latest=#325, #292
 - search: count=16 latest=#276, #242, #240, #181, #154
-- security: count=44 latest=#330, #309, #301, #300, #299
+- security: count=45 latest=#336, #330, #309, #301, #300
 - self-improvement: count=9 latest=#332, #312, #302, #297, #293
 - self-probe: count=1 latest=#312
 - server: count=4 latest=#300, #288, #286, #285
@@ -533,7 +534,7 @@ compact: true
 - sql2: count=1 latest=#318
 - ssrf: count=2 latest=#300, #288
 - stash: count=1 latest=#324
-- status: count=147 latest=#329, #321, #320, #319, #318
+- status: count=148 latest=#336, #329, #321, #320, #319
 - storage: count=7 latest=#283, #282, #270, #269, #268
 - streams: count=9 latest=#287, #276, #216, #210, #209
 - structure: count=3 latest=#326, #285, #284
@@ -562,6 +563,6 @@ compact: true
 ## status rollup
 
 - roots: 66
-- done: 313
+- done: 314
 - in-progress: 2
 - planned: 20
