@@ -7529,3 +7529,283 @@ VERIFIED: 14/14 mem0 adapter tests pass; rung-C driver composition (run_benchmar
 
 CONTEXT: this unblocks rung C = SEAM(broad)-vs-mem0 head-to-head on HALF of LoCoMo-10 (first 5 convos / 764 Q, ~$4, operator-approved), currently running (scratchpad/rung_c_paid.py; mem0 extraction + answerer + judge all gpt-4o-mini; SEAM at the validated broad profile top_k=300/budget=60000). NEXT: report the head-to-head number; if SEAM>=mem0, productize the capable-answerer broad profile into core RetrievalFlags + consider the full LoCoMo-10 (~1540 Q) run. Branch bench/mem0-adapter-2x-fix + PR.
 ---END-ENTRY-#335---
+
+---BEGIN-ENTRY-#336---
+id: 336
+date: 2026-06-27T00:00:00Z
+agent: Codex
+status: done
+topics: benchmark, locomo, mem0, retry, judge, bugfix, test, history
+commits: none
+refs: benchmarks/external/common/provider_retry.py,benchmarks/external/common/answerer.py,benchmarks/external/common/runner.py,benchmarks/external/locomo/adapters/mem0.py,test_seam_all/test_locomo_mem0_adapter.py,test_seam_all/test_locomo_judge_batch.py,tests/audit/test_shared_answerer.py
+supersedes: 335
+tokens: 812
+---
+MEM0 RATE-LIMIT RESILIENCE + crash-resilient grouped runner for the rung-C paid comparator.
+
+ROOT ISSUE: the first mem0 head-to-head died during ingest on OpenAI `gpt-4o-mini` 200k TPM limits before a fair mem0 score existed. A fair rerun needed mem0 to run without rate-limit handicap, without dropped extractions, and without losing paid spend to a late crash.
+
+FIX:
+- Added benchmark-only `benchmarks.external.common.provider_retry.provider_retry()` for transient provider failures (`429`, rate limit, timeout, temporarily unavailable, connection resets), controlled by `SEAM_BENCH_PROVIDER_MAX_RETRIES`, `SEAM_BENCH_PROVIDER_RETRY_BASE_SECONDS`, and `SEAM_BENCH_PROVIDER_RETRY_MAX_SECONDS`.
+- Wrapped mem0 `add()` and `search()` with provider retry.
+- Added conservative real-mem0 ingest pacing via `SEAM_BENCH_MEM0_INGEST_MIN_INTERVAL_SECONDS` (stub-backed tests bypass pacing).
+- Pinned mem0's default LLM config to OpenAI `gpt-4o-mini`, overridable by `SEAM_BENCH_MEM0_LLM_MODEL`.
+- Wrapped the shared answerer, sync judge, batch judge, and cross-judge calls in provider retry.
+- Made grouped benchmark execution scope-crash resilient: scope-level ingest/reset failures and per-answer failures now produce per-case error rows with zero scores instead of aborting the whole run. Existing checkpoints also run after batch judging so a late judge-stage crash does not lose all progress.
+
+VALIDATION:
+- Focused tests cover mem0 add/search retry, mem0 LLM model pinning/override, shared-answerer retry, sync-judge retry, scope-crash case recording, and checkpoint preservation.
+- Paid smoke was run before this entry on one mem0 LoCoMo case with pacing and retries: `judge_score_mean=1.0`, zero case errors, zero judge errors.
+- The clean 764-case mem0 rerun completed with zero case errors and zero judge errors. Result: `judge_score_mean=0.0844240837696335`; SEAM's banked same-slice broad score remains `0.674`, so SEAM wins the fair operational rerun. Root-cause follow-up found mem0 mostly abstained (`629/764` unknown predictions) and the adapter retrieves only `top_k=8`, so retrieval-depth/answerability diagnosis remains the next workstream.
+
+SCOPE CONTROL:
+- Benchmark harness/adapters/tests only; no core runtime behavior change.
+- Unrelated local macOS installer changes were intentionally not included.
+
+NEXT:
+- Push this branch for review.
+- Resume mem0 diagnosis/productization: parameterize mem0 retrieval depth for controlled slices, then decide whether to rerun a small judged slice before another full paid run.
+---END-ENTRY-#336---
+
+---BEGIN-ENTRY-#337---
+id: 337
+date: 2026-06-27T00:00:00Z
+agent: Codex
+status: done
+topics: installer, macos, docs, test, history
+commits: none
+refs: installers/install_seam_macos.sh,seam_runtime/installer.py,installers/install_seam.py,README.md,installers/README.md,test_seam_all/test_seam.py
+supersedes: 336
+tokens: 424
+---
+macOS INSTALLER SUPPORT, committed separately after the mem0 rate-limit-resilience push.
+
+CHANGE:
+- Added `installers/install_seam_macos.sh`, a POSIX shell wrapper that delegates to `install_seam.py` through `python3` (or `python`) and fails clearly when Python is unavailable.
+- Added a macOS layout path in `seam_runtime.installer.detect_layout()`: runtime/state live under `~/Library/Application Support/SEAM`, with command shims still written under `~/.local/bin`.
+- Updated generated POSIX shims to point macOS users back to `install_seam_macos.sh` instead of the Linux installer.
+- Normalized the shared installer `--dev` help text from Linux-only to repo-local development.
+- Updated README and installer docs with macOS install commands, macOS persistent DB path, and editable-install path.
+- Added targeted tests for the macOS shell wrapper, Application Support layout, Darwin platform label, and macOS shim bootstrap hint.
+
+SCOPE:
+- Installer/docs/tests only.
+- No runtime retrieval, benchmark, API, dashboard, or storage behavior changed.
+
+NEXT:
+- Push the branch so the macOS installer cleanup is not left as local WIP.
+---END-ENTRY-#337---
+
+---BEGIN-ENTRY-#338---
+id: 338
+date: 2026-06-27T00:00:00Z
+agent: Codex
+status: done
+topics: benchmark, locomo, mem0, retrieval, test, docs, history
+commits: none
+refs: benchmarks/external/locomo/adapters/mem0.py,benchmarks/external/locomo/run.py,test_seam_all/test_locomo_mem0_adapter.py,docs/SOP_EXTERNAL_BENCH_MEM0_COMPARATOR.md
+supersedes: 337
+tokens: 450
+---
+MEM0 RETRIEVAL DEPTH KNOB for controlled post-rung-C diagnostics.
+
+CONTEXT:
+- The clean 764-case mem0 rerun from HISTORY#336 was fair operationally (zero case errors, zero judge errors) but scored far below SEAM broad (`0.0844240837696335` vs the banked `0.674` same-slice SEAM score).
+- Audit showed mem0 mostly answered `unknown`, and the adapter had a fixed retrieval depth of `top_k=8`, unlike SEAM broad's much deeper candidate/context budget. Before any further paid rerun, mem0 needed an explicit depth control so diagnostics can separate mem0 storage/extraction quality from a shallow retrieval cap.
+
+CHANGE:
+- `Mem0LocomoAdapter` now resolves `search_limit` from an explicit constructor arg, then `SEAM_BENCH_MEM0_SEARCH_LIMIT`, then the prior default `8`.
+- The LoCoMo runner exposes `--mem0-search-limit` and passes it through `build_adapter("mem0", ...)`.
+- The default remains `8` for backward-compatible quickstart/comparator smoke runs; higher values require an explicit env var or CLI argument.
+- The mem0 comparator SOP now documents the live runner knob and the compatibility rule.
+
+VALIDATION:
+- Added tests proving the env override reaches `Memory.search(top_k=...)` and that `build_adapter()` passes an explicit mem0 search limit.
+- Focused benchmark harness tests passed: `test_seam_all/test_locomo_mem0_adapter.py`, `tests/audit/test_shared_answerer.py`, and `test_seam_all/test_locomo_judge_batch.py`.
+- `py_compile` passed for the touched mem0 adapter and LoCoMo runner modules.
+
+NEXT:
+- Run a small explicitly operator-gated mem0 diagnostic slice at higher `--mem0-search-limit` before spending on another full judged rerun.
+- If a deeper mem0 slice still mostly abstains, keep the fair SEAM win and move to productizing/using the broad core profile path rather than rerunning the full paid comparator immediately.
+---END-ENTRY-#338---
+
+---BEGIN-ENTRY-#339---
+id: 339
+date: 2026-06-27T15:16:28Z
+agent: Codex
+status: done
+topics: pyproject, readme, ci, test, docs, history
+commits: none
+refs: pyproject.toml,README.md,MANIFEST.in,.github/workflows/ci.yml,tests/audit/test_github_package_metadata.py
+supersedes: 338
+tokens: 592
+---
+GITHUB-FIRST PACKAGE INSTALL PATH for `seam-runtime`.
+
+CHANGE:
+- Added project URLs in `pyproject.toml` pointing package metadata at `https://github.com/BlackhatShiftey/Seam_Runtime` and its issue tracker.
+- Added README GitHub direct-install commands for the base runtime and the `server,dash` extras using `pip install "seam-runtime[...] @ git+https://github.com/BlackhatShiftey/Seam_Runtime.git@main"`.
+- Added `MANIFEST.in` so sdists include license/policy/readme files plus the packaged browser-dashboard assets and retrieval-orchestrator README.
+- Added a `package-smoke` CI job that builds wheel+sdist, installs the built wheel, and checks the installed `seam`, `seam-mcp`, and `seam-server` entrypoints.
+- Added `tests/audit/test_github_package_metadata.py` to pin the GitHub package metadata, README install URLs, manifest inclusion rule, and CI package smoke.
+
+SCOPE:
+- Packaging, docs, and CI only.
+- Did not change runtime behavior, benchmark behavior, installer behavior, or the current license posture on this branch.
+- Existing unrelated mem0/status/history/stream changes remained in the working tree and were not folded into this packaging scope.
+
+VALIDATION:
+- Red/green packaging audit test: `tests/audit/test_github_package_metadata.py` failed before implementation for missing URLs/docs/manifest/CI and passed after the patch.
+- Focused regression: `.venv/bin/python -m pytest tests/audit/test_github_package_metadata.py tests/audit/test_chroma_optional.py tests/audit/test_github_pr_gates.py -q` -> 11 passed.
+- Artifact build: `rm -rf dist && .venv/bin/python -m build --wheel --sdist` -> built `seam_runtime-0.1.0-py3-none-any.whl` and `seam_runtime-0.1.0.tar.gz`; setuptools emitted existing license metadata deprecation warnings only.
+- Clean wheel install smoke: fresh `/tmp/seam-package-smoke` venv installed `dist/*.whl`; `seam --help`, `seam-mcp --help`, and `seam-server --help` all exited 0.
+- Installed package-data check confirmed `seam_runtime/webui/dashboard.html`, `seam_runtime/webui/seam-api.js`, and `seam_runtime/webui/branding/seam-glitch.png` are present in the installed wheel.
+- `git diff --check` passed.
+
+NEXT:
+- Push this packaging slice to `BlackhatShiftey/Seam_Runtime` through a PR after the branch's unrelated mem0/history work is either included intentionally or separated.
+- When tags are ready, update the README examples from `@main` to a pinned release tag.
+---END-ENTRY-#339---
+
+---BEGIN-ENTRY-#340---
+id: 340
+date: 2026-06-27T17:52:01Z
+agent: Codex
+status: done
+topics: readme, docs, prompt, memory, operator, webui, test, history
+commits: none
+refs: README.md,docs/README.md,docs/errors.md,tests/audit/test_github_package_metadata.py
+supersedes: 339
+tokens: 568
+---
+AGENT SETUP PROMPT + OPERATOR MANUAL / ERROR INDEX DISCOVERABILITY.
+
+CHANGE:
+- Added a README Agent Setup Prompt that tells downstream coding agents to install SEAM with the platform installer, install normal operator extras, run `seam doctor`, ingest safe repo docs as persistent memory, test memory retrieval/context, and configure MCP with `seam-mcp` or `seam-mcp --ensure-pgvector`.
+- Made the prompt explicit that API keys, local `.env` files, and local `.conf` files are operator-owned; operators can set them through the SEAM Web UI Settings panel or maintain ignored local config manually. The prompt warns agents not to commit, ingest, expose, or summarize those files.
+- Added README Web UI setup guidance for `seam webui --host 127.0.0.1 --port 8765`, including provider keys, chat/API settings, embedding settings, pgvector DSN, `SEAM_LOCAL_ENV`, REST API token, and save/reload local env controls.
+- Added a README Operator Manual section linking the operator guide, setup guide, runbooks, engineering manual, and troubleshooting/error index.
+- Promoted `docs/errors.md` from a linear troubleshooting playbook into an explicit Error Index by symptom/error type and added an `HTTP 429` provider quota/rate-limit entry.
+- Updated `docs/README.md` so `docs/SEAM_OPERATOR_GUIDE.md` is named as the operator manual and `docs/errors.md` is named as the error index.
+- Extended `tests/audit/test_github_package_metadata.py` to pin the agent prompt, persistent-memory setup, Web UI/manual config language, operator manual links, and error index entries.
+
+SCOPE:
+- Docs/tests/history only.
+- No runtime, installer, package metadata, CI workflow, benchmark, or dashboard behavior changed.
+- Provider keys and local config remain explicitly outside git and outside SEAM memory ingest.
+
+VALIDATION:
+- Red/green audit test: `tests/audit/test_github_package_metadata.py` failed before docs changes for missing config/operator/error-index language and passed after implementation.
+- Focused audit: `.venv/bin/python -m pytest tests/audit/test_github_package_metadata.py -q` -> 7 passed.
+- Related audit slice: `.venv/bin/python -m pytest tests/audit/test_github_package_metadata.py tests/audit/test_chroma_optional.py tests/audit/test_github_pr_gates.py -q` -> 14 passed.
+- `git diff --check` passed.
+
+NEXT:
+- Keep README package install examples on `@main` until release tags exist; update to pinned tags once publishing starts.
+- If new operator-facing errors recur, add them to `docs/errors.md` under the Error Index before they become tribal knowledge.
+---END-ENTRY-#340---
+
+---BEGIN-ENTRY-#341---
+id: 341
+date: 2026-06-27T18:03:10Z
+agent: Codex
+status: done
+topics: readme, docs, test, history
+commits: none
+refs: README.md,tests/audit/test_github_package_metadata.py
+supersedes: 340
+tokens: 381
+---
+README PLACEHOLDER CLEANUP + HELP PATH CLARIFICATION.
+
+CHANGE:
+- Removed the unpublished public installer placeholder block that advertised `https://example.com/seam/install.ps1` and `https://example.com/seam/install.sh`. README now only shows working GitHub/private clone/install paths and the GitHub direct package install form.
+- Made the Operator Manual section explicitly serve as the help path beyond the quickstart: "For help beyond the quickstart, use these docs as the operator manual."
+- Extended the README/package audit test so unpublished public installer placeholders cannot be reintroduced accidentally, and so the operator manual links remain pinned.
+
+SCOPE:
+- Docs/tests/history only.
+- No runtime, installer, package metadata, CI workflow, benchmark, or dashboard behavior changed.
+
+VALIDATION:
+- Placeholder scan of README no longer finds `example.com`, `placeholder`, `TBD`, `TODO`, `FIXME`, or unpublished public-installer wording. Remaining angle-bracket strings are command examples (`<ids>`, `<local-token>`, `<baseline-report.json>`), not unset release placeholders.
+- Red/green audit test: `tests/audit/test_github_package_metadata.py` failed before README cleanup for the `example.com` placeholder and missing explicit help-path wording, then passed after the README patch.
+- Focused audit: `.venv/bin/python -m pytest tests/audit/test_github_package_metadata.py -q` -> 8 passed.
+- Related audit slice: `.venv/bin/python -m pytest tests/audit/test_github_package_metadata.py tests/audit/test_chroma_optional.py tests/audit/test_github_pr_gates.py -q` -> 15 passed.
+- `git diff --check` passed.
+
+NEXT:
+- When a real public installer host exists, add the actual URL with a live smoke path and an audit test that proves the README URL is no longer a placeholder.
+---END-ENTRY-#341---
+
+---BEGIN-ENTRY-#342---
+id: 342
+date: 2026-06-28T03:58:48Z
+agent: Codex
+status: done
+topics: chat, dashboard, webui, memory, persist, test, history
+commits: none
+refs: seam_runtime/server.py,seam_runtime/webui/seam-api.js,seam_runtime/webui/dashboard.html,tests/audit/test_chat_endpoint.py,tests/audit/test_webui_chat_memory_controls.py,PROJECT_STATUS.md
+supersedes: 341
+tokens: 438
+---
+DASHBOARD CHAT AUTO-MEMORY.
+
+CHANGE:
+- `/chat` now persists successful user and assistant turns into the active SEAM runtime store by default after the provider returns. The persisted records use `local.chat` / `thread`, role-prefixed text, and `chat://<turn>/user|assistant` source refs so the turn remains traceable without storing provider keys or base URLs.
+- `/chat` responses now include `persisted_memory` with stored IDs, store path, and turn source refs. If the memory write fails, the provider reply is still returned with `persist_error` so chat does not disappear because the memory backend is unavailable.
+- The browser dashboard now threads an explicit `persistChat` option through `SeamAPI.chat()` as `persist_chat` and exposes a compact checked-by-default `remember` control in the agent chat toolbar. Turning it off sends `persist_chat: false`.
+
+SCOPE:
+- Runtime/webui/tests/status/history only.
+- No benchmark, installer, package metadata, provider-calling, or auth policy behavior changed.
+- Provider API keys remain request-time/env-only and are not compiled into MIRL.
+
+VALIDATION:
+- Red/green coverage: new chat persistence tests failed before implementation because `/chat` did not return `persisted_memory`; the dashboard static test failed because no `persist_chat` flag existed. After implementation, the focused slice passed.
+- Focused chat/webui slice: `.venv/bin/python -m pytest tests/audit/test_chat_endpoint.py tests/audit/test_webui_chat_memory_controls.py` -> 10 passed.
+- Runtime import/collection gate: `.venv/bin/python -m pytest --collect-only tests/audit/test_chat_endpoint.py tests/audit/test_webui_chat_memory_controls.py tests/audit/test_audit_2026_06_05.py` -> 31 tests collected.
+- Related chat/security slice: `.venv/bin/python -m pytest tests/audit/test_chat_endpoint.py tests/audit/test_webui_chat_memory_controls.py tests/audit/test_audit_2026_06_05.py` -> 31 passed.
+- `git diff --check` passed.
+
+NEXT:
+- Browser-render smoke the dashboard chat panel in a follow-up UI polish pass if layout churn appears; this slice used static dashboard coverage plus server endpoint tests.
+---END-ENTRY-#342---
+
+---BEGIN-ENTRY-#343---
+id: 343
+date: 2026-06-29T06:15:22Z
+agent: Codex
+status: done
+topics: benchmark, locomo, mem0, scripts, handoff, test, history
+commits: none
+refs: tools/benchmarks/rung_c_paid.py,tests/audit/test_rung_c_paid_runner.py,docs/handoffs/2026-06-26-seam-vs-mem0-rungc-handoff.md,PROJECT_STATUS.md
+supersedes: 342
+tokens: 693
+---
+TRACKED RUNG-C LOCOMO RUNNER.
+
+CONTEXT:
+- The rung-C handoff pointed to `scratchpad/rung_c_paid.py`, but `scratchpad/` and the driver were untracked and absent. The live branch already had the provider retry, crash-resilient grouped runner, fair mem0 rerun result, and `--mem0-search-limit` diagnostic knob from HISTORY#336/#338, so the missing piece was a durable operator runner rather than new rate-limit internals.
+- Before edits, the branch was rebased onto `origin/main`; Git skipped the duplicate rung-C handoff commit and replayed the seven branch commits cleanly.
+
+CHANGE:
+- Added `tools/benchmarks/rung_c_paid.py`, a tracked rung-C planner/executor for SEAM(broad) vs mem0 on the first N LoCoMo conversation scopes. It writes the generated slice under ignored `test_seam/locomo/rung_c/`, emits exact `benchmarks.external.locomo.run` commands, uses SEAM broad settings (`--search-top-k 300 --context-budget 60000`), passes optional `--mem0-search-limit`, and defaults to plan-only.
+- Added `--benchmark-dry-run` for keyless runner smoke checks that execute the benchmark runner's dry-run path without constructing paid providers.
+- Added a hard paid gate: `--execute` requires `--confirm-paid` unless `--benchmark-dry-run` is set.
+- Updated `docs/handoffs/2026-06-26-seam-vs-mem0-rungc-handoff.md` so future agents use `python -m tools.benchmarks.rung_c_paid` instead of the missing scratchpad driver.
+
+SCOPE:
+- Benchmark tooling, handoff docs, tests, status/history only.
+- No paid OpenAI or mem0 judged run was launched. No core runtime behavior changed.
+
+VALIDATION:
+- Red/green TDD: `tests/audit/test_rung_c_paid_runner.py` failed first with `ModuleNotFoundError: No module named 'tools.benchmarks.rung_c_paid'`, then passed after implementation.
+- Focused runner tests: `.venv/bin/python -m pytest tests/audit/test_rung_c_paid_runner.py -q` -> 3 passed.
+- Related benchmark harness slice: `.venv/bin/python -m pytest tests/audit/test_rung_c_paid_runner.py test_seam_all/test_locomo_mem0_adapter.py tests/audit/test_shared_answerer.py -q` -> 31 passed.
+- Compile check: `.venv/bin/python -m py_compile tools/benchmarks/rung_c_paid.py` -> passed.
+- Keyless dry-run smoke: `.venv/bin/python -m tools.benchmarks.rung_c_paid --scopes 1 --adapter mem0 --benchmark-dry-run --execute --output-dir test_seam/locomo/rung_c_smoke` -> exit 0; underlying LoCoMo dry run reported 154 cases, valid=true, estimated_judge_calls=154, and no provider clients were constructed.
+
+NEXT:
+- Before any real paid rerun, use `python -m tools.benchmarks.rung_c_paid --scopes <n> --adapter mem0 --mem0-search-limit <k> --json` to review the exact command, then require explicit operator approval for `--execute --confirm-paid`.
+---END-ENTRY-#343---
