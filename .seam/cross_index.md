@@ -2,14 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 405
+total_events: 406
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-05-15T19:59:46Z | history:170:941f2b6d | session-event | done | protocol, history, plan, verify, status, ledger, roadmap,... | tools/streams/__init__.py,tools/streams/streams_lib.py,tools/streams/history_... |
 | 2026-05-15T21:15:18Z | history:171:65ae1a6a | session-event | done | protocol, history, plan, verify, status, ledger, roadmap,... | ROADMAP.md,tools/streams/build_context_pack.py,tools/streams/bloat_report.py,... |
 | 2026-05-15T21:52:49Z | history:172:0cc3f09f | session-event | done | verify, history, audit, status, protocol | tools/history/recorded_fact_audit.py,tools/history/test_count_audit.py,tools/... |
 | 2026-05-15T22:25:58Z | history:173:735e9a04 | session-event | done | installer, linux, verify, status, history, audit | .gitignore,experimental/webui/package.json,PROJECT_STATUS.md,HISTORY.md,HISTO... |
@@ -138,7 +137,6 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-05-31T23:56:01Z | history:276:aa84a2f6 | session-event | done | roadmap, surface, verify, integrity, search, streams, his... | ROADMAP.md,PROJECT_STATUS.md,HISTORY.md,HISTORY_INDEX.md,.seam/streams/roadma... |
 | 2026-06-01T19:23:53Z | history:277:cb90f2da | session-event | done | audit, benchmark, retrieval, locomo, docs, verify, histor... | docs/audits/2026-05-31-cat4-single-hop-attribution.md,.gitignore,PROJECT_STAT... |
 | 2026-06-01T22:59:38Z | history:278:8ddb1b38 | session-event | done | retrieval, benchmark, locomo, audit, docs, verify, histor... | benchmarks/external/locomo/adapters/seam.py,benchmarks/external/locomo/run.py... |
-| 2026-06-02T00:00:00Z | roadmap:057:fd920cab | status-change | bootstrap | packaging, release, distribution | ROADMAP.md:1572 |
 | 2026-06-02T03:23:37Z | history:279:d613fd79 | session-event | done | retrieval, benchmark, locomo, audit, docs, verify, histor... | docs/audits/2026-06-01-paid-locomo-slice-validation.md,PROJECT_STATUS.md,HIST... |
 | 2026-06-02T13:32:10Z | history:280:a329f272 | session-event | done | test, pgvector, bugfix, protocol, branch, audit, verify, ... | tests/conftest.py,tests/audit/test_pgvector_real_adapter.py,PROJECT_STATUS.md... |
 | 2026-06-02T15:11:26Z | history:281:cecfeea7 | session-event | done | benchmark, bugfix, integrity, locomo, retrieval, ci, veri... | benchmarks/external/common/runner.py,PROJECT_STATUS.md,HISTORY.md,HISTORY_IND... |
@@ -178,7 +176,7 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-06-14T12:27:24Z | history:315:1824fb06 | session-event | done | pack, density, compression, context, retrieval, cr, verif... | seam_runtime/pack.py,test_seam_all/test_seam.py,HISTORY.md,HISTORY_INDEX.md,P... |
 | 2026-06-14T13:26:00Z | history:316:a45c14d0 | session-event | done | pack, density, compression, context, symbols, prov, evide... | seam_runtime/pack.py,test_seam_all/test_seam.py,HISTORY.md,HISTORY_INDEX.md,P... |
 | 2026-06-14T23:53:15Z | history:317:8008e5f4 | session-event | done | nl, compiler, ingest, enrichment, regex, locomo, benchmar... | seam_runtime/nl.py,tests/audit/test_conversation_turn_compile.py,test_seam_al... |
-| 2026-06-15T00:00:00Z | roadmap:058:83363fb4 | status-change | bootstrap | query, sql, retrieval, benchmark, bird | ROADMAP.md:1600 |
+| 2026-06-15T00:00:00Z | roadmap:057:e2d25ecf | status-change | bootstrap | query, sql, retrieval, benchmark, bird | ROADMAP.md:1609 |
 | 2026-06-15T01:01:25Z | history:318:986aa846 | session-event | done | retrieval, multihop, locomo, benchmark, scope, query, sql... | docs/audits/2026-06-15-cat1-cat3-multihop-scope.md,docs/roadmap/SEAM_QUERY_EN... |
 | 2026-06-15T01:17:23Z | history:319:4081a094 | session-event | done | roadmap, query, sql, bird, benchmark, retrieval, multihop... | ROADMAP.md,HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md |
 | 2026-06-15T03:39:08Z | history:320:25494450 | session-event | done | retrieval, budget, topk, locomo, benchmark, judge, recall... | seam_runtime/retrieval.py,seam_runtime/runtime.py,benchmarks/external/locomo/... |
@@ -209,10 +207,12 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-07-03T15:15:01Z | history:345:677aea14 | session-event | done | readme, prompt, docs | README.md |
 | 2026-07-03T16:21:14Z | history:346:8e76711d | session-event | done | readme, ledger, roadmap, protocol | LICENSE,NOTICE,COMMERCIAL_LICENSE.md,CONTRIBUTING.md,README.md,REPO_LEDGER.md... |
 | 2026-07-03T23:54:27Z | history:347:029e01d2 | session-event | done | mcp, pyproject, readme, registry | pyproject.toml,README.md,server.json,seam_runtime/mcp_protocol.py |
+| 2026-07-24T00:00:00Z | roadmap:058:f0f7906d | status-change | bootstrap | packaging, release, distribution | ROADMAP.md:1572 |
+| 2026-07-24T12:49:43Z | history:348:01d0bbc8 | session-event | done | agent, pyproject, docs, security, test, surface | sdk/,PUBLIC_SDK_BOUNDARY.md,.github/workflows/sdk-ci.yml,.github/workflows/sd... |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0205.cross.md | 2026-04-15T00:00:00Z..2026-05-15T19:13:24Z | 205 | (multi) | (multi) |
+| 0001-0206.cross.md | 2026-04-15T00:00:00Z..2026-05-15T19:59:46Z | 206 | (multi) | (multi) |

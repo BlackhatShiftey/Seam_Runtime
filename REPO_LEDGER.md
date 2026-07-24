@@ -44,10 +44,17 @@ and `HISTORY_INDEX.md`.
   ad-hoc properties. This decision exists because the spec was historically
   absent from the mandatory read order, which let implementations drift from the
   design (the overfit `compile_nl` stub being the clearest case).
-- `BlackhatShiftey/Seam_Runtime` is the public Apache-2.0 core repository for
-  SEAM Runtime. The public core includes the local runtime, CLI/REST/MCP/web UI
-  surfaces, public docs, tests, benchmarks, adapters, and repo-owned fixtures
-  intentionally released there.
+- `BlackhatShiftey/Seam_Runtime` is SEAM's public Apache-2.0 repository. Its
+  active public product is the independently authored `seam-client` package
+  under `sdk/`: a typed HTTP client and framework-neutral agent-memory adapter
+  for the opaque public `/v1` API. The package must not contain or reproduce
+  MIRL, HS/1, PACK, graph, ranking, provenance, storage, or private runtime
+  implementations.
+- The previously published `seam-runtime` 1.x source and tags in this
+  repository remain available under the Apache-2.0 grant that accompanied
+  them. That line is frozen legacy code. Future private SEAM runtime work is
+  not synced from the proprietary repository, and the legacy tree is not a
+  source for new proprietary implementation.
 - Apache-2.0 applies to the public core through `LICENSE` and `NOTICE`.
   `COMMERCIAL_LICENSE.md` now describes the separate commercial boundary:
   hosted services, enterprise connectors, private benchmark holdouts, managed
@@ -196,7 +203,11 @@ and `HISTORY_INDEX.md`.
 
 ## Code Separation Policy
 
-- Active runtime code lives in `seam_runtime/` and `seam.py`.
+- Active public SDK code lives in `sdk/`.
+- `seam_runtime/` and `seam.py` are the frozen legacy Apache runtime line.
+  They remain source-available under their existing license and may receive
+  narrowly scoped security or compatibility maintenance, but they do not
+  receive new proprietary SEAM runtime implementations.
 - Active operator/dev tooling lives in `tools/`, `scripts/`, and `installers/`.
 - `experimental/` is active prototype code: less stable than runtime code, but still importable and testable.
 - Inactive or retired code lives under `archive/code/` and must not be imported, packaged, or used as current behavior.

@@ -7891,3 +7891,36 @@ tokens: 466
 ---
 Version bump to 1.3.0 + MCP Server Registry manifest, prerequisite for publishing seam-runtime to PyPI and registering it with the official MCP server registry. pyproject.toml version 0.1.0 -> 1.3.0 (first real release-tracked version; matches the GitHub release tag this session is about to cut). Added root server.json (MCP registry manifest: name io.github.blackhatshiftey/seam-runtime, repo pointer, pypi package entry running via 'uvx --from seam-runtime seam-mcp', SEAM_DB_PATH/SEAM_PGVECTOR_DSN env var docs) -- recovered and version-corrected from a stale draft left in an abandoned /tmp scratch worktree (base commit b9132ac) from a prior session; the draft's README/pyproject portions were discarded as superseded by HISTORY#339/#341 already on main, only server.json's structure was reusable. Added the required '<!-- mcp-name: io.github.blackhatshiftey/seam-runtime -->' ownership-verification comment to README.md's top (the MCP registry checks for this before accepting a server.json). Also fixed seam_runtime/mcp_protocol.py's initialize handshake serverInfo.version, which was still hardcoded '0.1.0' and would have reported a stale version over the wire once published -- no test pinned the literal string (tests/audit/test_mcp_stdio_smoke.py only asserts name is a non-empty string), so this was a safe fix. Verified: full mcp-tagged test slice (17 tests) + the mcp stdio smoke test pass. Note: seam_runtime/skills/skill_ir.py's SKILL_IR_VERSION='0.1.0' was deliberately left untouched -- that's an unrelated skill-IR schema version, not the package release version. verify_integrity/verify_routing/verify_continuity/verify_streams all pass. Blocker resolved for actually publishing: seam-runtime was confirmed NOT on PyPI (404) prior to this session; operator has now provided a PyPI API token (stored locally at ~/.config/seam-pypi-token, chmod 600, never pasted into chat) to complete the first upload. PyPI upload and MCP registry submission are separate follow-on steps after this merges.
 ---END-ENTRY-#347---
+
+---BEGIN-ENTRY-#348---
+id: 348
+date: 2026-07-24T12:49:43Z
+agent: Codex
+status: done
+topics: agent, pyproject, docs, security, test, surface
+commits: none
+refs: sdk/,PUBLIC_SDK_BOUNDARY.md,.github/workflows/sdk-ci.yml,.github/workflows/sdk-publish.yml,README.md,COMMERCIAL_LICENSE.md,docs/PROTECTION_MODEL.md
+supersedes: 347
+tokens: 1275
+---
+PUBLIC AGENT SDK AND PRIVATE IMPLEMENTATION BOUNDARY.
+
+CHANGE:
+- Added an independently packaged Apache-2.0 `seam-client` 0.1.0 build root under `sdk/`. The public package exposes typed synchronous and asynchronous clients for health, remember, recall, and context plus framework-neutral `AgentMemory` and `AsyncAgentMemory` lifecycle adapters.
+- Added `PUBLIC_SDK_BOUNDARY.md` and updated the public licensing, protection, status, ledger, code-layout, roadmap, and README surfaces. The active public product is now the client SDK. The previously released `seam-runtime` 1.x source and tags remain under their existing Apache-2.0 grant but are a frozen legacy line, not a destination for future private runtime work.
+- Added isolated SDK CI and a manual PyPI Trusted Publishing workflow. The workflow uses GitHub OIDC through a protected `pypi` environment and stores no long-lived PyPI token.
+- Added `sdk/tools/verify_artifact_boundary.py`, which verifies package identity/license and allows only the public `seam_client` modules plus packaging metadata in wheel/sdist artifacts. It rejects private runtime paths and private implementation markers.
+
+BOUNDARY:
+- The SDK speaks only the opaque public `/v1` HTTP contract. It contains no MIRL, HS/1, PACK, graph, ranking, provenance, storage, or private runtime implementation.
+- This change does not revoke or narrow Apache-2.0 rights already granted for files previously released in this repository.
+- First PyPI publication remains pending review/merge of the public SDK and private API boundary branches plus the one-time PyPI Trusted Publisher registration for `seam-client`.
+
+VALIDATION:
+- `PYTHONPATH=sdk/src:sdk ... -m pytest sdk/tests -q` -> 12 passed.
+- Ruff passed for `sdk/`.
+- A clean isolated build produced the `seam-client` 0.1.0 wheel and sdist; `twine check` passed for both.
+- `verify_artifact_boundary.py` passed for both built artifacts, and `sdk/LICENSE` is byte-identical to the repository Apache-2.0 `LICENSE`.
+- A live in-process cross-repository smoke exercised `AsyncAgentMemory` against the private FastAPI `/v1` implementation with SQLite and verified public responses contain no internal record IDs.
+- `verify_integrity` passed. The public checkout's pre-existing routing defect remains explicit: `verify_routing` and the routing phase of `verify_continuity` report seven ledger paths already named in `tools/history/routing_manifest.json` but absent from `origin/main`; this SDK change did not invent placeholder ledgers or copy private ledgers into the public repo.
+---END-ENTRY-#348---

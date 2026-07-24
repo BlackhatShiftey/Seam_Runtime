@@ -5,20 +5,25 @@ That license permits use, modification, distribution, and commercial use of the
 code in this public core repository, subject to the Apache-2.0 terms and the
 notices in [NOTICE](NOTICE).
 
-## Public core
+## Active public SDK
 
-The public core currently lives at:
+The active public product currently lives at:
 
 <https://github.com/BlackhatShiftey/Seam_Runtime>
 
-The public core may include:
+The independently authored `seam-client` package may include:
 
-- the local runtime;
-- CLI, REST, MCP, dashboard, and operator workflows;
+- typed synchronous and asynchronous HTTP clients;
+- framework-neutral agent-memory lifecycle hooks;
 - public documentation;
-- public regression tests and benchmark harnesses;
+- public client regression tests;
 - public adapters and examples; and
 - repo policy files for contribution, security, and attribution.
+
+The repository also retains the previously released `seam-runtime` 1.x source
+and tags. Those files remain licensed under Apache-2.0; calling that line
+"legacy" or ending new feature development does not retract rights already
+granted.
 
 ## Separate commercial offerings
 
@@ -37,6 +42,10 @@ Separate commercial terms may cover:
 - commercial support, warranty, indemnity, or service-level commitments;
 - advanced or unreleased modules kept outside the public core; and
 - private training, onboarding, or implementation work.
+
+MIRL, HS/1, and code, documentation, protocols, data, or services related to
+them are not part of the active public SDK unless a specific file is
+intentionally released under an explicit public license.
 
 ## Branding and claims
 

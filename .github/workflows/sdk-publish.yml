@@ -1,0 +1,65 @@
+name: Publish public SEAM SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact seam-client version to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify requested version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("sdk/pyproject.toml").read_text())["project"]
+          actual = project["version"]
+          requested = os.environ["REQUESTED_VERSION"]
+          if actual != requested:
+              raise SystemExit(f"requested version {requested!r} does not match {actual!r}")
+          print(f"publishing seam-client {actual}")
+          PY
+      - name: Install build tools
+        run: python -m pip install "build>=1.2,<2" "twine>=5,<7"
+      - name: Build
+        run: python -m build sdk --outdir sdk/dist
+      - name: Validate metadata
+        run: python -m twine check sdk/dist/*
+      - name: Enforce public boundary
+        run: python sdk/tools/verify_artifact_boundary.py sdk/dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seam-client-distributions
+          path: sdk/dist/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/seam-client/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: seam-client-distributions
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

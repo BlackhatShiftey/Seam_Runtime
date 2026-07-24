@@ -3,12 +3,23 @@
 This file separates current code from inactive or generated code so agents do
 not have to infer what works from directory names alone.
 
-## Active Runtime
+## Active Public SDK
 
-- `seam_runtime/` - packaged runtime, dashboard, storage, retrieval, model, and benchmark code.
+- `sdk/` - independently packaged Apache-2.0 `seam-client` distribution.
+- `sdk/src/seam_client/` - typed synchronous/asynchronous HTTP clients,
+  framework-neutral agent-memory adapters, models, and public errors.
+- `sdk/tests/` - hermetic client, adapter, and artifact-boundary tests.
+- `sdk/tools/verify_artifact_boundary.py` - fail-closed wheel/sdist allow-list
+  and private-marker scanner.
+- `PUBLIC_SDK_BOUNDARY.md` - controlling technical boundary for the public SDK.
+
+## Frozen Legacy Runtime
+
+- `seam_runtime/` - legacy Apache-2.0 runtime 1.x source. It remains available
+  under its existing grant but is not the source of new SEAM internals.
 - `seam_runtime/retrieval_orchestrator/` - multi-leg retrieval orchestrator (planner, adapters, merger) powering `seam retrieve`, the MCP tool, dashboard retrieval, and the benchmark suite. Promoted from `experimental/` in HISTORY#284.
 - `seam_runtime/webui/` - the SEAM browser dashboard served by the REST API: `dashboard.html` (the IDE-style operator UI), `seam-api.js`, `tweaks-panel.jsx`, branding, and icons. `seam serve` and `seam webui` serve these at `/` on the same origin as the API; packaged with the wheel. This is the functional dashboard (HISTORY#285).
-- `seam.py` - console entrypoint module for `seam` and `seam-benchmark`.
+- `seam.py` - legacy console entrypoint module for `seam` and `seam-benchmark`.
 - `test_seam_all/test_seam.py` - primary regression suite. Local `test_seam_*.db`
   artifacts live in ignored `test_seam/` so root stays clean.
 - `tests/docs/` - tracked testing documentation, including local artifact
