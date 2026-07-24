@@ -1571,27 +1571,36 @@ high recall; that may be an answerer failure, not a retrieval failure.
 
 <!-- seam:item
 id: roadmap:track:N
-status: planned
-status-since: 2026-06-02
-status-by: history:284
+status: in-progress
+status-since: 2026-07-24
+status-by: history:348
 supersedes: none
 topics: packaging, release, distribution
 priority: 3
 phase: 1
 -->
 
-**Status:** Planned, deferred (operator decision 2026-06-02 — not a current priority). Build the release/distribution plumbing for `seam-runtime`.
+**Status:** In progress. The public release target is now the isolated
+`seam-client` SDK, not a new release of the private runtime.
 
-**Distribution target:** public core now targets `BlackhatShiftey/Seam_Runtime` under Apache-2.0. PyPI distribution remains a separate release decision; package name `seam-runtime` is the intended package name (`seam` is taken). Build plumbing should be target-agnostic so switching to public PyPI later is a one-line change.
+**Distribution target:** `BlackhatShiftey/Seam_Runtime` contains the
+Apache-2.0 `seam-client` 0.1.0 build root under `sdk/`. It provides typed
+sync/async access to the opaque public SEAM API and agent-memory lifecycle
+hooks without shipping private implementation. The prior `seam-runtime` 1.x
+tree and tags remain a frozen legacy Apache line.
 
-**License gate:** resolved for the public core: Apache-2.0. Hosted services, enterprise modules, private benchmark holdouts, customer integrations, support/warranty/indemnity, and unreleased methods remain outside the public core unless intentionally released.
+**License gate:** resolved for the independently authored client: Apache-2.0.
+MIRL, HS/1, private runtime code, hosted services, private benchmark holdouts,
+customer integrations, and unreleased methods remain outside this public SDK.
 
 Phase work:
 
-1. Complete project metadata (authors, `project.urls`, keywords, long-description content type); confirm `seam_runtime*` packaging only (experimental promoted out — see HISTORY#284).
-2. `python -m build` + `twine check` validation in CI on every tag.
-3. Private-distribution release workflow: build sdist+wheel on a `v*` tag, `twine check`, attach artifacts to a GitHub Release (private repo). Keep `Do Not Upload`.
-4. When/if the license flips and the operator approves public release: remove `Do Not Upload`, wire Trusted Publishing (OIDC) to PyPI, publish `seam-runtime`.
+1. Done: isolate package metadata and code under `sdk/` as `seam-client`.
+2. Done: add CI for tests, build, `twine check`, and artifact-boundary scans.
+3. Done: add a manual, environment-gated PyPI Trusted Publishing workflow
+   with no long-lived upload token.
+4. Pending: review/merge the public SDK and private API boundary branches,
+   register the PyPI Trusted Publisher, then publish `seam-client` 0.1.0.
 
 ---
 

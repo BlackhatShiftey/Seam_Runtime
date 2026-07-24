@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seam-client"
+version = "0.1.0"
+description = "Public Python SDK for building agents with SEAM memory"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+  { name = "BlackhatShiftey" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Typing :: Typed",
+]
+keywords = ["ai", "agents", "memory", "sdk", "seam"]
+dependencies = [
+  "httpx>=0.27,<1.0",
+]
+
+[project.urls]
+Homepage = "https://canticle.cc"
+Documentation = "https://github.com/BlackhatShiftey/Seam_Runtime/tree/main/sdk"
+Repository = "https://github.com/BlackhatShiftey/Seam_Runtime"
+Issues = "https://github.com/BlackhatShiftey/Seam_Runtime/issues"
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2,<2",
+  "pytest>=8,<9",
+  "ruff>=0.6,<1",
+  "twine>=5,<7",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["seam_client*"]
+
+[tool.setuptools.package-data]
+seam_client = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

@@ -2,6 +2,41 @@
 
 <!-- mcp-name: io.github.BlackhatShiftey/seam-runtime -->
 
+## Public agent SDK
+
+The active public integration surface is [`seam-client`](sdk/README.md), an
+Apache-2.0 Python SDK for building custom agents with SEAM memory:
+
+```bash
+python -m pip install \
+  "seam-client @ git+https://github.com/BlackhatShiftey/Seam_Runtime.git@main#subdirectory=sdk"
+```
+
+```python
+from seam_client import AgentMemory, SeamClient
+
+memory = AgentMemory(
+    client=SeamClient.from_env(),
+    namespace="my-agent",
+    session_id="thread-42",
+)
+context = memory.before_turn("What did we decide?")
+```
+
+The SDK contains transport, typed models, and framework-neutral agent hooks. It
+does not contain the private runtime, MIRL implementation, HS/1 codecs, storage,
+ranking, graph, PACK, or benchmark internals. See
+[`PUBLIC_SDK_BOUNDARY.md`](PUBLIC_SDK_BOUNDARY.md).
+
+Hosted access is separately provisioned; installing the SDK does not imply an
+active hosted account or API credential.
+
+## Legacy Apache runtime 1.x
+
+The material below documents the historical Apache-2.0 `seam-runtime` 1.x
+release line. Versions 1.3.0 and 1.3.1 remain available under their existing
+license, but this repository no longer receives private runtime syncs.
+
 Give your local AI agent persistent memory in one command.
 
 SEAM is a local memory runtime for agents. It stores durable MIRL records in

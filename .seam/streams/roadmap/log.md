@@ -1008,24 +1008,6 @@ Bootstrap status capture for roadmap:track:G5: status=planned, status-since=2026
 
 ---BEGIN-ROADMAP-EVENT-#057---
 id: roadmap:057
-date: 2026-06-02T00:00:00Z
-agent: bootstrap
-kind: status-change
-item: roadmap:track:N
-event: bootstrap
-from: (initial)
-to: planned
-caused-by: history:284
-supersedes: none
-refs: ROADMAP.md:1572
-topics: packaging, release, distribution
-tokens: 42
----
-Bootstrap status capture for roadmap:track:N: status=planned, status-since=2026-06-02, caused-by=history:284. Sourced from ROADMAP.md seam:item marker.
----END-ROADMAP-EVENT-#057---
-
----BEGIN-ROADMAP-EVENT-#058---
-id: roadmap:058
 date: 2026-06-15T00:00:00Z
 agent: bootstrap
 kind: status-change
@@ -1035,9 +1017,27 @@ from: (initial)
 to: planned
 caused-by: history:319
 supersedes: none
-refs: ROADMAP.md:1600
+refs: ROADMAP.md:1609
 topics: query, sql, retrieval, benchmark, bird
 tokens: 43
 ---
 Bootstrap status capture for roadmap:track:O: status=planned, status-since=2026-06-15, caused-by=history:319. Sourced from ROADMAP.md seam:item marker.
+---END-ROADMAP-EVENT-#057---
+
+---BEGIN-ROADMAP-EVENT-#058---
+id: roadmap:058
+date: 2026-07-24T00:00:00Z
+agent: bootstrap
+kind: status-change
+item: roadmap:track:N
+event: bootstrap
+from: (initial)
+to: in-progress
+caused-by: history:348
+supersedes: none
+refs: ROADMAP.md:1572
+topics: packaging, release, distribution
+tokens: 41
+---
+Bootstrap status capture for roadmap:track:N: status=in-progress, status-since=2026-07-24, caused-by=history:348. Sourced from ROADMAP.md seam:item marker.
 ---END-ROADMAP-EVENT-#058---
