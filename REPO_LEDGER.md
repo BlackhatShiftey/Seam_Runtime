@@ -55,6 +55,11 @@ and `HISTORY_INDEX.md`.
   them. That line is frozen legacy code. Future private SEAM runtime work is
   not synced from the proprietary repository, and the legacy tree is not a
   source for new proprietary implementation.
+- `seam-client` 0.1.0 is live at
+  `https://pypi.org/project/seam-client/`. It is published only from
+  `.github/workflows/sdk-publish.yml` on reviewed public `main`, through the
+  protected `pypi` environment and PyPI Trusted Publishing/OIDC. No long-lived
+  PyPI upload token is part of the release path.
 - Apache-2.0 applies to the public core through `LICENSE` and `NOTICE`.
   `COMMERCIAL_LICENSE.md` now describes the separate commercial boundary:
   hosted services, enterprise connectors, private benchmark holdouts, managed

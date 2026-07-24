@@ -7959,3 +7959,37 @@ environment with protected-branch deployments and no custom branch policy.
 No PyPI credential was created and no package was published; the one-time
 PyPI Trusted Publisher registration remains pending.
 ---END-ENTRY-#349---
+
+---BEGIN-ENTRY-#350---
+id: 350
+date: 2026-07-24T15:52:53Z
+agent: Codex
+status: done
+topics: agent, ci, pyproject, verify
+commits: pending
+refs: .github/workflows/sdk-publish.yml,sdk/pyproject.toml,sdk/README.md,README.md
+supersedes: 349
+tokens: 260
+---
+Published Apache-2.0 `seam-client` 0.1.0 to PyPI.
+
+GitHub Actions run 30107050434 executed from reviewed public `main` through
+the protected `pypi` environment. Exact-version verification, clean
+wheel/sdist build, `twine check`, the public artifact-boundary scanner,
+artifact transfer, PyPI Trusted Publishing/OIDC upload, and PyPI digital
+attestations all passed. No long-lived PyPI upload token was created or used.
+
+Live verification:
+
+- `https://pypi.org/pypi/seam-client/json` reports name `seam-client`, version
+  `0.1.0`, license expression `Apache-2.0`, one universal wheel, and one sdist.
+- A fresh isolated environment installed `seam-client==0.1.0` from PyPI
+  without cache and reported package/module version `0.1.0`.
+- The installed wheel imported `SeamClient`, `AsyncSeamClient`,
+  `AgentMemory`, and `AsyncAgentMemory`.
+
+This release publishes only the independently authored public client. It does
+not publish the private runtime, MIRL, HS/1, PACK, graph, storage, provenance,
+ranking, or benchmark internals. Hosted service access remains separately
+provisioned.
+---END-ENTRY-#350---
