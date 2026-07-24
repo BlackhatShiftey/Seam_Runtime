@@ -1,13 +1,29 @@
 from __future__ import annotations
 
+import importlib.util
 import io
 import tarfile
 import zipfile
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-from tools.verify_artifact_boundary import verify
+
+def _load_verifier() -> ModuleType:
+    path = Path(__file__).parents[1] / "tools" / "verify_artifact_boundary.py"
+    spec = importlib.util.spec_from_file_location(
+        "seam_client_artifact_boundary",
+        path,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load artifact verifier from {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+verify = _load_verifier().verify
 
 METADATA = b"""Metadata-Version: 2.4
 Name: seam-client

@@ -7924,3 +7924,38 @@ VALIDATION:
 - A live in-process cross-repository smoke exercised `AsyncAgentMemory` against the private FastAPI `/v1` implementation with SQLite and verified public responses contain no internal record IDs.
 - `verify_integrity` passed. The public checkout's pre-existing routing defect remains explicit: `verify_routing` and the routing phase of `verify_continuity` report seven ledger paths already named in `tools/history/routing_manifest.json` but absent from `origin/main`; this SDK change did not invent placeholder ledgers or copy private ledgers into the public repo.
 ---END-ENTRY-#348---
+
+---BEGIN-ENTRY-#349---
+id: 349
+date: 2026-07-24T12:58:54Z
+agent: Codex
+status: done
+topics: ci, pyproject, test, verify
+commits: pending
+refs: sdk/tests/test_artifact_boundary.py,.github/workflows/sdk-ci.yml
+supersedes: 348
+tokens: 220
+---
+Fixed the first public `seam-client` CI run.
+
+GitHub run 30094956678 showed that both Python 3.10 and 3.12 installed the SDK
+and passed Ruff, while the complete distribution job built, checked,
+boundary-scanned, smoke-installed, and uploaded the artifacts successfully.
+Only test collection failed: `test_artifact_boundary.py` imported the
+intentionally unshipped verifier as `tools.verify_artifact_boundary`, which
+worked only when the local command placed `sdk/` itself on `PYTHONPATH`.
+
+The test now loads `sdk/tools/verify_artifact_boundary.py` through
+`importlib.util.spec_from_file_location` using its exact path. The verifier
+remains outside the wheel, and tests no longer depend on repository-root
+package resolution.
+
+Reproduction matching the installed-package layout:
+`PYTHONPATH=sdk/src ... -m pytest sdk/tests -q` passed 12 tests, and Ruff
+passed for `sdk/`.
+
+Separately configured the public repository's GitHub Actions `pypi`
+environment with protected-branch deployments and no custom branch policy.
+No PyPI credential was created and no package was published; the one-time
+PyPI Trusted Publisher registration remains pending.
+---END-ENTRY-#349---

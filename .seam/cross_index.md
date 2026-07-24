@@ -2,14 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 406
+total_events: 407
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-05-15T21:15:18Z | history:171:65ae1a6a | session-event | done | protocol, history, plan, verify, status, ledger, roadmap,... | ROADMAP.md,tools/streams/build_context_pack.py,tools/streams/bloat_report.py,... |
 | 2026-05-15T21:52:49Z | history:172:0cc3f09f | session-event | done | verify, history, audit, status, protocol | tools/history/recorded_fact_audit.py,tools/history/test_count_audit.py,tools/... |
 | 2026-05-15T22:25:58Z | history:173:735e9a04 | session-event | done | installer, linux, verify, status, history, audit | .gitignore,experimental/webui/package.json,PROJECT_STATUS.md,HISTORY.md,HISTO... |
 | 2026-05-16T00:15:17Z | history:174:aa43d093 | session-event | done | verify, history, audit, protocol, status | AGENTS.md,PROJECT_STATUS.md,REPO_LEDGER.md,tools/history/test_count_audit.py,... |
@@ -209,10 +208,11 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-07-03T23:54:27Z | history:347:029e01d2 | session-event | done | mcp, pyproject, readme, registry | pyproject.toml,README.md,server.json,seam_runtime/mcp_protocol.py |
 | 2026-07-24T00:00:00Z | roadmap:058:f0f7906d | status-change | bootstrap | packaging, release, distribution | ROADMAP.md:1572 |
 | 2026-07-24T12:49:43Z | history:348:01d0bbc8 | session-event | done | agent, pyproject, docs, security, test, surface | sdk/,PUBLIC_SDK_BOUNDARY.md,.github/workflows/sdk-ci.yml,.github/workflows/sd... |
+| 2026-07-24T12:58:54Z | history:349:2b5ee746 | session-event | done | ci, pyproject, test, verify | sdk/tests/test_artifact_boundary.py,.github/workflows/sdk-ci.yml |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0206.cross.md | 2026-04-15T00:00:00Z..2026-05-15T19:59:46Z | 206 | (multi) | (multi) |
+| 0001-0207.cross.md | 2026-04-15T00:00:00Z..2026-05-15T21:15:18Z | 207 | (multi) | (multi) |

@@ -1,8 +1,8 @@
 # History Index
 
-total_entries: 348
-total_tokens: ~143903
-latest_id: 348
+total_entries: 349
+total_tokens: ~144123
+latest_id: 349
 source: HISTORY.md
 schema: v1
 compact: true
@@ -11,6 +11,7 @@ compact: true
 
 | id | date | status | hash | topics | supersedes |
 |---|---|---|---|---|---|
+| 349 | 2026-07-24 | done | 2b5ee746333c5b32 | ci,pyproject,test,verify | 348 |
 | 348 | 2026-07-24 | done | 01d0bbc8602dadc6 | agent,pyproject,docs,security,+ | 347 |
 | 347 | 2026-07-03 | done | 029e01d230d0f6ef | mcp,pyproject,readme,registry | none |
 | 346 | 2026-07-03 | done | 8e76711dfa129029 | readme,ledger,roadmap,protocol | none |
@@ -388,7 +389,7 @@ compact: true
 - chat: count=16 latest=#342, #286, #137, #074, #073
 - chat-endpoint: count=1 latest=#300
 - chroma: count=5 latest=#296, #295, #293, #017, #001
-- ci: count=11 latest=#339, #301, #295, #294, #293
+- ci: count=12 latest=#349, #339, #301, #295, #294
 - classification: count=11 latest=#177, #176, #171, #170, #169
 - cleanup: count=1 latest=#326
 - clear-text-logging: count=2 latest=#299, #298
@@ -508,7 +509,7 @@ compact: true
 - proposer: count=1 latest=#291
 - protocol: count=96 latest=#346, #324, #322, #310, #304
 - prov: count=1 latest=#316
-- pyproject: count=8 latest=#348, #347, #339, #267, #094
+- pyproject: count=9 latest=#349, #348, #347, #339, #267
 - qr: count=1 latest=#307
 - query: count=2 latest=#319, #318
 - rank: count=6 latest=#243, #242, #240, #017, #005
@@ -559,7 +560,7 @@ compact: true
 - symbols: count=2 latest=#316, #309
 - tempfile: count=1 latest=#330
 - templates: count=1 latest=#331
-- test: count=44 latest=#348, #344, #343, #342, #341
+- test: count=45 latest=#349, #348, #344, #343, #342
 - tests: count=3 latest=#192, #191, #182
 - textual: count=17 latest=#108, #106, #063, #062, #061
 - tokenizer: count=1 latest=#216
@@ -569,7 +570,7 @@ compact: true
 - tui: count=25 latest=#137, #121, #120, #119, #118
 - unify: count=1 latest=#311
 - vector: count=25 latest=#228, #223, #220, #218, #199
-- verify: count=248 latest=#344, #320, #317, #316, #315
+- verify: count=249 latest=#349, #344, #320, #317, #316
 - vulnerability: count=1 latest=#296
 - webui: count=6 latest=#342, #340, #326, #286, #285
 - windows: count=21 latest=#283, #282, #261, #260, #259
@@ -580,6 +581,6 @@ compact: true
 ## status rollup
 
 - roots: 69
-- done: 326
+- done: 327
 - in-progress: 2
 - planned: 20
