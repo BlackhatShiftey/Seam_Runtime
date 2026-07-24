@@ -21,8 +21,8 @@ orchestration internals.
 python -m pip install seam-client
 ```
 
-The package is in alpha. Until the first PyPI release, install from the public
-repository:
+Version 0.1.0 is the first public alpha release. To install directly from the
+public source repository instead:
 
 ```bash
 python -m pip install \

@@ -2,14 +2,13 @@
 
 schema: seam-cross-index/v1
 source: streams/*/log.md (derived; do not hand-edit)
-total_events: 407
+total_events: 408
 hot_zone_max: 200
 archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 
 ## Hot Zone (latest 200 events, oldest first)
 | utc | stream:id:hash | kind | event | topics | refs |
 |---|---|---|---|---|---|
-| 2026-05-15T21:52:49Z | history:172:0cc3f09f | session-event | done | verify, history, audit, status, protocol | tools/history/recorded_fact_audit.py,tools/history/test_count_audit.py,tools/... |
 | 2026-05-15T22:25:58Z | history:173:735e9a04 | session-event | done | installer, linux, verify, status, history, audit | .gitignore,experimental/webui/package.json,PROJECT_STATUS.md,HISTORY.md,HISTO... |
 | 2026-05-16T00:15:17Z | history:174:aa43d093 | session-event | done | verify, history, audit, protocol, status | AGENTS.md,PROJECT_STATUS.md,REPO_LEDGER.md,tools/history/test_count_audit.py,... |
 | 2026-05-16T00:22:59Z | history:175:a27d3a0a | session-event | done | verify, history, audit, protocol, status | PROJECT_STATUS.md,tools/history/test_count_audit.py,tools/history/test_histor... |
@@ -175,7 +174,7 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-06-14T12:27:24Z | history:315:1824fb06 | session-event | done | pack, density, compression, context, retrieval, cr, verif... | seam_runtime/pack.py,test_seam_all/test_seam.py,HISTORY.md,HISTORY_INDEX.md,P... |
 | 2026-06-14T13:26:00Z | history:316:a45c14d0 | session-event | done | pack, density, compression, context, symbols, prov, evide... | seam_runtime/pack.py,test_seam_all/test_seam.py,HISTORY.md,HISTORY_INDEX.md,P... |
 | 2026-06-14T23:53:15Z | history:317:8008e5f4 | session-event | done | nl, compiler, ingest, enrichment, regex, locomo, benchmar... | seam_runtime/nl.py,tests/audit/test_conversation_turn_compile.py,test_seam_al... |
-| 2026-06-15T00:00:00Z | roadmap:057:e2d25ecf | status-change | bootstrap | query, sql, retrieval, benchmark, bird | ROADMAP.md:1609 |
+| 2026-06-15T00:00:00Z | roadmap:057:bc2c9d24 | status-change | bootstrap | query, sql, retrieval, benchmark, bird | ROADMAP.md:1610 |
 | 2026-06-15T01:01:25Z | history:318:986aa846 | session-event | done | retrieval, multihop, locomo, benchmark, scope, query, sql... | docs/audits/2026-06-15-cat1-cat3-multihop-scope.md,docs/roadmap/SEAM_QUERY_EN... |
 | 2026-06-15T01:17:23Z | history:319:4081a094 | session-event | done | roadmap, query, sql, bird, benchmark, retrieval, multihop... | ROADMAP.md,HISTORY.md,HISTORY_INDEX.md,PROJECT_STATUS.md |
 | 2026-06-15T03:39:08Z | history:320:25494450 | session-event | done | retrieval, budget, topk, locomo, benchmark, judge, recall... | seam_runtime/retrieval.py,seam_runtime/runtime.py,benchmarks/external/locomo/... |
@@ -206,13 +205,14 @@ archive_pattern: cross_index_archive/<lo>-<hi>.cross.md
 | 2026-07-03T15:15:01Z | history:345:677aea14 | session-event | done | readme, prompt, docs | README.md |
 | 2026-07-03T16:21:14Z | history:346:8e76711d | session-event | done | readme, ledger, roadmap, protocol | LICENSE,NOTICE,COMMERCIAL_LICENSE.md,CONTRIBUTING.md,README.md,REPO_LEDGER.md... |
 | 2026-07-03T23:54:27Z | history:347:029e01d2 | session-event | done | mcp, pyproject, readme, registry | pyproject.toml,README.md,server.json,seam_runtime/mcp_protocol.py |
-| 2026-07-24T00:00:00Z | roadmap:058:f0f7906d | status-change | bootstrap | packaging, release, distribution | ROADMAP.md:1572 |
+| 2026-07-24T00:00:00Z | roadmap:058:29af0b14 | status-change | bootstrap | packaging, release, distribution | ROADMAP.md:1572 |
 | 2026-07-24T12:49:43Z | history:348:01d0bbc8 | session-event | done | agent, pyproject, docs, security, test, surface | sdk/,PUBLIC_SDK_BOUNDARY.md,.github/workflows/sdk-ci.yml,.github/workflows/sd... |
 | 2026-07-24T12:58:54Z | history:349:2b5ee746 | session-event | done | ci, pyproject, test, verify | sdk/tests/test_artifact_boundary.py,.github/workflows/sdk-ci.yml |
+| 2026-07-24T15:52:53Z | history:350:6348d32e | session-event | done | agent, ci, pyproject, verify | .github/workflows/sdk-publish.yml,sdk/pyproject.toml,sdk/README.md,README.md |
 
 
 ## Archive Pointers
 
 | chunk | utc_range | event_count | streams | top_topics |
 |---|---|---|---|---|
-| 0001-0207.cross.md | 2026-04-15T00:00:00Z..2026-05-15T21:15:18Z | 207 | (multi) | (multi) |
+| 0001-0208.cross.md | 2026-04-15T00:00:00Z..2026-05-15T21:52:49Z | 208 | (multi) | (multi) |

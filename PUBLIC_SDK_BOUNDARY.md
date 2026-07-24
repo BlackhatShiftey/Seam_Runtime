@@ -1,7 +1,7 @@
 # SEAM Public SDK Boundary
 
 The active public integration surface is the Apache-2.0 `seam-client` package
-under `sdk/`.
+under `sdk/`, published at <https://pypi.org/project/seam-client/>.
 
 ## Public
 

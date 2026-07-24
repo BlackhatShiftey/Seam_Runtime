@@ -1571,17 +1571,17 @@ high recall; that may be an answerer failure, not a retrieval failure.
 
 <!-- seam:item
 id: roadmap:track:N
-status: in-progress
+status: done
 status-since: 2026-07-24
-status-by: history:348
+status-by: history:350
 supersedes: none
 topics: packaging, release, distribution
 priority: 3
 phase: 1
 -->
 
-**Status:** In progress. The public release target is now the isolated
-`seam-client` SDK, not a new release of the private runtime.
+**Status:** Done for the first public release. Apache-2.0 `seam-client` 0.1.0
+is live on PyPI through tokenless Trusted Publishing.
 
 **Distribution target:** `BlackhatShiftey/Seam_Runtime` contains the
 Apache-2.0 `seam-client` 0.1.0 build root under `sdk/`. It provides typed
@@ -1599,8 +1599,9 @@ Phase work:
 2. Done: add CI for tests, build, `twine check`, and artifact-boundary scans.
 3. Done: add a manual, environment-gated PyPI Trusted Publishing workflow
    with no long-lived upload token.
-4. Pending: review/merge the public SDK and private API boundary branches,
-   register the PyPI Trusted Publisher, then publish `seam-client` 0.1.0.
+4. Done: merged the public SDK and private API boundaries, registered the
+   pending PyPI Trusted Publisher, and published `seam-client` 0.1.0 from
+   reviewed public `main`.
 
 ---
 

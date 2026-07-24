@@ -4,14 +4,14 @@ total_events: 58
 latest_id: 58
 source: streams/roadmap/log.md
 schema: seam-stream-index/v1
-content_hash: c5b061f4eabebcf402200771deeb7f5c5817f89a6384d12271a4962dc7b3f9cb
+content_hash: 3b5001a36ac532888f33e5a3a887b1e606d295d41d017d91cfe6680967a73a8e
 
 ## entries (newest first)
 
 | id | date | kind | item | event | hash | supersedes | topics |
 |---|---|---|---|---|---|---|---|
-| 058 | 2026-07-24T00:00:00Z | status-change | roadmap:track:N | bootstrap | f0f7906db0999a48 | none | packaging, release, distribution |
-| 057 | 2026-06-15T00:00:00Z | status-change | roadmap:track:O | bootstrap | e2d25ecfeaf7260d | none | query, sql, retrieval, benchmark, bird |
+| 058 | 2026-07-24T00:00:00Z | status-change | roadmap:track:N | bootstrap | 29af0b14f8be3409 | none | packaging, release, distribution |
+| 057 | 2026-06-15T00:00:00Z | status-change | roadmap:track:O | bootstrap | bc2c9d244d9a1bbc | none | query, sql, retrieval, benchmark, bird |
 | 056 | 2026-05-31T00:00:00Z | status-change | roadmap:track:G5 | bootstrap | 659e2ea60107e32c | none | surface, search, verify, integrity |
 | 055 | 2026-05-25T00:00:00Z | status-change | roadmap:track:H2 | bootstrap | 2bde78b68bbe2d5f | none | protocol, history, plan |
 | 054 | 2026-05-25T00:00:00Z | status-change | roadmap:track:F:backlog:experience-stream-empty | bootstrap | 4b2f3d540cf06dfc | none | experience, protocol |

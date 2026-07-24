@@ -1017,7 +1017,7 @@ from: (initial)
 to: planned
 caused-by: history:319
 supersedes: none
-refs: ROADMAP.md:1609
+refs: ROADMAP.md:1610
 topics: query, sql, retrieval, benchmark, bird
 tokens: 43
 ---
@@ -1032,12 +1032,12 @@ kind: status-change
 item: roadmap:track:N
 event: bootstrap
 from: (initial)
-to: in-progress
-caused-by: history:348
+to: done
+caused-by: history:350
 supersedes: none
 refs: ROADMAP.md:1572
 topics: packaging, release, distribution
 tokens: 41
 ---
-Bootstrap status capture for roadmap:track:N: status=in-progress, status-since=2026-07-24, caused-by=history:348. Sourced from ROADMAP.md seam:item marker.
+Bootstrap status capture for roadmap:track:N: status=done, status-since=2026-07-24, caused-by=history:350. Sourced from ROADMAP.md seam:item marker.
 ---END-ROADMAP-EVENT-#058---

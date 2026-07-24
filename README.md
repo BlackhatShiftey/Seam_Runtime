@@ -8,8 +8,7 @@ The active public integration surface is [`seam-client`](sdk/README.md), an
 Apache-2.0 Python SDK for building custom agents with SEAM memory:
 
 ```bash
-python -m pip install \
-  "seam-client @ git+https://github.com/BlackhatShiftey/Seam_Runtime.git@main#subdirectory=sdk"
+python -m pip install seam-client
 ```
 
 ```python
